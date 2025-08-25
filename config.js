@@ -69,11 +69,11 @@ export const FORWARDER = {
         "1378015808428445777": { group: "growagarden", type: "announcements", fetchHistory: true }, //Ember Support | announcements
         "1378020774610206860": { group: "growagarden", type: "changelogs", fetchHistory: true }, //Ember Support | change-log
         "1398539523046117468": { group: "growagarden", type: "leaks", fetchHistory: true }, //Jandel Fan | leaks
-        "1373698281984753714": { group: "growagarden", type: "seeds", fetchHistory: false }, //Jandel Fan | stock
+        "1408932421583245425": { group: "growagarden", type: "seeds", fetchHistory: false }, //Jandel Fan | stock
         "1373218102313091072": { group: "growagarden", type: "eggs", fetchHistory: false }, //Gag Trading | egg-stock
-        "1373698339509375018": { group: "growagarden", type: "weather", fetchHistory: false }, //Jandel Fan | weather
+        "1408932641859829852": { group: "growagarden", type: "weather", fetchHistory: false }, //Jandel Fan | weather
         "1376539587949887499": { group: "growagarden", type: "cosmetics", fetchHistory: false }, //Gag Trading | cosmetics-stock
-        "1392876996861628466": { group: "growagarden", type: "merchants", fetchHistory: false }, //Jandel Fan | merchants
+        "1408933312596279377": { group: "growagarden", type: "merchants", fetchHistory: false }, //Jandel Fan | merchants
         "1394790732300161195": { group: "growagarden", type: "adminabuse", fetchHistory: true }, //Jandel Fan | admin-abuse
     },
     TARGET_CHANNELS: {

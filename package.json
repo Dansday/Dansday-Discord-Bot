@@ -1,6 +1,6 @@
 {
   "name": "goblox-assistant-bot",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A versatile Discord bot with multiple features: AI-powered chatbot using GPT-4, message forwarding system that supports embeds and bot messages, automated welcome messages, and comprehensive logging system. Built with discord.js-selfbot-v13.",
   "main": "main.js",
   "type": "module",
