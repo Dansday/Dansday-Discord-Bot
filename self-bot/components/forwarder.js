@@ -4,11 +4,22 @@ import logger from "../../logger.js";
 import { delay } from "../../utils.js";
 
 let forwarded = {};
+
+// Ensure json directory exists
+const jsonDir = "json";
+if (!fs.existsSync(jsonDir)) {
+    fs.mkdirSync(jsonDir, { recursive: true });
+}
+
 if (fs.existsSync(FORWARDER.FILES.JSON)) {
     forwarded = JSON.parse(fs.readFileSync(FORWARDER.FILES.JSON, "utf8"));
 }
 
 function saveForwarded() {
+    // Ensure json directory exists before writing
+    if (!fs.existsSync(jsonDir)) {
+        fs.mkdirSync(jsonDir, { recursive: true });
+    }
     fs.writeFileSync(FORWARDER.FILES.JSON, JSON.stringify(forwarded, null, 2));
 }
 

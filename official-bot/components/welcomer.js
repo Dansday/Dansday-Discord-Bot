@@ -3,11 +3,22 @@ import { WELCOMER } from "../../shared-config.js";
 import logger from "../../logger.js";
 
 let welcomed = {};
+
+// Ensure json directory exists
+const jsonDir = "json";
+if (!fs.existsSync(jsonDir)) {
+    fs.mkdirSync(jsonDir, { recursive: true });
+}
+
 if (fs.existsSync(WELCOMER.FILES.JSON)) {
     welcomed = JSON.parse(fs.readFileSync(WELCOMER.FILES.JSON, "utf8"));
 }
 
 function saveWelcomed() {
+    // Ensure json directory exists before writing
+    if (!fs.existsSync(jsonDir)) {
+        fs.mkdirSync(jsonDir, { recursive: true });
+    }
     fs.writeFileSync(WELCOMER.FILES.JSON, JSON.stringify(welcomed, null, 2));
 }
 

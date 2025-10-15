@@ -25,29 +25,33 @@ A Discord bot system that separates self-bot monitoring from official bot forwar
 ```
 goblox-bot/
 ├── main.js                 # Launcher script
-├── package.json           # Root package.json
+├── package.json           # Single package.json with all dependencies
 ├── shared-config.js       # Shared configuration
 ├── logger.js              # Shared logger utility
 ├── utils.js               # Shared utilities
+├── json/                  # JSON data storage
+│   ├── forwarded.json    # Forwarded messages tracking
+│   └── welcomed.json     # Welcomed users tracking
 ├── self-bot/
 │   ├── main.js           # Self-bot entry point
-│   ├── package.json      # Self-bot dependencies
 │   └── components/
 │       └── forwarder.js  # Message monitoring component
 └── official-bot/
     ├── main.js           # Official bot entry point
-    ├── package.json      # Official bot dependencies
     └── components/
         ├── forwarder.js  # Message forwarding component
-        └── welcomer.js   # User welcoming component
+        ├── welcomer.js   # User welcoming component
+        └── webhook.js    # Webhook server component
 ```
 
 ## Setup
 
 1. **Install dependencies**:
    ```bash
-   npm run install:all
+   npm install
    ```
+   
+   > **Note**: This project uses a single `package.json` file for direct admin hosting compatibility.
 
 2. **Configure environment**:
    - Edit `shared-config.js`
@@ -109,6 +113,16 @@ All configuration is centralized in `shared-config.js`:
 - **Role Mentions**: Configure role mentions for each group
 - **Welcome Messages**: Configure welcome message templates
 - **Excluded Users**: Configure users to exclude from forwarding
+
+## Data Management
+
+### JSON Storage
+- **Location**: All JSON files are stored in the `json/` subfolder
+- **Files**:
+  - `json/forwarded.json` - Tracks forwarded messages to prevent duplicates
+  - `json/welcomed.json` - Tracks welcomed users to prevent duplicate welcomes
+- **Auto-creation**: JSON directory and files are created automatically if they don't exist
+- **Persistence**: Data persists between bot restarts for reliable operation
 
 ## Security Benefits
 

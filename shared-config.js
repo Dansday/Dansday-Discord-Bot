@@ -26,7 +26,7 @@ export const LOGGER = {
 // Welcomer Configuration
 export const WELCOMER = {
     FILES: {
-        JSON: "welcomed.json"
+        JSON: "json/welcomed.json"
     },
     CHANNELS: {
         "1364374298307072010": "1364374299359707212"
@@ -48,7 +48,7 @@ export const WELCOMER = {
 // Forwarder Configuration
 export const FORWARDER = {
     FILES: {
-        JSON: "forwarded.json"
+        JSON: "json/forwarded.json"
     },
     // Production source channels (all channels)
     PRODUCTION_SOURCE_CHANNELS: {
