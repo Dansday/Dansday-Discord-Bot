@@ -1,10 +1,9 @@
-import { ModalBuilder, TextInputBuilder, ActionRowBuilder, EmbedBuilder, StringSelectMenuBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle, ChannelType, AttachmentBuilder } from 'discord.js';
+import { ModalBuilder, TextInputBuilder, ActionRowBuilder, EmbedBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { EMBED } from "../../../config.js";
 import logger from "../../../logger.js";
-import { replyWithAutoDelete } from "../../../utils.js";
 
 // Handle send message button - shows channel selector first
-export async function handleSendMessageButton(interaction, client) {
+export async function handleSendMessageButton(interaction) {
     try {
         // This is a staff-only feature, no additional permission checks needed
 
@@ -18,25 +17,25 @@ export async function handleSendMessageButton(interaction, client) {
 
         const selectRow = new ActionRowBuilder().addComponents(channelSelect);
 
-        await replyWithAutoDelete(interaction, {
+        await interaction.reply({
             content: '📤 **Send Custom Message**\n\nPlease select the channel where you want to send the message:',
             components: [selectRow],
             flags: 64
-        }, 300000); // 5 minutes
+        });
 
         await logger.log(`📤 Send message channel selector opened by ${interaction.user.tag} (${interaction.user.id})`);
 
     } catch (error) {
-        await replyWithAutoDelete(interaction, {
+        await interaction.reply({
             content: `❌ Failed to open send message form: ${error.message}`,
             flags: 64
-        }, 300000); // 5 minutes
+        });
         await logger.log(`❌ Send message error: ${error.message}`);
     }
 }
 
 // Handle channel selection - shows role selector
-export async function handleChannelSelection(interaction, client) {
+export async function handleChannelSelection(interaction) {
     try {
         const selectedChannel = interaction.values[0];
         const channel = interaction.guild.channels.cache.get(selectedChannel);
@@ -80,7 +79,7 @@ export async function handleChannelSelection(interaction, client) {
 }
 
 // Handle role selection - shows message composition interface
-export async function handleRoleSelection(interaction, client) {
+export async function handleRoleSelection(interaction) {
     try {
         const selectedRoles = interaction.values;
         const channelId = interaction.customId.replace('send_message_role_select_', '');
@@ -163,7 +162,7 @@ export async function handleRoleSelection(interaction, client) {
 }
 
 // Handle complete setup button (skip role selection)
-export async function handleCompleteSetup(interaction, client) {
+export async function handleCompleteSetup(interaction) {
     try {
         const channelId = interaction.customId.replace('send_message_complete_', '');
         const channel = interaction.guild.channels.cache.get(channelId);
@@ -244,9 +243,8 @@ export async function handleCompleteSetup(interaction, client) {
     }
 }
 
-
 // Handle modal submission
-export async function handleSendMessageModal(interaction, client) {
+export async function handleSendMessageModal(interaction) {
     try {
         // This is a staff-only feature, no additional permission checks needed
 
@@ -263,30 +261,30 @@ export async function handleSendMessageModal(interaction, client) {
         const footerInput = interaction.fields.getTextInputValue('embed_footer') || null;
 
         // Get the target channel
-        const targetChannel = await client.channels.fetch(channelId).catch(() => null);
+        const targetChannel = await interaction.client.channels.fetch(channelId).catch(() => null);
         if (!targetChannel) {
-            await replyWithAutoDelete(interaction, {
+            await interaction.reply({
                 content: '❌ Channel not found. Please try again.',
                 flags: 64
-            }, 300000); // 5 minutes
+            });
             return;
         }
 
         // Check if it's a text-based channel
         if (!targetChannel.isTextBased()) {
-            await replyWithAutoDelete(interaction, {
+            await interaction.reply({
                 content: '❌ The specified channel is not a text channel.',
                 flags: 64
-            }, 300000); // 5 minutes
+            });
             return;
         }
 
         // Validate that both title and description are provided (now required)
         if (!title || !description) {
-            await replyWithAutoDelete(interaction, {
+            await interaction.reply({
                 content: '❌ Both title and description are required for the embed.',
                 flags: 64
-            }, 300000); // 5 minutes
+            });
             return;
         }
 
@@ -300,10 +298,10 @@ export async function handleSendMessageModal(interaction, client) {
             } else if (colorInput.startsWith('0x') && /^0x[0-9A-Fa-f]{6}$/.test(colorInput)) {
                 embedColor = parseInt(colorInput, 16);
             } else {
-                await replyWithAutoDelete(interaction, {
+                await interaction.reply({
                     content: '❌ Invalid color format. Please use hex format like #FF0000 or 0xFF0000.',
                     flags: 64
-                }, 300000); // 5 minutes
+                });
                 return;
             }
         }
@@ -348,20 +346,20 @@ export async function handleSendMessageModal(interaction, client) {
 
         await targetChannel.send(messageOptions);
 
-        // Reply to the user with auto-delete
-        await replyWithAutoDelete(interaction, {
+        // Reply to the user
+        await interaction.reply({
             content: `✅ Custom message sent successfully to ${targetChannel}!`,
             flags: 64
-        }, 300000); // 5 minutes
+        });
 
         await logger.log(`📤 Custom message sent by ${interaction.user.tag} (${interaction.user.id}) to ${targetChannel.name} (${targetChannel.id})`);
 
     } catch (error) {
-        // Reply to the user with auto-delete for error
-        await replyWithAutoDelete(interaction, {
+        // Reply to the user with error
+        await interaction.reply({
             content: `❌ Failed to send message: ${error.message}`,
             flags: 64
-        }, 300000); // 5 minutes
+        });
 
         await logger.log(`❌ Send message error: ${error.message}`);
     }

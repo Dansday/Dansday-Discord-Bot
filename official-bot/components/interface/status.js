@@ -1,43 +1,43 @@
 import { EMBED } from "../../../config.js";
 import logger from "../../../logger.js";
-import { replyWithAutoDelete } from "../../../utils.js";
 
 // Handle status button
 export async function handleStatusButton(interaction) {
+    const guild = interaction.guild;
+    const uptime = Math.floor(process.uptime());
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = uptime % 60;
+
     const statusEmbed = {
         color: EMBED.COLOR,
         title: "📊 Bot Status",
         fields: [
             {
-                name: "🟢 Bot Status",
+                name: "🟢 Status",
                 value: "🟢 Online",
                 inline: true
             },
             {
                 name: "⏰ Uptime",
-                value: `${Math.floor(process.uptime())} seconds`,
-                inline: true
-            },
-            {
-                name: "📡 Webhook Server",
-                value: "Active",
-                inline: true
-            },
-            {
-                name: "🔧 Components",
-                value: "Forwarder, Welcomer, Interface",
+                value: `${hours}h ${minutes}m ${seconds}s`,
                 inline: false
             },
             {
-                name: "🎮 Interface",
-                value: "✅ Button interface active",
-                inline: false
+                name: "👥 Total Members",
+                value: `${guild.memberCount}`,
+                inline: true
+            },
+            {
+                name: "💎 Boosters",
+                value: `${guild.premiumSubscriptionCount}`,
+                inline: true
             }
         ],
         timestamp: new Date().toISOString()
     };
 
-    await replyWithAutoDelete(interaction, {
+    await interaction.reply({
         embeds: [statusEmbed],
         flags: 64
     });

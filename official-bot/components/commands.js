@@ -1,5 +1,4 @@
 import { REST, Routes } from 'discord.js';
-import { replyWithAutoDelete } from "../../utils.js";
 import { OFFICIAL_BOT_TOKEN, OFFICIAL_BOT_APPLICATION_ID } from "../../config.js";
 import logger from "../../logger.js";
 
@@ -29,7 +28,7 @@ function getSlashCommands() {
 async function executeSlashCommand(interaction, client) {
     // Check if bot is paused (except for pause command only)
     if (client.isPaused && interaction.commandName !== 'pause') {
-        await replyWithAutoDelete({
+        await interaction.reply({
             content: '⏸️ Bot is currently paused. Use `/pause` to resume.',
             flags: 64
         });
@@ -121,7 +120,7 @@ function init(client) {
                             await logger.log(`❌ Unexpected command error: /${interaction.commandName} by ${interaction.user.tag} - ${result.reason}`);
                     }
 
-                    await replyWithAutoDelete({
+                    await interaction.reply({
                         content: errorMessage,
                         flags: 64
                     });
@@ -136,7 +135,7 @@ function init(client) {
                 await logger.log(`❌ Critical error in interaction handler: ${error.message}`);
 
                 try {
-                    await replyWithAutoDelete({
+                    await interaction.reply({
                         content: `❌ **Critical Error**: An unexpected error occurred while processing your command.\n\n` +
                             `Please try again later or contact an administrator.`,
                         flags: 64

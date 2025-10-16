@@ -1,5 +1,4 @@
 import { sendInterfaceToChannel } from '../../interface.js';
-import { replyWithAutoDelete } from '../../../../utils.js';
 
 // Command definition
 export const commandDefinition = {
@@ -20,7 +19,7 @@ export async function execute(interaction, client) {
     try {
         // Check if user has permission
         if (!interaction.member.permissions.has('Administrator')) {
-            await replyWithAutoDelete({
+            await interaction.reply({
                 content: '❌ You need Administrator permissions to use this command.',
                 flags: 64
             });
@@ -31,7 +30,7 @@ export async function execute(interaction, client) {
         
         // Check if channel is a text channel
         if (!targetChannel.isTextBased()) {
-            await replyWithAutoDelete({
+            await interaction.reply({
                 content: '❌ Please select a text channel.',
                 flags: 64
             });
@@ -42,7 +41,7 @@ export async function execute(interaction, client) {
         await sendInterfaceToChannel(targetChannel, interaction, client);
 
     } catch (error) {
-        await replyWithAutoDelete({
+        await interaction.reply({
             content: `❌ Failed to send interface: ${error.message}`,
             flags: 64
         });

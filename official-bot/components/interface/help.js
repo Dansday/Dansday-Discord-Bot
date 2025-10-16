@@ -1,6 +1,5 @@
 import { EMBED } from "../../../config.js";
 import logger from "../../../logger.js";
-import { replyWithAutoDelete } from "../../../utils.js";
 
 // Handle help button
 export async function handleHelpButton(interaction) {
@@ -41,7 +40,7 @@ export async function handleHelpButton(interaction) {
         timestamp: new Date().toISOString()
     };
 
-    await replyWithAutoDelete(interaction, {
+    await interaction.reply({
         embeds: [helpEmbed],
         flags: 64
     });
