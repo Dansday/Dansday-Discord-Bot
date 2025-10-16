@@ -1,4 +1,5 @@
 import { EMBED } from "../../../config.js";
+import logger from "../../../logger.js";
 
 // Handle help button
 export async function handleHelpButton(interaction) {
@@ -9,17 +10,22 @@ export async function handleHelpButton(interaction) {
         fields: [
             {
                 name: "📊 Status Button",
-                value: "Shows bot status, uptime, and component information",
+                value: "Shows bot status, uptime, and component information.",
                 inline: false
             },
             {
                 name: "❓ Help Button",
-                value: "Shows this help information",
+                value: "Shows this help information.",
                 inline: false
             },
             {
                 name: "⏸️ Pause/Resume Button",
-                value: "Pauses or resumes the bot (Admin only)",
+                value: "Pauses or resumes the bot (Admin only).",
+                inline: false
+            },
+            {
+                name: "📤 Send Message Button",
+                value: "Send custom embeds to any channel with title, description, image, and color.",
                 inline: false
             },
             {
@@ -38,4 +44,6 @@ export async function handleHelpButton(interaction) {
         embeds: [helpEmbed],
         ephemeral: true
     });
+
+    await logger.log(`❓ Help button clicked by ${interaction.user.tag} (${interaction.user.id})`);
 }

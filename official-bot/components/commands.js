@@ -63,9 +63,6 @@ async function deployCommands(clearFirst = false) {
                 { body: [] },
             );
             console.log('🧹 Cleared existing slash commands.');
-
-            // Wait a moment for Discord to process the clear
-            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         // Register our commands

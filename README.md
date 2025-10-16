@@ -101,6 +101,12 @@ The official bot provides a single slash command for bot management:
 ### Admin Commands (Require Administrator permissions)
 - `/interface` - Send bot interface with buttons to target channel
 
+### Interface Features
+- **📊 Status Button** - Shows bot status, uptime, and component information
+- **❓ Help Button** - Shows help information for all interface features
+- **⏸️ Pause/Resume Button** - Pauses or resumes the bot (Admin only)
+- **📤 Send Message Button** - Send custom embeds with customizable title, description, image, footer, and color (Requires Send Messages permission)
+
 ### Command Features
 - **Ephemeral responses** - All command responses are private to the user
 - **Permission checking** - Admin commands verify Administrator permissions
