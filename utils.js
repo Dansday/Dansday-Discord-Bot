@@ -20,12 +20,3 @@ export function formatTimestamp(timestamp = Date.now(), includeSeconds = false) 
 
     return formatter.format(new Date(timestamp)).replace(",", "");
 }
-
-/**
- * Delay execution for specified milliseconds
- * @param {number} ms - Milliseconds to delay
- * @returns {Promise} Promise that resolves after the delay
- */
-export function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}

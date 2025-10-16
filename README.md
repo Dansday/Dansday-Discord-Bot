@@ -13,12 +13,13 @@ A Discord bot system that separates self-bot monitoring from official bot forwar
   - Handles historical message fetching
 
 ### Official Bot (`official-bot/`)
-- **Purpose**: Forwards messages to target channels and welcomes new users
+- **Purpose**: Forwards messages to target channels, welcomes new users, and provides slash commands
 - **Technology**: `discord.js` (official bot)
 - **Functionality**:
   - Receives message data from self-bot
   - Forwards messages to target channels with role mentions
   - Welcomes new users with random messages
+  - Provides slash commands for bot management
 
 ## Project Structure
 
@@ -38,7 +39,17 @@ goblox-bot/
     └── components/
         ├── forwarder.js  # Message forwarding component
         ├── welcomer.js   # User welcoming component
-        └── webhook.js    # Webhook server component
+        ├── webhook.js    # Webhook server component
+        ├── commands.js   # Slash command system
+        ├── interface.js  # Interface component
+        ├── commands/     # Command definitions
+        │   └── admin/
+        │       └── interface.js  # Interface command
+        └── interface/    # Interface button handlers
+            ├── status.js # Status button handler
+            ├── help.js   # Help button handler
+            ├── pause.js  # Pause button handler
+            └── sendmessage.js # Send message button handler
 ```
 
 ## Setup
@@ -83,6 +94,55 @@ npm run start:official   # Official bot only
 ```bash
 npm run dev
 ```
+
+## Slash Commands
+
+The official bot provides a single slash command for bot management:
+
+### Admin Commands (Require Administrator permissions)
+- `/interface` - Send bot interface with buttons to target channel
+
+### Interface Features
+- **📊 Status Button** - Shows bot status, uptime, and component information
+- **❓ Help Button** - Shows help information for all interface features
+- **⏸️ Pause/Resume Button** - Pauses or resumes the bot (Admin only)
+- **📤 Send Message Button** - Send custom embeds with customizable title (required), description (required), image URL, color, footer, and role mentions. Step-by-step process: Select channel → Choose role (optional) → Fill embed details → Send
+
+### Command Features
+- **Ephemeral responses** - All command responses are private to the user
+- **Permission checking** - Admin commands verify Administrator permissions
+- **Error handling** - Detailed error messages for command failures
+- **Interface-based interaction** - Users interact through visual buttons instead of slash commands
+
+## Button Interface
+
+The `/interface` command creates a visual interface with buttons that users can click instead of using slash commands:
+
+### Interface Features
+- **📊 Status Button** - Shows bot status and uptime
+- **❓ Help Button** - Shows available commands and features
+- **⏸️ Pause/Resume Button** - Pauses or resumes the bot (admin only)
+- **📤 Send Message Button** - Send custom embeds with title (required), description (required), image URL, color, footer, and role mentions
+
+### How to Use
+1. Admin uses `/interface #channel` to send the interface to any text channel
+2. Users can click buttons for instant bot interaction
+3. All button responses are ephemeral (private to the user)
+4. Pause/Resume button requires Administrator permissions
+
+### Send Message Feature
+The Send Message button provides a step-by-step process:
+1. **Select Channel** - Choose which channel to send the message to
+2. **Choose Role** - Optionally select a role to mention (can skip)
+3. **Fill Embed Details** - Enter title (required), description (required), image URL, color, and footer
+4. **Send** - Message is sent with role mentions and embed formatting
+
+### Benefits
+- **User-friendly** - No need to remember slash command syntax
+- **Visual** - Clear buttons with icons and labels
+- **Accessible** - Works for users who prefer clicking over typing
+- **Simplified** - Only one slash command needed (admin only)
+- **Clean** - No command clutter in Discord's slash command menu
 
 ## Communication Method
 
@@ -138,6 +198,9 @@ Each feature is organized as a component for easy maintenance:
 
 - **Forwarder Component**: Handles message processing and forwarding
 - **Welcomer Component**: Handles new user welcoming
+- **Webhook Component**: Handles webhook server for self-bot communication
+- **Commands Component**: Handles slash command system and execution
+- **Interface Component**: Handles button interface creation and interactions
 - **Logger Component**: Centralized logging system
 
 ## Troubleshooting
@@ -146,3 +209,6 @@ Each feature is organized as a component for easy maintenance:
 2. **Official bot not forwarding**: Check target channel IDs and bot permissions
 3. **Communication issues**: Verify webhook URL or shared storage path
 4. **Token issues**: Ensure tokens are valid and have proper permissions
+5. **Interface not appearing**: Use `/interface #channel` to create the interface
+6. **Permission errors**: Interface creation requires Administrator permissions
+7. **Bot appears paused**: Use the Pause/Resume button in the interface to resume the bot

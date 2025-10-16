@@ -4,6 +4,8 @@ import logger from "../logger.js";
 import forwarder from "./components/forwarder.js";
 import welcomer from "./components/welcomer.js";
 import webhook from "./components/webhook.js";
+import commands from "./components/commands.js";
+import interfaceComponent from "./components/interface.js";
 
 const client = new Client({
     intents: [
@@ -16,9 +18,15 @@ const client = new Client({
 
 client.on("clientReady", async () => {
     console.log(`Official bot logged in as ${client.user.tag}`);
+
+    // Deploy slash commands (don't clear first on startup)
+    await commands.deployCommands(false);
+
     logger.init(client);
-    forwarder.init(client);
+    forwarder.init();
     welcomer.init(client);
+    commands.init(client);
+    interfaceComponent.init(client);
 
     // Start webhook server
     webhook.startWebhookServer(client);
