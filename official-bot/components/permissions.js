@@ -33,9 +33,9 @@ export function hasPermission(member, action) {
         return action !== 'pause' && action !== 'setup';
     }
 
-    // Member permissions: only status and help
+    // Member permissions: status, help, and booster_role
     if (isMember(member)) {
-        return action === 'status' || action === 'help';
+        return action === 'status' || action === 'help' || action === 'booster_role';
     }
 
     // No permission
@@ -46,4 +46,3 @@ export function hasPermission(member, action) {
 export function getPermissionError(action) {
     return `❌ You don't have permission to use ${action}.`;
 }
-

@@ -2,7 +2,7 @@
 
 // Environment Configuration
 export const ENV = {
-    PRODUCTION: true // Set to true for production, false for testing
+    PRODUCTION: false // Set to true for production, false for testing
 };
 
 // Self-Bot Token (for monitoring source servers)
@@ -34,6 +34,7 @@ export const PERMISSIONS = {
     STAFF_ROLE: "1376631063035777054",     // Can use all interfaces except pause
     MEMBER_ROLE: "1364380027310968905"      // Can only use status and help
 };
+
 
 // Communication Configuration
 export const COMMUNICATION = {
@@ -92,6 +93,13 @@ export const BOOSTER = {
         "Wah {user} boost server! Makasih banyak, kalian spesial! 🎉",
         "{user} baru boost nih! Terima kasih, kalian membuat server ini lebih baik! ❤️"
     ]
+};
+
+// Booster Role Configuration
+export const BOOSTER_ROLE = {
+    // Role position constraints
+    ROLE_ABOVE: "1369054578754060288",      // Custom role must be above this role
+    ROLE_BELOW: "1376631063035777054"       // Custom role must be below this role
 };
 
 // Activity Tracker Configuration
