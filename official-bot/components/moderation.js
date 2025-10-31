@@ -51,79 +51,6 @@ async function getAuditLogEntry(guild, action, targetId) {
     }
 }
 
-// Get timeout audit log entry (searches recent entries with retry)
-async function getTimeoutAuditLogEntry(guild, targetId, retries = 3) {
-    for (let attempt = 0; attempt < retries; attempt++) {
-        try {
-            // Small delay before checking audit logs (Discord needs time to create the entry)
-            if (attempt > 0) {
-                await new Promise(resolve => setTimeout(resolve, 500 * attempt));
-            }
-
-            const auditLogs = await guild.fetchAuditLogs({
-                limit: 20, // Increased from 10 to catch more entries
-                type: 24 // MEMBER_UPDATE
-            });
-
-            const now = Date.now();
-            
-            // Find the most recent entry for this user within the last 15 seconds
-            // Check if the changes include communication_disabled_until (timeout)
-            for (const entry of auditLogs.entries.values()) {
-                if (entry.target.id === targetId) {
-                    const entryAge = now - entry.createdTimestamp;
-                    // Only return entries from the last 15 seconds
-                    if (entryAge < 15000) {
-                        // Verify this is a timeout action by checking changes
-                        const changes = entry.changes;
-                        if (changes && changes.length > 0) {
-                            const timeoutChange = changes.find(
-                                change => change.key === 'communication_disabled_until'
-                            );
-                            if (timeoutChange && timeoutChange.new) {
-                                await logger.log(`✅ Found timeout audit log for ${targetId} on attempt ${attempt + 1}`);
-                                return entry;
-                            }
-                        } else {
-                            // If no changes recorded but it's recent, assume it's the timeout action
-                            await logger.log(`✅ Found timeout audit log (no changes) for ${targetId} on attempt ${attempt + 1}`);
-                            return entry;
-                        }
-                    }
-                }
-            }
-            
-            if (attempt === retries - 1) {
-                await logger.log(`⚠️ Could not find timeout audit log for ${targetId} after ${retries} attempts`);
-            }
-        } catch (err) {
-            await logger.log(`⚠️ Error fetching timeout audit log (attempt ${attempt + 1}): ${err.message}`);
-            if (attempt === retries - 1) {
-                return null;
-            }
-        }
-    }
-    return null;
-}
-
-// Format duration in a human-readable way
-function formatDuration(milliseconds) {
-    const seconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) {
-        return `${days} day${days !== 1 ? "s" : ""}`;
-    } else if (hours > 0) {
-        return `${hours} hour${hours !== 1 ? "s" : ""}`;
-    } else if (minutes > 0) {
-        return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
-    } else {
-        return `${seconds} second${seconds !== 1 ? "s" : ""}`;
-    }
-}
-
 function init(client) {
     // Track bans
     client.on("guildBanAdd", async (ban) => {
@@ -195,102 +122,6 @@ function init(client) {
         }
     });
 
-    // Track timeouts and kicks (via member update/remove)
-    client.on("guildMemberUpdate", async (oldMember, newMember) => {
-        try {
-            // Ensure we have fresh member data
-            try {
-                if (!oldMember.partial) await oldMember.fetch();
-                if (!newMember.partial) await newMember.fetch();
-            } catch (err) {
-                await logger.log(`⚠️ Could not fetch member data: ${err.message}`);
-            }
-
-            const wasTimedOut = oldMember.communicationDisabledUntil !== null;
-            const isTimedOut = newMember.communicationDisabledUntil !== null;
-
-            // Member was just timed out
-            if (!wasTimedOut && isTimedOut) {
-                await logger.log(`⏰ Timeout detected for ${newMember.user.tag} (${newMember.user.id})`);
-                
-                const timeoutUntil = newMember.communicationDisabledUntil;
-                if (!timeoutUntil) {
-                    await logger.log(`⚠️ Timeout detected but communicationDisabledUntil is null for ${newMember.user.id}`);
-                    return;
-                }
-
-                const timeoutDuration = timeoutUntil.getTime() - Date.now();
-                if (timeoutDuration <= 0) {
-                    await logger.log(`⚠️ Timeout duration is invalid (${timeoutDuration}ms) for ${newMember.user.id}`);
-                    return;
-                }
-
-                const durationText = formatDuration(timeoutDuration);
-
-                // Get timeout audit log entry (searches recent entries with retry)
-                const auditEntry = await getTimeoutAuditLogEntry(newMember.guild, newMember.id, 3);
-                const moderator = auditEntry?.executor || null;
-                const reason = auditEntry?.reason || "No reason provided";
-
-                await sendModerationLog(client, {
-                    title: "⏰ Member Timed Out",
-                    description: `<@${newMember.user.id}> has been timed out.`,
-                    thumbnail: newMember.user.displayAvatarURL({ dynamic: true, size: 256 }),
-                    guildName: newMember.guild.name,
-                    userTag: newMember.user.tag,
-                    fields: [
-                        {
-                            name: "👤 User",
-                            value: newMember.user.tag,
-                            inline: true
-                        },
-                        {
-                            name: "🛡️ Moderator",
-                            value: moderator ? moderator.tag : "Unknown",
-                            inline: true
-                        },
-                        {
-                            name: "⏱️ Duration",
-                            value: durationText,
-                            inline: true
-                        },
-                        {
-                            name: "📅 Until",
-                            value: `<t:${Math.floor(timeoutUntil.getTime() / 1000)}:F>`,
-                            inline: true
-                        },
-                        {
-                            name: "📝 Reason",
-                            value: reason.length > 1024 ? reason.substring(0, 1021) + "..." : reason,
-                            inline: false
-                        }
-                    ]
-                });
-
-                await logger.log(`✅ Timeout log sent for ${newMember.user.tag} (${newMember.user.id})`);
-            }
-            // Member timeout was removed
-            else if (wasTimedOut && !isTimedOut) {
-                await sendModerationLog(client, {
-                    title: "✅ Timeout Removed",
-                    description: `<@${newMember.user.id}>'s timeout has been removed.`,
-                    thumbnail: newMember.user.displayAvatarURL({ dynamic: true, size: 256 }),
-                    guildName: newMember.guild.name,
-                    userTag: newMember.user.tag,
-                    fields: [
-                        {
-                            name: "👤 User",
-                            value: newMember.user.tag,
-                            inline: true
-                        }
-                    ]
-                });
-            }
-        } catch (err) {
-            await logger.log(`❌ Error handling member update: ${err.message}`);
-        }
-    });
-
     // Track kicks (member removed but not banned)
     client.on("guildMemberRemove", async (member) => {
         try {
@@ -343,7 +174,7 @@ function init(client) {
         }
     });
 
-    logger.log("🛡️ Moderation component initialized");
+    logger.log("🛡️ Moderation component initialized - Tracking bans and kicks");
 }
 
 export default { init };
