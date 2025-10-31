@@ -15,7 +15,17 @@ export const OFFICIAL_BOT_TOKEN = "MTQxNzQ4NzIyOTg4MTgxNTA4MA.GuC-RQ.NHRya3Ryny-
 export const OFFICIAL_BOT_APPLICATION_ID = "1417487229881815080";
 
 // Main Channel Configuration
-export const MAIN_CHANNEL = "1364374299359707212";
+export const MAIN_CHANNEL_CONFIG = {
+    PRODUCTION: "1364374299359707212",
+    TEST: "1422599583456039228",
+    // Get main channel based on environment
+    get MAIN_CHANNEL() {
+        return ENV.PRODUCTION ? this.PRODUCTION : this.TEST;
+    }
+};
+
+// Export MAIN_CHANNEL for backward compatibility
+export const MAIN_CHANNEL = MAIN_CHANNEL_CONFIG.MAIN_CHANNEL;
 
 // Permissions Configuration
 export const PERMISSIONS = {
