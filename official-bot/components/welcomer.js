@@ -22,8 +22,6 @@ async function welcomeUser(member, client) {
     try {
         // Check if user might be returning (account age vs join date)
         // If account is much older than their join date, they might be returning
-        const accountAge = Date.now() - member.user.createdTimestamp;
-        const daysSinceAccountCreated = Math.floor(accountAge / (24 * 60 * 60 * 1000));
         const isReturningMember = member.user.createdTimestamp < Date.now() - (7 * 24 * 60 * 60 * 1000); // Account older than 7 days
 
         // Fetch member to ensure we have full data

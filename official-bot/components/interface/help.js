@@ -1,5 +1,4 @@
 import { EMBED } from "../../../config.js";
-import logger from "../../../logger.js";
 import { hasPermission } from "../permissions.js";
 
 // Handle help button
@@ -53,6 +52,4 @@ export async function handleHelpButton(interaction) {
         embeds: [helpEmbed],
         flags: 64
     });
-
-    await logger.log(`❓ Help button clicked by ${interaction.user.tag} (${interaction.user.id})`);
 }

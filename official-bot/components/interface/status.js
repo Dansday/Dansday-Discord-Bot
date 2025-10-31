@@ -1,5 +1,4 @@
 import { EMBED } from "../../../config.js";
-import logger from "../../../logger.js";
 import { hasPermission } from "../permissions.js";
 
 // Handle status button
@@ -50,6 +49,4 @@ export async function handleStatusButton(interaction) {
         embeds: [statusEmbed],
         flags: 64
     });
-
-    await logger.log(`📊 Status button clicked by ${interaction.user.tag} (${interaction.user.id})`);
 }

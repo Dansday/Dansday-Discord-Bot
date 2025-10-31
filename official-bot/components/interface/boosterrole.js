@@ -330,9 +330,3 @@ export async function handleBoosterRoleModal(interaction) {
         }
     }
 }
-
-// Get booster role info (for checking/managing)
-export async function getBoosterRoleInfo(member) {
-    const { has, role } = await hasBoosterRole(member);
-    return { has, role };
-}

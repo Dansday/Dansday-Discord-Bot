@@ -30,9 +30,6 @@ export async function handleSendMessageButton(interaction) {
             components: [selectRow],
             flags: 64
         });
-
-        await logger.log(`📤 Send message channel selector opened by ${interaction.user.tag} (${interaction.user.id})`);
-
     } catch (error) {
         await interaction.reply({
             content: `❌ Failed to open send message form: ${error.message}`,
