@@ -50,13 +50,13 @@ export async function handleButtonInteraction(interaction, client) {
 export function createInterfaceEmbed(client) {
     const interfaceEmbed = {
         color: EMBED.COLOR,
-        title: "GOBLOX Bot Interface",
+        title: "GO BLOX Bot Interface",
         description: "Use the buttons below to interact with the bot",
         thumbnail: {
             url: client.user.displayAvatarURL()
         },
         footer: {
-            text: "GOBLOX Bot System"
+            text: "GO BLOX Bot System"
         },
         timestamp: new Date().toISOString()
     };

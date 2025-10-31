@@ -1,4 +1,4 @@
-# Goblox Bot System
+# GO BLOX Bot System
 
 A Discord bot system that separates self-bot monitoring from official bot forwarding for better security and maintainability.
 
@@ -24,7 +24,7 @@ A Discord bot system that separates self-bot monitoring from official bot forwar
 ## Project Structure
 
 ```
-goblox-bot/
+go-blox-bot/
 ├── main.js                 # Launcher script
 ├── package.json           # Single package.json with all dependencies
 ├── config.js              # Configuration

@@ -7,7 +7,7 @@ async function sendToOfficialBot(messageData) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'User-Agent': 'Goblox-SelfBot/1.0.0',
+                'User-Agent': 'GO-BLOX-SelfBot/1.0.0',
                 'X-Secret-Key': COMMUNICATION.SECRET_KEY
             },
             body: JSON.stringify({

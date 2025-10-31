@@ -1,7 +1,7 @@
 {
-  "name": "goblox-bot-system",
-  "version": "3.0.0",
-  "description": "Goblox Bot System - Self-bot and Official Bot",
+  "name": "go-blox-bot-system",
+  "version": "3.0.1",
+  "description": "GO BLOX Bot System - Self-bot and Official Bot",
   "main": "main.js",
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
     "selfbot",
     "bot",
     "goblox",
+    "go-blox",
     "forwarder",
     "welcomer"
   ],

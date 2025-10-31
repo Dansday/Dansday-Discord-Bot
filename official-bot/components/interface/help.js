@@ -5,8 +5,8 @@ import logger from "../../../logger.js";
 export async function handleHelpButton(interaction) {
     const helpEmbed = {
         color: EMBED.COLOR,
-        title: "🤖 GOBLOX Bot Interface",
-        description: "Welcome to the GOBLOX Bot interface! Use the buttons to interact with the bot:",
+        title: "🤖 GO BLOX Bot Interface",
+        description: "Welcome to the GO BLOX Bot interface! Use the buttons to interact with the bot:",
         fields: [
             {
                 name: "📊 Status Button",
@@ -35,7 +35,7 @@ export async function handleHelpButton(interaction) {
             }
         ],
         footer: {
-            text: "GOBLOX Bot System • Interface-based interaction"
+            text: "GO BLOX Bot System"
         },
         timestamp: new Date().toISOString()
     };

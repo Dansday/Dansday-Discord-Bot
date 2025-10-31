@@ -27,7 +27,7 @@ function startBot(botType) {
     return child;
 }
 
-console.log("🚀 Starting Goblox Bot System...");
+console.log("🚀 Starting GO BLOX Bot System...");
 
 if (mode === "selfbot") {
     console.log("📡 Starting Self-Bot only...");
