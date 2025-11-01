@@ -1,4 +1,5 @@
 import { BOOSTER, EMBED } from "../../config.js";
+import { EmbedBuilder } from "discord.js";
 import logger from "../../logger.js";
 
 function getRandomMessage() {
@@ -23,14 +24,12 @@ async function thankBooster(member, client) {
         const thankMessage = getRandomMessage().replace("{user}", `<@${member.user.id}>`);
 
         // Create booster thank you embed
-        const boosterEmbed = {
-            color: EMBED.COLOR,
-            title: "💎 Thank You for Boosting!",
-            description: thankMessage,
-            thumbnail: {
-                url: member.user.displayAvatarURL({ dynamic: true, size: 256 })
-            },
-            fields: [
+        const boosterEmbed = new EmbedBuilder()
+            .setColor(EMBED.COLOR)
+            .setTitle("💎 Thank You for Boosting!")
+            .setDescription(thankMessage)
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+            .addFields([
                 {
                     name: "🚀 Boost Level",
                     value: `Level ${member.guild.premiumTier}`,
@@ -46,9 +45,9 @@ async function thankBooster(member, client) {
                     value: member.premiumSince ? `<t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>` : "Just now",
                     inline: false
                 }
-            ],
-            timestamp: new Date().toISOString()
-        };
+            ])
+            .setFooter({ text: EMBED.FOOTER })
+            .setTimestamp();
 
         await boosterChannel.send({ embeds: [boosterEmbed] });
         await logger.log(`✅ Thanked booster ${member.user.tag} (${member.user.id}) in ${member.guild.name}`);

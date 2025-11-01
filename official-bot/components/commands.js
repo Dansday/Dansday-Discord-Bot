@@ -155,4 +155,4 @@ function init(client) {
     logger.log("🎮 Slash command system initialized");
 }
 
-export default { init, registerSlashCommand, deployCommands };
+export default { init, deployCommands };

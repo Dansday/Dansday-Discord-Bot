@@ -23,6 +23,8 @@ A Discord bot system that separates self-bot monitoring from official bot forwar
   - Tracks moderation actions (bans, unbans, kicks)
   - Finds inactive members
   - Manages custom supporter roles
+  - AFK system with voice mute/deafen
+  - Feedback submission system
   - Role-based permission system
 
 ## Project Structure
@@ -57,7 +59,9 @@ go-blox-bot/
             ├── pause.js  # Pause button handler
             ├── sendmessage.js # Send message button handler
             ├── inactive.js # Inactive members button handler
-            └── customsupporterrole.js # Custom supporter role handler
+            ├── customsupporterrole.js # Custom supporter role handler
+            ├── feedback.js # Feedback button handler
+            └── afk.js # AFK button handler
 ```
 
 ## Setup
@@ -83,7 +87,8 @@ go-blox-bot/
    - Set `COMMUNICATION.PORT` for webhook server (default: 7777)
 
 5. **Configure embed appearance**:
-   - Set `EMBED.COLOR` for forwarded message embed color (default: red `0xff0000`)
+   - Set `EMBED.COLOR` for embed color (default: red `0xff0000`)
+   - Set `EMBED.FOOTER` for footer text (default: "Copyright GO BLOX [year]")
 
 ## Usage
 
@@ -116,8 +121,31 @@ The official bot provides a single slash command for bot management:
 - Shows bot status, uptime, and component information
 - **Permission:** Member+
 
+#### ⏸️ AFK Button
+- Set yourself as AFK (Away From Keyboard) with an optional message
+- Features:
+  - Optional custom AFK message
+  - Nickname automatically prefixed with `[AFK]`
+  - If in voice channel: automatically muted and deafened
+  - Auto-removal: Removed when you send any message, unmute/undeafen in voice, or manually remove
+  - Mention notifications: When someone mentions you, they're notified you're AFK
+  - DM notifications: You receive a DM when mentioned while AFK
+- **Permission:** Member+
+
+#### 📊 Status Button
+- Shows bot status, uptime, and server information
+- **Permission:** Member+
+
 #### ❓ Help Button
 - Displays comprehensive help information for all interface features
+- **Permission:** Member+
+
+#### 💬 Feedback Button
+- Submit feedback, suggestions, or concerns to server staff
+- Features:
+  - Simple modal with text input
+  - All submissions logged with submission number and user information
+  - Staff role automatically mentioned in feedback channel
 - **Permission:** Member+
 
 #### ⏸️ Pause/Resume Button
@@ -131,10 +159,10 @@ The official bot provides a single slash command for bot management:
   - Select target channel from dropdown
   - Optionally mention one or more roles
   - Custom title (required)
-  - Custom description (required)
+  - Custom description (optional)
   - Optional image URL
   - Optional color customization (hex/decimal/name)
-  - Optional footer text
+  - Optional footer text (defaults to config footer if empty)
 - Step-by-step process: Select channel → Choose role (optional) → Fill embed details → Send
 - **Permission:** Staff+
 
@@ -223,6 +251,35 @@ The Send Message button provides a step-by-step process:
 - Removes roles when members lose required permissions
 - Removes roles when members leave the server
 
+#### AFK Feature
+**Setting AFK:**
+1. Click "⏸️ AFK" button
+2. Enter optional AFK message (or leave empty)
+3. Your nickname is prefixed with `[AFK]`
+4. If in voice channel: You're automatically muted and deafened
+
+**AFK Removal (Automatic):**
+- Sending any message removes AFK and unmutes/undeafens you
+- Unmuting/undeafening in voice removes AFK
+- AFK removal automatically restores your nickname and voice status
+
+**AFK Removal (Manual):**
+- Click "⏸️ AFK" button → Click "🔄 Remove AFK" button
+
+**Mention Notifications:**
+- When someone mentions you while AFK:
+  - They receive a notification in channel (auto-deletes after 10 seconds)
+  - You receive a DM with who mentioned you and message preview
+  - Shows your AFK message and duration
+
+#### Feedback Feature
+**Submitting Feedback:**
+1. Click "💬 Feedback" button
+2. Enter your feedback message (up to 2000 characters)
+3. Feedback is sent to configured feedback channel
+4. Staff role is automatically mentioned
+5. You receive confirmation with submission number
+
 ### Benefits
 - **User-friendly** - No need to remember slash command syntax
 - **Visual** - Clear buttons with icons and labels
@@ -267,9 +324,9 @@ All configuration is centralized in `config.js`:
 ### Permissions Configuration
 Role-based permission system with the following roles:
 - **ADMIN_ROLE**: Full access to all commands and interfaces
-- **STAFF_ROLE**: All interfaces except pause
-- **SUPPORTER_ROLE**: Can use custom supporter role feature
-- **MEMBER_ROLE**: Can only use status and help
+- **STAFF_ROLE**: All interfaces except pause/setup
+- **SUPPORTER_ROLE**: Can use custom supporter role feature, status, and help
+- **MEMBER_ROLE**: Can use AFK, status, help, and feedback
 
 ### Activity Tracker Configuration
 - **ALLOWED_CATEGORIES**: Categories to search for member activity
@@ -327,6 +384,8 @@ Located in `official-bot/components/interface/`:
 - **sendmessage.js**: Send message button handler - embed message creation
 - **inactive.js**: Inactive members button handler - activity tracking
 - **customsupporterrole.js**: Custom role button handler - role management
+- **feedback.js**: Feedback button handler - feedback submission system
+- **afk.js**: AFK button handler - AFK status management with voice integration
 
 ## Troubleshooting
 

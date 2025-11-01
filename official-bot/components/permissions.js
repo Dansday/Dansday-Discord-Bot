@@ -6,22 +6,22 @@ function hasRole(member, roleId) {
 }
 
 // Check if user has admin role
-export function isAdmin(member) {
+function isAdmin(member) {
     return hasRole(member, PERMISSIONS.ADMIN_ROLE);
 }
 
 // Check if user has staff role
-export function isStaff(member) {
+function isStaff(member) {
     return hasRole(member, PERMISSIONS.STAFF_ROLE);
 }
 
 // Check if user has member role
-export function isMember(member) {
+function isMember(member) {
     return hasRole(member, PERMISSIONS.MEMBER_ROLE);
 }
 
 // Check if user has supporter role
-export function isSupporter(member) {
+function isSupporter(member) {
     return hasRole(member, PERMISSIONS.SUPPORTER_ROLE);
 }
 
@@ -43,9 +43,9 @@ export function hasPermission(member, action) {
         return action === 'custom_supporter_role';
     }
 
-    // Member permissions: status, help, feedback
+    // Member permissions: status, help, feedback, afk
     if (isMember(member)) {
-        return action === 'status' || action === 'help' || action === 'feedback';
+        return action === 'status' || action === 'help' || action === 'feedback' || action === 'afk';
     }
 
     // No permission

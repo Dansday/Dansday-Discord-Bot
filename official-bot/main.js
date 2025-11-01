@@ -9,6 +9,7 @@ import webhook from "./components/webhook.js";
 import commands from "./components/commands.js";
 import interfaceComponent from "./components/interface.js";
 import customSupporterRole from "./components/interface/customsupporterrole.js";
+import afk from "./components/interface/afk.js";
 
 const client = new Client({
     intents: [
@@ -16,7 +17,8 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildModeration
+        GatewayIntentBits.GuildModeration,
+        GatewayIntentBits.GuildVoiceStates
     ]
 });
 
@@ -34,6 +36,7 @@ client.on("clientReady", async () => {
     commands.init(client);
     interfaceComponent.init(client);
     customSupporterRole.init(client);
+    afk.init(client);
 
     // Start webhook server
     webhook.startWebhookServer(client);

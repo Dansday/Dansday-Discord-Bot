@@ -8,6 +8,7 @@ import { handleSendMessageButton, handleSendMessageModal, handleChannelSelection
 import { handleInactiveButton } from './interface/inactive.js';
 import { handleCustomSupporterRoleButton, handleCustomSupporterRoleModal, handleEditCustomSupporterRole, handleDeleteCustomSupporterRole } from './interface/customsupporterrole.js';
 import { handleFeedbackButton, handleFeedbackModal } from './interface/feedback.js';
+import { handleAFKButton, handleAFKModal, handleRemoveAFKButton } from './interface/afk.js';
 
 // Handle button interactions
 export async function handleButtonInteraction(interaction, client) {
@@ -52,9 +53,15 @@ export async function handleButtonInteraction(interaction, client) {
         case 'custom_supporter_role_delete':
             await handleDeleteCustomSupporterRole(interaction);
             break;
-        case 'bot_feedback':
-            await handleFeedbackButton(interaction);
-            break;
+                case 'bot_feedback':
+                    await handleFeedbackButton(interaction);
+                    break;
+                case 'bot_afk':
+                    await handleAFKButton(interaction);
+                    break;
+                case 'afk_remove':
+                    await handleRemoveAFKButton(interaction);
+                    break;
         default:
             // Handle send message related buttons
             if (customId.startsWith('send_message_complete_')) {
@@ -129,8 +136,13 @@ export function createInterfaceButtons() {
     const buttonRow1 = new ActionRowBuilder()
         .addComponents(sendMessageButton, inactiveButton, pauseButton, customSupporterRoleButton);
 
+    const afkButton = new ButtonBuilder()
+        .setCustomId('bot_afk')
+        .setLabel('⏸️ AFK')
+        .setStyle(ButtonStyle.Secondary);
+
     const buttonRow2 = new ActionRowBuilder()
-        .addComponents(statusButton, helpButton, feedbackButton);
+        .addComponents(afkButton, statusButton, helpButton, feedbackButton);
 
     return [buttonRow1, buttonRow2];
 }
@@ -196,6 +208,8 @@ function init(client) {
                     await handleCustomSupporterRoleModal(interaction);
                 } else if (interaction.customId === 'feedback_submit') {
                     await handleFeedbackModal(interaction);
+                } else if (interaction.customId === 'afk_set') {
+                    await handleAFKModal(interaction);
                 } else {
                     await logger.log(`⚠️ Unknown modal: "${customId}" by ${user.tag} (${user.id})`);
                 }
