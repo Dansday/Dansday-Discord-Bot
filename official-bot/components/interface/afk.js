@@ -12,7 +12,7 @@ export function getAFKStatus(userId) {
 }
 
 // Set user as AFK
-async function setAFK(member, message) {
+async function setAFK(member, message, shouldDeafen = true) {
     const userId = member.id;
     const originalNickname = member.nickname || member.user.username;
 
@@ -29,13 +29,16 @@ async function setAFK(member, message) {
             await logger.log(`⚠️ Could not mute ${member.user.tag} in voice channel: ${err.message}`);
         }
 
-        try {
-            // Deafen the user in voice channel
-            await member.voice.setDeaf(true);
-            wasDeafenedByBot = true;
-            await logger.log(`🔇 Deafened ${member.user.tag} (${member.user.id}) in voice channel (AFK)`);
-        } catch (err) {
-            await logger.log(`⚠️ Could not deafen ${member.user.tag} in voice channel: ${err.message}`);
+        // Only deafen if user chose to be deafened
+        if (shouldDeafen) {
+            try {
+                // Deafen the user in voice channel
+                await member.voice.setDeaf(true);
+                wasDeafenedByBot = true;
+                await logger.log(`🔇 Deafened ${member.user.tag} (${member.user.id}) in voice channel (AFK)`);
+            } catch (err) {
+                await logger.log(`⚠️ Could not deafen ${member.user.tag} in voice channel: ${err.message}`);
+            }
         }
     }
 
@@ -194,8 +197,17 @@ export async function handleAFKButton(interaction) {
             .setRequired(false)
             .setMaxLength(100);
 
+        const deafenInput = new TextInputBuilder()
+            .setCustomId('afk_deafen')
+            .setLabel('Deafen in Voice? (yes/no, default: yes)')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('yes or no (leave empty for yes)')
+            .setRequired(false)
+            .setMaxLength(3);
+
         const messageRow = new ActionRowBuilder().addComponents(messageInput);
-        modal.addComponents(messageRow);
+        const deafenRow = new ActionRowBuilder().addComponents(deafenInput);
+        modal.addComponents(messageRow, deafenRow);
 
         await interaction.showModal(modal);
         await logger.log(`⏸️ AFK modal shown to ${member.user.tag} (${member.user.id})`);
@@ -227,14 +239,22 @@ export async function handleAFKModal(interaction) {
         // Get AFK message
         const afkMessage = interaction.fields.getTextInputValue('afk_message')?.trim() || 'Away';
 
+        // Get deafen preference (default to true if not specified or if value is "yes")
+        const deafenValue = interaction.fields.getTextInputValue('afk_deafen')?.trim().toLowerCase();
+        const shouldDeafen = deafenValue !== 'no';
+
         // Set AFK
-        await setAFK(member, afkMessage);
+        await setAFK(member, afkMessage, shouldDeafen);
 
         // Confirm to user
+        const voiceInfo = member.voice.channel
+            ? (shouldDeafen ? 'You will be muted and deafened in voice.' : 'You will be muted in voice (not deafened).')
+            : '';
+
         const embed = new EmbedBuilder()
             .setColor(EMBED.COLOR)
             .setTitle('✅ AFK Status Set!')
-            .setDescription(`You're now marked as AFK: **${afkMessage}**`)
+            .setDescription(`You're now marked as AFK: **${afkMessage}**${voiceInfo ? `\n\n${voiceInfo}` : ''}`)
             .addFields({
                 name: '💡 How to remove',
                 value: '• Send any message (auto-removes AFK and unmutes)\n• Click AFK button and remove (will unmute if bot muted you)\n• Removing AFK automatically unmutes you if you were muted by the bot',
@@ -247,7 +267,7 @@ export async function handleAFKModal(interaction) {
             embeds: [embed]
         });
 
-        await logger.log(`✅ AFK status set for ${member.user.tag} (${member.user.id}): "${afkMessage}"`);
+        await logger.log(`✅ AFK status set for ${member.user.tag} (${member.user.id}): "${afkMessage}"${shouldDeafen ? ' (will be deafened)' : ' (not deafened)'}`);
 
     } catch (error) {
         await logger.log(`❌ Error setting AFK: ${error.message}`);
