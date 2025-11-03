@@ -413,15 +413,19 @@ export async function init() {
                     updated_at: bot.updated_at
                 };
 
-                // If selfbot has connect_to, get the connected bot's name
+                // If selfbot has connect_to, get the connected bot's name and is_testing
                 if (bot.connect_to) {
                     try {
                         const connectedBot = await db.getBot(bot.connect_to);
                         if (connectedBot) {
                             botData.connected_bot_name = connectedBot.name;
+                            // For selfbots, inherit is_testing from connected bot
+                            if (bot.bot_type === 'selfbot') {
+                                botData.is_testing = connectedBot.is_testing || false;
+                            }
                         }
                     } catch (err) {
-                        logger.log(`⚠️  Failed to get connected bot name: ${err.message}`);
+                        logger.log(`⚠️  Failed to get connected bot info: ${err.message}`);
                     }
                 }
 
@@ -474,15 +478,19 @@ export async function init() {
             // Don't send token
             const { token, ...botData } = bot;
 
-            // If selfbot has connect_to, get the connected bot's name
+            // If selfbot has connect_to, get the connected bot's name and is_testing
             if (bot.connect_to) {
                 try {
                     const connectedBot = await db.getBot(bot.connect_to);
                     if (connectedBot) {
                         botData.connected_bot_name = connectedBot.name;
+                        // For selfbots, inherit is_testing from connected bot
+                        if (bot.bot_type === 'selfbot') {
+                            botData.is_testing = connectedBot.is_testing || false;
+                        }
                     }
                 } catch (err) {
-                    logger.log(`⚠️  Failed to get connected bot name: ${err.message}`);
+                    logger.log(`⚠️  Failed to get connected bot info: ${err.message}`);
                 }
             }
 
@@ -610,9 +618,25 @@ export async function init() {
     });
 
 
-    // Update bot mode (testing/production)
+    // Update bot mode (testing/production) - only for official bots
     app.put('/api/bots/:id/mode', async (req, res) => {
         try {
+            const bot = await db.getBot(req.params.id);
+            if (!bot) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Bot not found'
+                });
+            }
+
+            // Only allow mode changes for official bots
+            if (bot.bot_type !== 'official') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Mode can only be changed for official bots. Selfbots inherit mode from their connected bot.'
+                });
+            }
+
             const { is_testing } = req.body;
             
             if (typeof is_testing !== 'boolean') {

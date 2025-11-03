@@ -8,15 +8,31 @@ let botConfig = null;
 async function loadBotConfig() {
     // Get BOT_ID from environment (set by control panel)
     const botId = process.env.BOT_ID;
-    
+
     if (!botId) {
         throw new Error('BOT_ID not set in environment. Bot cannot start without database configuration.');
     }
 
     const bot = await db.getBot(botId);
-    
+
     if (!bot) {
         throw new Error(`Bot not found in database with ID: ${botId}`);
+    }
+
+    // For selfbots, get port, secret_key, and is_testing from connected official bot
+    let port = bot.port;
+    let secret_key = bot.secret_key;
+    let is_testing = bot.is_testing || false;
+    
+    if (bot.bot_type === 'selfbot' && bot.connect_to) {
+        const connectedBot = await db.getBot(bot.connect_to);
+        if (connectedBot) {
+            port = connectedBot.port;
+            secret_key = connectedBot.secret_key;
+            is_testing = connectedBot.is_testing || false;
+        } else {
+            throw new Error(`Connected bot not found for selfbot ${botId}. Connected bot ID: ${bot.connect_to}`);
+        }
     }
 
     botConfig = {
@@ -24,9 +40,9 @@ async function loadBotConfig() {
         token: bot.token,
         application_id: bot.application_id,
         bot_type: bot.bot_type,
-        port: bot.port,
-        secret_key: bot.secret_key,
-        is_testing: bot.is_testing || false,
+        port: port,
+        secret_key: secret_key,
+        is_testing: is_testing,
         connect_to: bot.connect_to
     };
 
@@ -324,4 +340,3 @@ export const FORWARDER = {
         "628400349979344919"
     ]
 };
-
