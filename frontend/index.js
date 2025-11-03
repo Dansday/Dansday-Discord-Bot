@@ -593,7 +593,9 @@ export async function init() {
                     process_id: bot.process_id || null,
                     uptime_started_at: bot.uptime_started_at || null,
                     created_at: bot.created_at,
-                    updated_at: bot.updated_at
+                    updated_at: bot.updated_at,
+                    // Include is_testing for official bots
+                    is_testing: bot.is_testing || false
                 };
 
                 // If selfbot has connect_to, get the connected bot's name and is_testing
@@ -602,9 +604,13 @@ export async function init() {
                         const connectedBot = await db.getBot(bot.connect_to);
                         if (connectedBot) {
                             botData.connected_bot_name = connectedBot.name;
-                            // For selfbots, inherit is_testing from connected bot
+                            // For selfbots, always inherit is_testing from connected bot (both in response and sync in DB)
                             if (bot.bot_type === 'selfbot') {
                                 botData.is_testing = connectedBot.is_testing || false;
+                                // Sync selfbot's is_testing in database to match connected bot
+                                if (bot.is_testing !== connectedBot.is_testing) {
+                                    await db.updateBot(bot.id, { is_testing: connectedBot.is_testing || false });
+                                }
                             }
                         }
                     } catch (err) {
@@ -660,6 +666,9 @@ export async function init() {
 
             // Don't send token
             const { token, ...botData } = bot;
+            
+            // Ensure is_testing is included (default to false if not set)
+            botData.is_testing = bot.is_testing || false;
 
             // If selfbot has connect_to, get the connected bot's name and is_testing
             if (bot.connect_to) {
@@ -667,9 +676,13 @@ export async function init() {
                     const connectedBot = await db.getBot(bot.connect_to);
                     if (connectedBot) {
                         botData.connected_bot_name = connectedBot.name;
-                        // For selfbots, inherit is_testing from connected bot
+                        // For selfbots, always inherit is_testing from connected bot (both in response and sync in DB)
                         if (bot.bot_type === 'selfbot') {
                             botData.is_testing = connectedBot.is_testing || false;
+                            // Sync selfbot's is_testing in database to match connected bot
+                            if (bot.is_testing !== connectedBot.is_testing) {
+                                await db.updateBot(bot.id, { is_testing: connectedBot.is_testing || false });
+                            }
                         }
                     }
                 } catch (err) {
@@ -890,6 +903,22 @@ export async function init() {
                 }
             }
 
+            // For selfbots, get is_testing from connected official bot
+            let is_testing = false;
+            if (bot_type === 'selfbot' && connect_to) {
+                try {
+                    const connectedBot = await db.getBot(connect_to);
+                    if (connectedBot) {
+                        is_testing = connectedBot.is_testing || false;
+                    }
+                } catch (err) {
+                    logger.log(`⚠️  Failed to get connected bot for is_testing: ${err.message}`);
+                }
+            } else if (bot_type === 'official') {
+                // Default to false for official bots
+                is_testing = false;
+            }
+
             const bot = await db.createBot({
                 name: name || 'Bot',
                 token,
@@ -897,6 +926,7 @@ export async function init() {
                 bot_type,
                 bot_icon: bot_icon || null,
                 port: bot_type === 'official' ? (port || 7777) : null, // Port only for official bots, null for selfbots
+                is_testing: is_testing,
                 secret_key: secret_key || null,
                 connect_to: connect_to || null,
                 panel_id: panel_id || null
@@ -938,7 +968,28 @@ export async function init() {
                 });
             }
 
+            // Update the official bot's is_testing
             await db.updateBot(req.params.id, { is_testing });
+            
+            // Update all selfbots that connect to this official bot
+            try {
+                const allBots = await db.getAllBots();
+                const connectedSelfbots = allBots.filter(b =>
+                    b.bot_type === 'selfbot' && b.connect_to === req.params.id
+                );
+                
+                // Update each connected selfbot's is_testing to match
+                for (const selfbot of connectedSelfbots) {
+                    await db.updateBot(selfbot.id, { is_testing });
+                }
+                
+                if (connectedSelfbots.length > 0) {
+                    logger.log(`✅ Updated ${connectedSelfbots.length} selfbot(s) to match official bot's mode`);
+                }
+            } catch (err) {
+                logger.log(`⚠️  Failed to update connected selfbots: ${err.message}`);
+            }
+            
             res.json({ success: true });
         } catch (error) {
             logger.log(`❌ Update bot mode error: ${error.message}`);

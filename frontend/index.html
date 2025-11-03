@@ -1494,7 +1494,12 @@
                                 </div>
                                 <div class="bot-info">
                                     <h3>${bot.name}</h3>
-                                    <span class="bot-type ${bot.bot_type}">${bot.bot_type}</span>
+                                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                        <span class="bot-type ${bot.bot_type}">${bot.bot_type}</span>
+                                        <span class="bot-mode ${bot.is_testing ? 'testing' : 'production'}" style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${bot.is_testing ? '#ffc107' : '#28a745'}; color: ${bot.is_testing ? '#000000' : '#ffffff'};">
+                                            ${bot.is_testing ? '🧪 Testing' : '✅ Production'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="bot-status-text" style="color: #cccccc; font-size: 12px; transition: color 0.5s ease;">
@@ -1691,7 +1696,12 @@
                         </div>
                         <div style="flex: 1;">
                             <h2>${bot.name}</h2>
-                            <span class="bot-type ${bot.bot_type}">${bot.bot_type}</span>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                <span class="bot-type ${bot.bot_type}">${bot.bot_type}</span>
+                                <span class="bot-mode ${bot.is_testing ? 'testing' : 'production'}" style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${bot.is_testing ? '#ffc107' : '#28a745'}; color: ${bot.is_testing ? '#000000' : '#ffffff'};">
+                                    ${bot.is_testing ? '🧪 Testing' : '✅ Production'}
+                                </span>
+                            </div>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <button class="btn btn-success" onclick="startBot('${bot.id}')" id="startBtn_${bot.id}" ${bot.status === 'running' || bot.status === 'starting' ? 'disabled' : ''}>▶️ Start</button>
