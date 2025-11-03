@@ -1,5 +1,5 @@
 import express from 'express';
-import { spawn, exec } from 'child_process';
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
@@ -15,333 +15,6 @@ let app = null;
 let server = null;
 // Store bot processes by bot_id
 let botProcesses = new Map(); // Map<bot_id, { process, pid, startTime, status }>
-
-// Store process info (for backward compatibility)
-let processInfo = {
-    pid: null,
-    startTime: null,
-    status: 'stopped', // 'running', 'stopped', 'starting', 'stopping'
-    mode: null // 'both', 'selfbot', 'official'
-};
-
-// Check if any bots exist
-async function checkSetup() {
-    const bots = await db.getAllBots();
-    return bots.length > 0;
-}
-
-// Setup middleware - check if setup is required
-async function checkSetupRequired(req, res, next) {
-    const isSetup = await checkSetup();
-    if (!isSetup && !req.path.startsWith('/api/setup')) {
-        return res.json({ setupRequired: true });
-    }
-    next();
-}
-
-// Get bot status
-async function getBotStatus() {
-    const isRunning = botProcess && !botProcess.killed && botProcess.exitCode === null;
-    
-    // Also check if bot process is actually running (in case it was started externally)
-    let actualRunning = isRunning;
-    if (processInfo.pid && !isRunning) {
-        try {
-            // Try to check if process still exists (Unix/Linux only)
-            process.kill(processInfo.pid, 0); // Signal 0 doesn't kill, just checks if process exists
-            actualRunning = true;
-        } catch (err) {
-            // Process doesn't exist
-            actualRunning = false;
-            processInfo.pid = null;
-            processInfo.startTime = null;
-            processInfo.status = 'stopped';
-        }
-    }
-    
-    let uptime = null;
-    if (processInfo.startTime && actualRunning) {
-        uptime = Math.floor((Date.now() - processInfo.startTime) / 1000);
-    }
-
-    return {
-        status: actualRunning ? 'running' : 'stopped',
-        pid: processInfo.pid,
-        startTime: processInfo.startTime,
-        uptime: uptime,
-        mode: processInfo.mode
-    };
-}
-
-// Kill all bot processes (including child processes)
-async function killAllBotProcesses() {
-    return new Promise((resolve) => {
-        // Find processes by matching backend.js, officialbot.js, or selfbot.js
-        exec(`pgrep -f "node.*(backend|officialbot|selfbot)\\.js" || true`, (error, stdout, stderr) => {
-            let allPids = stdout.trim().split('\n').filter(pid => pid && !isNaN(pid));
-            
-            // Filter to only actual bot processes (not control panel)
-            const botPids = [];
-            const checkPromises = allPids.map(pid => {
-                return new Promise((resolveCheck) => {
-                    const pidNum = parseInt(pid);
-                    
-                    // Skip control panel process
-                    if (pidNum === process.pid) {
-                        resolveCheck(false);
-                        return;
-                    }
-                    
-                    // Check the process command line
-                    try {
-                        const cmdline = readFileSync(`/proc/${pidNum}/cmdline`, 'utf8').replace(/\0/g, ' ');
-                        // Must include backend.js or officialbot.js or selfbot.js but NOT frontend.js
-                        if ((cmdline.includes('backend.js') || cmdline.includes('officialbot.js') || cmdline.includes('selfbot.js')) && !cmdline.includes('frontend.js')) {
-                            botPids.push(pidNum);
-                            resolveCheck(true);
-                        } else {
-                            resolveCheck(false);
-                        }
-                    } catch (e) {
-                        // Process might not exist or no permission - skip it
-                        resolveCheck(false);
-                    }
-                });
-            });
-            
-            Promise.all(checkPromises).then(() => {
-                if (botPids.length === 0) {
-                    resolve([]);
-                    return;
-                }
-
-                console.log(`Found ${botPids.length} bot process(es) to kill: ${botPids.join(', ')}`);
-
-                // Kill all found processes - use kill command for better reliability
-                const killPromises = botPids.map(pid => {
-                    return new Promise((resolveKill) => {
-                        // Use kill command directly for more reliability
-                        exec(`kill -INT ${pid} 2>/dev/null || kill -KILL ${pid} 2>/dev/null || true`, (killErr) => {
-                            // Also try via process.kill as backup
-                            try {
-                                process.kill(pid, 'SIGINT');
-                            } catch (e) {
-                                // Ignore errors
-                            }
-                            
-                            // Wait a moment, then force kill if still alive
-                            setTimeout(() => {
-                                try {
-                                    // Check if still running
-                                    process.kill(pid, 0); // Signal 0 checks if process exists
-                                    // Still running, force kill
-                                    exec(`kill -KILL ${pid} 2>/dev/null || true`);
-                                    try {
-                                        process.kill(pid, 'SIGKILL');
-                                    } catch (e) {
-                                        // Process might be dead now
-                                    }
-                                } catch (e) {
-                                    // Process is dead
-                                }
-                                resolveKill();
-                            }, 1500);
-                        });
-                    });
-                });
-
-                Promise.all(killPromises).then(() => {
-                    // Verify all are dead
-                    setTimeout(() => {
-                        const stillAlive = [];
-                        botPids.forEach(pid => {
-                            try {
-                                process.kill(pid, 0); // Check if still exists
-                                stillAlive.push(pid);
-                            } catch (e) {
-                                // Process is dead, good
-                            }
-                        });
-                        
-                        if (stillAlive.length > 0) {
-                            console.log(`Warning: Some processes still alive, force killing: ${stillAlive.join(', ')}`);
-                            stillAlive.forEach(pid => {
-                                exec(`kill -KILL ${pid} 2>/dev/null || true`);
-                            });
-                        }
-                        
-                        resolve(botPids);
-                    }, 500);
-                });
-            });
-        });
-    });
-}
-
-// Start the bot
-async function startBot(mode = 'both') {
-    // Check if already running by checking process
-    if (botProcess && !botProcess.killed && botProcess.exitCode === null) {
-        return { success: false, error: 'Bot is already running' };
-    }
-
-    // Also check if any bot processes are running
-    return new Promise((resolve) => {
-        const mainScriptPath = join(projectRoot, 'main.js');
-        // Find all node processes
-        exec(`pgrep -f "node" || true`, (error, stdout) => {
-            const allPids = stdout.trim().split('\n').filter(pid => pid && !isNaN(pid));
-            
-            // Filter to only bot processes (main.js, not controlpanel-server)
-            const botPids = [];
-            const checkPromises = allPids.map(pid => {
-                return new Promise((resolveCheck) => {
-                    const pidNum = parseInt(pid);
-                    
-                    // Skip control panel process
-                    if (pidNum === process.pid) {
-                        resolveCheck(false);
-                        return;
-                    }
-                    
-                    // Check the process command line
-                    try {
-                        const cmdline = readFileSync(`/proc/${pidNum}/cmdline`, 'utf8').replace(/\0/g, ' ');
-                        // Must include main.js but NOT controlpanel-server
-                        if (cmdline.includes(mainScriptPath) && !cmdline.includes('controlpanel-server')) {
-                            botPids.push(pidNum);
-                            resolveCheck(true);
-                        } else {
-                            resolveCheck(false);
-                        }
-                    } catch (e) {
-                        // Process doesn't exist or no permission - assume it's not a bot
-                        resolveCheck(false);
-                    }
-                });
-            });
-            
-            Promise.all(checkPromises).then(() => {
-                if (botPids.length > 0) {
-                    resolve({ success: false, error: `Bot processes are already running (PIDs: ${botPids.join(', ')}). Stop them first.` });
-                    return;
-                }
-                
-                // No bot processes running, continue with start
-                processInfo.status = 'starting';
-                processInfo.mode = mode;
-
-                try {
-                    const backendScript = join(projectRoot, 'backend.js');
-                    botProcess = spawn('node', [backendScript, mode], {
-                        cwd: projectRoot,
-                        stdio: ['ignore', 'pipe', 'pipe'],
-                        shell: true,
-                        detached: false // Keep in same process group
-                    });
-
-                    processInfo.pid = botProcess.pid;
-                    processInfo.startTime = Date.now();
-                    processInfo.status = 'running';
-
-                    // Handle output
-                    botProcess.stdout.on('data', (data) => {
-                        const output = data.toString();
-                        console.log(`[Bot] ${output}`);
-                    });
-
-                    botProcess.stderr.on('data', (data) => {
-                        const output = data.toString();
-                        console.error(`[Bot Error] ${output}`);
-                    });
-
-                    // Handle process exit
-                    botProcess.on('exit', (code, signal) => {
-                        processInfo.status = 'stopped';
-                        processInfo.pid = null;
-                        processInfo.startTime = null;
-                        botProcess = null;
-                        logger.log(`Bot process exited with code ${code}${signal ? ` (signal: ${signal})` : ''}`);
-                    });
-
-                    botProcess.on('error', (err) => {
-                        processInfo.status = 'stopped';
-                        processInfo.pid = null;
-                        processInfo.startTime = null;
-                        botProcess = null;
-                        logger.log(`Failed to start bot: ${err.message}`);
-                    });
-
-                    resolve({ success: true, pid: botProcess.pid });
-                } catch (error) {
-                    processInfo.status = 'stopped';
-                    resolve({ success: false, error: error.message });
-                }
-            });
-        });
-    });
-}
-
-// Stop the bot
-async function stopBot() {
-    // Check if there's anything to stop
-    const hadProcess = botProcess || processInfo.pid;
-    
-    if (!hadProcess) {
-        // Also check if any bot processes are actually running
-        const testKill = await killAllBotProcesses();
-        if (testKill.length === 0) {
-            return { success: false, error: 'Bot is not running' };
-        }
-        return { success: true, killed: testKill.length };
-    }
-
-    processInfo.status = 'stopping';
-
-    // First, try to kill the tracked process
-    if (botProcess && !botProcess.killed && botProcess.exitCode === null) {
-        try {
-            botProcess.kill('SIGINT');
-        } catch (err) {
-            // Process might already be dead
-        }
-    }
-
-    // Kill all bot processes (including child processes)
-    const killedPids = await killAllBotProcesses();
-    
-    // Clean up
-    botProcess = null;
-    processInfo.status = 'stopped';
-    processInfo.pid = null;
-    processInfo.startTime = null;
-
-    if (killedPids.length > 0) {
-        logger.log(`Stopped ${killedPids.length} bot process(es): ${killedPids.join(', ')}`);
-        return { success: true, killed: killedPids.length };
-    } else {
-        return { success: true, message: 'No running processes found' };
-    }
-}
-
-// Restart the bot
-async function restartBot(mode = 'both') {
-    const currentMode = processInfo.mode || mode;
-    
-    // Stop first and wait for it to complete
-    const stopResult = await stopBot();
-    
-    if (!stopResult.success && stopResult.error !== 'Bot is not running') {
-        return { success: false, error: `Failed to stop: ${stopResult.error}` };
-    }
-    
-    // Wait a moment for all processes to fully stop
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Now start
-    const startResult = await startBot(currentMode);
-    return startResult;
-}
 
 // Start a specific bot by ID
 async function startBotById(botId, bot) {
@@ -554,7 +227,7 @@ async function stopBotById(botId) {
                 uptime_started_at: null
             });
         } catch (err) {}
-        return { success: false, error: 'Bot is not running' };
+            return { success: false, error: 'Bot is not running' };
     }
 
     botInfo.status = 'stopping';
@@ -930,12 +603,6 @@ export async function init() {
         }
     });
 
-    // API Routes
-    // Status endpoint
-    app.get('/api/status', async (req, res) => {
-        const status = await getBotStatus();
-        res.json(status);
-    });
 
     // Control endpoints - bot-specific
     app.post('/api/start', async (req, res) => {
@@ -951,7 +618,7 @@ export async function init() {
             }
             
             const result = await startBotById(bot_id, bot);
-            res.json(result);
+        res.json(result);
         } catch (error) {
             res.json({ success: false, error: error.message });
         }
@@ -965,7 +632,7 @@ export async function init() {
         
         try {
             const result = await stopBotById(bot_id);
-            res.json(result);
+        res.json(result);
         } catch (error) {
             res.json({ success: false, error: error.message });
         }
@@ -984,7 +651,7 @@ export async function init() {
             }
             
             const result = await restartBotById(bot_id, bot);
-            res.json(result);
+        res.json(result);
         } catch (error) {
             res.json({ success: false, error: error.message });
         }

@@ -31,8 +31,7 @@ A Discord bot system that separates self-bot monitoring from official bot forwar
 
 ```
 go-blox-bot/
-├── frontend.js            # Frontend entry point (control panel server)
-├── backend.js             # Backend entry point (bot launcher)
+├── main.js                # Frontend entry point (control panel server)
 ├── package.json           # Single package.json with all dependencies
 ├── frontend/
 │   ├── index.js          # Control panel server
