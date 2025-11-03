@@ -1,31 +1,101 @@
 // Backend Configuration for both Self-Bot and Official Bot
+import db from '../database/supabase.js';
 
-// Environment Configuration
+// Bot configuration loaded from database
+let botConfig = null;
+
+// Load bot configuration from database
+async function loadBotConfig() {
+    // Get BOT_ID from environment (set by control panel)
+    const botId = process.env.BOT_ID;
+    
+    if (!botId) {
+        throw new Error('BOT_ID not set in environment. Bot cannot start without database configuration.');
+    }
+
+    const bot = await db.getBot(botId);
+    
+    if (!bot) {
+        throw new Error(`Bot not found in database with ID: ${botId}`);
+    }
+
+    botConfig = {
+        id: bot.id,
+        token: bot.token,
+        application_id: bot.application_id,
+        bot_type: bot.bot_type,
+        port: bot.port,
+        secret_key: bot.secret_key,
+        is_testing: bot.is_testing || false,
+        connect_to: bot.connect_to
+    };
+
+    return botConfig;
+}
+
+// Initialize config - load from database if available
+export async function initializeConfig() {
+    await loadBotConfig();
+}
+
+// Get current bot config
+export function getBotConfig() {
+    return botConfig;
+}
+
+// Environment Configuration - uses database is_testing field
 export const ENV = {
-    PRODUCTION: false // Set to true for production, false for testing
+    get PRODUCTION() {
+        if (!botConfig) {
+            throw new Error('Bot config not loaded. Call initializeConfig() first.');
+        }
+        return !botConfig.is_testing;
+    }
 };
 
-// Self-Bot Token (for monitoring source servers)
-export const SELF_BOT_TOKEN = "MTM3OTYxODk0MTY4NDY4Mjc2NA.GQbIIl.gucYwt8CHvhPiciAuCML5weuM6c2bTls3gDUKo";
+// Get token from database
+export function getBotToken(botType) {
+    if (!botConfig) {
+        throw new Error('Bot config not loaded. Call initializeConfig() first.');
+    }
+    if (botConfig.bot_type !== botType) {
+        throw new Error(`Bot type mismatch. Expected ${botType}, got ${botConfig.bot_type}`);
+    }
+    if (!botConfig.token) {
+        throw new Error('Bot token not found in database configuration.');
+    }
+    return botConfig.token;
+}
 
-// Official Bot Token (for forwarding to target servers)
-export const OFFICIAL_BOT_TOKEN = "MTQxNzQ4NzIyOTg4MTgxNTA4MA.GuC-RQ.NHRya3Ryny-oecpXQ8dmRHjvt8gz7qns7hzs98";
-
-// Official Bot Application ID
-export const OFFICIAL_BOT_APPLICATION_ID = "1417487229881815080";
+// Get application ID from database
+export function getApplicationId() {
+    if (!botConfig) {
+        throw new Error('Bot config not loaded. Call initializeConfig() first.');
+    }
+    if (!botConfig.application_id) {
+        throw new Error('Application ID not found in database configuration.');
+    }
+    return botConfig.application_id;
+}
 
 // Main Channel Configuration
 export const MAIN_CHANNEL_CONFIG = {
     PRODUCTION: "1364374299359707212",
     TEST: "1422599583456039228",
-    // Get main channel based on environment
+    // Get main channel based on is_testing from database
     get MAIN_CHANNEL() {
-        return ENV.PRODUCTION ? this.PRODUCTION : this.TEST;
+        if (!botConfig) {
+            throw new Error('Bot config not loaded. Call initializeConfig() first.');
+        }
+        // Use TEST channel if is_testing is true, otherwise use PRODUCTION
+        return botConfig.is_testing ? this.TEST : this.PRODUCTION;
     }
 };
 
-// Export MAIN_CHANNEL for backward compatibility
-export const MAIN_CHANNEL = MAIN_CHANNEL_CONFIG.MAIN_CHANNEL;
+// Export MAIN_CHANNEL as getter function (lazy-loaded to avoid evaluation at module load)
+export function getMainChannel() {
+    return MAIN_CHANNEL_CONFIG.MAIN_CHANNEL;
+}
 
 // Permissions Configuration
 export const PERMISSIONS = {
@@ -36,14 +106,38 @@ export const PERMISSIONS = {
     MEMBER_ROLE: "1364380027310968905",     // Can only use status and help
 };
 
-// Communication Configuration
+// Communication Configuration - loads from database
 export const COMMUNICATION = {
     // Webhook URL for self-bot to send data to official bot (local webhook server)
-    WEBHOOK_URL: "http://localhost:7777",
-    // Secret key for webhook authentication
-    SECRET_KEY: "OwnerDansdayGOBLOX2025",
-    // Port for webhook server
-    PORT: 7777
+    get WEBHOOK_URL() {
+        if (!botConfig) {
+            throw new Error('Bot config not loaded. Call initializeConfig() first.');
+        }
+        if (!botConfig.port) {
+            throw new Error('Port not found in database configuration.');
+        }
+        return `http://localhost:${botConfig.port}`;
+    },
+    // Secret key for webhook authentication - loads from database
+    get SECRET_KEY() {
+        if (!botConfig) {
+            throw new Error('Bot config not loaded. Call initializeConfig() first.');
+        }
+        if (!botConfig.secret_key) {
+            throw new Error('Secret key not found in database configuration.');
+        }
+        return botConfig.secret_key;
+    },
+    // Port for webhook server - loads from database
+    get PORT() {
+        if (!botConfig) {
+            throw new Error('Bot config not loaded. Call initializeConfig() first.');
+        }
+        if (!botConfig.port) {
+            throw new Error('Port not found in database configuration.');
+        }
+        return botConfig.port;
+    }
 };
 
 // Embed Configuration
@@ -61,8 +155,10 @@ export const LOGGER = {
 
 // Welcomer Configuration
 export const WELCOMER = {
-    CHANNELS: {
-        "1364374298307072010": MAIN_CHANNEL
+    get CHANNELS() {
+        return {
+            "1364374298307072010": MAIN_CHANNEL_CONFIG.MAIN_CHANNEL
+        };
     },
     MESSAGES: [
         "Selamat datang, {user}! Semoga betah di sini ya 😄",
@@ -80,8 +176,10 @@ export const WELCOMER = {
 
 // Booster Configuration
 export const BOOSTER = {
-    CHANNELS: {
-        "1364374298307072010": MAIN_CHANNEL
+    get CHANNELS() {
+        return {
+            "1364374298307072010": MAIN_CHANNEL_CONFIG.MAIN_CHANNEL
+        };
     },
     MESSAGES: [
         "Terima kasih banyak, {user}! Server boost kamu sangat berarti untuk kami! 💎",

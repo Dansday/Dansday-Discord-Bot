@@ -1,9 +1,17 @@
 import { Client, GatewayIntentBits } from "discord.js";
-import { OFFICIAL_BOT_TOKEN } from "../config.js";
+import { getBotToken, initializeConfig } from "../config.js";
 import logger from "../logger.js";
 
-// Use BOT_TOKEN from environment if provided (for control panel), otherwise use config
-const BOT_TOKEN = process.env.BOT_TOKEN || OFFICIAL_BOT_TOKEN;
+// Initialize config from database (async)
+let BOT_TOKEN;
+(async () => {
+    await initializeConfig();
+    // Use BOT_TOKEN from environment if provided (for control panel), otherwise use database config
+    BOT_TOKEN = process.env.BOT_TOKEN || getBotToken('official');
+})().catch(err => {
+    console.error('Failed to initialize config:', err);
+    process.exit(1);
+});
 import forwarder from "./components/forwarder.js";
 import welcomer from "./components/welcomer.js";
 import booster from "./components/booster.js";
@@ -28,6 +36,16 @@ const client = new Client({
 
 client.on("clientReady", async () => {
     console.log(`Official bot logged in as ${client.user.tag}`);
+
+    // Ensure config is loaded
+    if (!BOT_TOKEN) {
+        await initializeConfig();
+        BOT_TOKEN = process.env.BOT_TOKEN || getBotToken('official');
+    }
+    
+    if (!BOT_TOKEN) {
+        throw new Error('Bot token not available. Cannot proceed.');
+    }
 
     // Deploy slash commands (don't clear first on startup)
     await commands.deployCommands(false);
@@ -58,4 +76,19 @@ process.on("SIGINT", () => {
     process.exit(0);
 });
 
-client.login(BOT_TOKEN);
+// Login with token (initialize config first if needed)
+(async () => {
+    if (!BOT_TOKEN) {
+        await initializeConfig();
+        BOT_TOKEN = process.env.BOT_TOKEN || getBotToken('official');
+    }
+    
+    if (!BOT_TOKEN) {
+        throw new Error('Bot token not available. Cannot login.');
+    }
+    
+    await client.login(BOT_TOKEN);
+})().catch(err => {
+    console.error('Failed to login:', err);
+    process.exit(1);
+});

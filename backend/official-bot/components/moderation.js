@@ -1,11 +1,12 @@
 import { EmbedBuilder } from "discord.js";
-import { MAIN_CHANNEL, EMBED } from "../../config.js";
+import { getMainChannel, EMBED } from "../../config.js";
 import logger from "../../logger.js";
 
 async function sendModerationLog(client, embedData) {
-    const channel = client.channels.cache.get(MAIN_CHANNEL);
+    const mainChannel = getMainChannel();
+    const channel = client.channels.cache.get(mainChannel);
     if (!channel) {
-        await logger.log(`❌ Main channel not found: ${MAIN_CHANNEL}`);
+        await logger.log(`❌ Main channel not found: ${mainChannel}`);
         return;
     }
 

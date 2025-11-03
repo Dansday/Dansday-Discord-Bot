@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { OFFICIAL_BOT_TOKEN, OFFICIAL_BOT_APPLICATION_ID } from "../../config.js";
+import { getBotToken, getApplicationId } from "../../config.js";
 import logger from "../../logger.js";
 
 // Import setup command
@@ -46,7 +46,11 @@ async function executeSlashCommand(interaction, client) {
 
 // Deploy commands to Discord
 async function deployCommands(clearFirst = false) {
-    const rest = new REST({ version: '10' }).setToken(OFFICIAL_BOT_TOKEN);
+        const token = process.env.BOT_TOKEN || getBotToken('official');
+        if (!token) {
+            throw new Error('Bot token not available for command deployment.');
+        }
+        const rest = new REST({ version: '10' }).setToken(token);
 
     try {
         console.log('🔄 Started refreshing application (/) commands.');
@@ -54,7 +58,7 @@ async function deployCommands(clearFirst = false) {
         // Only clear commands if explicitly requested
         if (clearFirst) {
             await rest.put(
-                Routes.applicationCommands(OFFICIAL_BOT_APPLICATION_ID),
+                Routes.applicationCommands(getApplicationId()),
                 { body: [] },
             );
             console.log('🧹 Cleared existing slash commands.');
@@ -62,7 +66,7 @@ async function deployCommands(clearFirst = false) {
 
         // Register our commands
         await rest.put(
-            Routes.applicationCommands(OFFICIAL_BOT_APPLICATION_ID),
+            Routes.applicationCommands(getApplicationId()),
             { body: commandDefinitions },
         );
 

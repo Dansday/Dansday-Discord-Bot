@@ -23,7 +23,7 @@ async function startBotById(botId, bot) {
         await db.updateBot(botId, { status: 'starting' });
     } catch (err) {
         logger.log(`⚠️  Failed to update bot status: ${err.message}`);
-    }
+}
 
     // Check if bot is already running
     const existing = botProcesses.get(botId);
@@ -78,7 +78,7 @@ async function startBotById(botId, bot) {
         };
 
         botProcesses.set(botId, processInfo);
-
+            
         // Handle output
         botProcess.stdout.on('data', (data) => {
             const output = data.toString();
@@ -152,7 +152,7 @@ async function startBotById(botId, bot) {
                 } catch (err) {
                     logger.log(`⚠️  Failed to update bot status to running: ${err.message}`);
                 }
-            } catch (e) {
+                            } catch (e) {
                 // Process doesn't exist or failed to start
                 logger.log(`⚠️  Bot process ${botProcess.pid} may have failed to start`);
                 try {
@@ -216,8 +216,8 @@ async function stopBotById(botId) {
                     });
                 } catch (err) { }
                 return { success: false, error: 'Bot is not running' };
-            }
-        }
+                }
+}
 
         // Update status
         try {
@@ -227,7 +227,7 @@ async function stopBotById(botId) {
                 uptime_started_at: null
             });
         } catch (err) { }
-        return { success: false, error: 'Bot is not running' };
+            return { success: false, error: 'Bot is not running' };
     }
 
     botInfo.status = 'stopping';
@@ -273,14 +273,14 @@ async function stopBotById(botId) {
 // Restart a specific bot by ID
 async function restartBotById(botId, bot) {
     const stopResult = await stopBotById(botId);
-
+    
     if (!stopResult.success && stopResult.error !== 'Bot is not running') {
         return { success: false, error: `Failed to stop: ${stopResult.error}` };
     }
-
+    
     // Wait a moment for process to fully stop
     await new Promise(resolve => setTimeout(resolve, 2000));
-
+    
     // Now start
     const startResult = await startBotById(botId, bot);
     return startResult;
@@ -656,7 +656,7 @@ export async function init() {
             }
 
             const result = await startBotById(bot_id, bot);
-            res.json(result);
+        res.json(result);
         } catch (error) {
             res.json({ success: false, error: error.message });
         }
@@ -670,7 +670,7 @@ export async function init() {
 
         try {
             const result = await stopBotById(bot_id);
-            res.json(result);
+        res.json(result);
         } catch (error) {
             res.json({ success: false, error: error.message });
         }
@@ -689,7 +689,7 @@ export async function init() {
             }
 
             const result = await restartBotById(bot_id, bot);
-            res.json(result);
+        res.json(result);
         } catch (error) {
             res.json({ success: false, error: error.message });
         }
