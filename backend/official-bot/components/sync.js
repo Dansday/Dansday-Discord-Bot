@@ -1,10 +1,12 @@
 import db from '../../../database/supabase.js';
 import logger from '../../logger.js';
+import { getLoggerChannel } from '../../config.js';
 import { separateChannelsAndCategories, mapCategoriesForSync, mapChannelsForSync } from '../../utils.js';
 
 let client = null;
 let botId = null;
 let syncInterval = null;
+let loggerInitialized = false;
 
 // Find bot in database by token or ID
 async function findBotByToken(token) {
@@ -50,6 +52,20 @@ async function syncGuildData(guild) {
         }
 
         const serverId = serverData.id;
+
+        // Initialize logger with channel from this server if not already initialized
+        if (!loggerInitialized && client) {
+            try {
+                const loggerChannelId = await getLoggerChannel(guild.id);
+                if (loggerChannelId) {
+                    logger.init(client, loggerChannelId);
+                    loggerInitialized = true;
+                    logger.log(`✅ Logger initialized with channel from ${guild.name}`);
+                }
+            } catch (error) {
+                // Logger channel not configured for this server, continue
+            }
+        }
 
         // Separate channels and categories (excludes threads automatically)
         const { categories, channels } = separateChannelsAndCategories(guild.channels.cache);

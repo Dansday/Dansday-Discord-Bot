@@ -1,9 +1,9 @@
 import { EmbedBuilder } from "discord.js";
-import { getMainChannel, EMBED } from "../../config.js";
+import { getMainChannel, getEmbedConfig } from "../../config.js";
 import logger from "../../logger.js";
 
-async function sendModerationLog(client, embedData) {
-    const mainChannel = getMainChannel();
+async function sendModerationLog(client, embedData, guildId = null) {
+    const mainChannel = await getMainChannel(guildId);
     const channel = client.channels.cache.get(mainChannel);
     if (!channel) {
         await logger.log(`❌ Main channel not found: ${mainChannel}`);
@@ -11,12 +11,13 @@ async function sendModerationLog(client, embedData) {
     }
 
     try {
+        const embedConfig = await getEmbedConfig(guildId);
         const embed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle(embedData.title)
             .setDescription(embedData.description)
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         if (embedData.thumbnail) {
             embed.setThumbnail(embedData.thumbnail);
@@ -84,7 +85,7 @@ function init(client) {
                         inline: false
                     }
                 ]
-            });
+            }, guild.id);
         } catch (err) {
             await logger.log(`❌ Error handling ban: ${err.message}`);
         }
@@ -115,7 +116,7 @@ function init(client) {
                         inline: true
                     }
                 ]
-            });
+            }, guild.id);
         } catch (err) {
             await logger.log(`❌ Error handling unban: ${err.message}`);
         }
@@ -171,7 +172,7 @@ function init(client) {
                         inline: false
                     }
                 ]
-            });
+            }, member.guild.id);
         } catch (err) {
             await logger.log(`❌ Error handling member remove: ${err.message}`);
         }

@@ -1,5 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
-import { EMBED, ACTIVITY_TRACKER } from '../../../config.js';
+import { getEmbedConfig, ACTIVITY_TRACKER } from '../../../config.js';
 import logger from '../../../logger.js';
 import { hasPermission } from '../permissions.js';
 
@@ -201,8 +201,9 @@ export async function handleInactiveButton(interaction, client) {
             memberList += memberLine;
         }
 
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
         const inactiveEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle(`📊 Members Who Never/No Recent Chat (${results.length} total)`)
             .setDescription(memberList || 'No members found')
             .addFields([
@@ -213,7 +214,7 @@ export async function handleInactiveButton(interaction, client) {
                 }
             ])
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         await interaction.editReply({ embeds: [inactiveEmbed] });
 

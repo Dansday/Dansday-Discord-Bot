@@ -1,5 +1,5 @@
 import { ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, EmbedBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { EMBED } from '../../../config.js';
+import { getEmbedConfig } from '../../../config.js';
 import logger from '../../../logger.js';
 import { hasPermission } from '../permissions.js';
 
@@ -163,8 +163,9 @@ export async function handleAFKButton(interaction) {
                 durationText = `${duration}s`;
             }
 
+            const embedConfig = await getEmbedConfig(interaction.guild.id);
             const embed = new EmbedBuilder()
-                .setColor(EMBED.COLOR)
+                .setColor(embedConfig.COLOR)
                 .setTitle('⏸️ You are currently AFK')
                 .setDescription(`**Status:** ${afkData.message}\n**Duration:** ${durationText}`)
                 .addFields({
@@ -173,7 +174,7 @@ export async function handleAFKButton(interaction) {
                     inline: false
                 })
                 .setTimestamp()
-                .setFooter({ text: EMBED.FOOTER });
+                .setFooter({ text: embedConfig.FOOTER });
 
             await interaction.reply({
                 embeds: [embed],
@@ -251,8 +252,9 @@ export async function handleAFKModal(interaction) {
             ? (shouldDeafen ? 'You will be muted and deafened in voice.' : 'You will be muted in voice (not deafened).')
             : '';
 
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
         const embed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle('✅ AFK Status Set!')
             .setDescription(`You're now marked as AFK: **${afkMessage}**${voiceInfo ? `\n\n${voiceInfo}` : ''}`)
             .addFields({
@@ -261,7 +263,7 @@ export async function handleAFKModal(interaction) {
                 inline: false
             })
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         await interaction.editReply({
             embeds: [embed]
@@ -303,12 +305,13 @@ export async function handleRemoveAFKButton(interaction) {
         }
 
         // Confirm removal
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
         const embed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle('✅ AFK Status Removed!')
             .setDescription('Welcome back! Your AFK status has been removed.')
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         await interaction.reply({
             embeds: [embed],

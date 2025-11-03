@@ -82,7 +82,8 @@ async function setupDatabase() {
         { name: 'servers', required: true },
         { name: 'categories', required: true },
         { name: 'channels', required: true },
-        { name: 'roles', required: true }
+        { name: 'roles', required: true },
+        { name: 'server_settings', required: true }
     ];
 
     const missingTables = [];
@@ -704,6 +705,70 @@ async function getPanelLogs(limit = 100) {
     return data;
 }
 
+// Server settings functions
+async function getServerSettings(serverId, componentName = null) {
+    try {
+        await initializeDatabase();
+        let query = supabase
+            .from('server_settings')
+            .select('*')
+            .eq('server_id', serverId);
+
+        if (componentName) {
+            query = query.eq('component_name', componentName);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return componentName ? (data[0] || null) : (data || []);
+    } catch (error) {
+        console.error('Error getting server settings:', error);
+        return componentName ? null : [];
+    }
+}
+
+async function upsertServerSettings(serverId, componentName, settings) {
+    try {
+        await initializeDatabase();
+        const { data, error } = await supabase
+            .from('server_settings')
+            .upsert({
+                server_id: serverId,
+                component_name: componentName,
+                settings: settings,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'server_id,component_name'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error upserting server settings:', error);
+        throw error;
+    }
+}
+
+async function getChannelsForServer(serverId) {
+    try {
+        await initializeDatabase();
+        const { data, error } = await supabase
+            .from('channels')
+            .select('*')
+            .eq('server_id', serverId)
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error getting channels for server:', error);
+        return [];
+    }
+}
+
 export default {
     supabase,
     getAllBots,
@@ -726,5 +791,8 @@ export default {
     createPanel,
     updatePanelPassword,
     createPanelLog,
-    getPanelLogs
+    getPanelLogs,
+    getServerSettings,
+    upsertServerSettings,
+    getChannelsForServer
 };

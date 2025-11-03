@@ -1,5 +1,5 @@
 import { ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, EmbedBuilder } from 'discord.js';
-import { EMBED, PERMISSIONS, FEEDBACK } from '../../../config.js';
+import { getEmbedConfig, PERMISSIONS, FEEDBACK } from '../../../config.js';
 import logger from '../../../logger.js';
 import { hasPermission } from '../permissions.js';
 
@@ -110,9 +110,12 @@ export async function handleFeedbackModal(interaction) {
         // Record this submission
         recordSubmission(user.id, submissionNumber, feedbackMessage);
 
+        // Get embed config
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
+        
         // Create feedback embed
         const feedbackEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle(`💬 Feedback Submission #${submissionNumber}`)
             .setDescription(feedbackMessage.length > 4096 ? feedbackMessage.substring(0, 4093) + '...' : feedbackMessage)
             .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -134,7 +137,7 @@ export async function handleFeedbackModal(interaction) {
                 }
             ])
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         // Send to feedback channel with Staff role mention
         await feedbackChannel.send({
@@ -144,11 +147,11 @@ export async function handleFeedbackModal(interaction) {
 
         // Confirm to user
         const successEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle('✅ Feedback Submitted!')
             .setDescription('Thank you for your feedback! Your submission has been received.')
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         await interaction.editReply({
             embeds: [successEmbed]

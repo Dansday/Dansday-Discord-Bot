@@ -1,13 +1,12 @@
-import { LOGGER } from "./config.js";
 import { formatTimestamp } from "./utils.js";
 
 let logChannel = null;
 let hasPermission = true; // Track if we have permission to log
 let permissionWarningShown = false; // Track if we've already warned about missing permission
 
-async function log(text) {
+async function log(text, guildId = null) {
+    // If no channel set up, just log to console
     if (!logChannel || !hasPermission) {
-        // Still log to console if Discord logging isn't available
         const timestamp = formatTimestamp(Date.now(), true);
         console.log(`[${timestamp}] ${text}`);
         return;
@@ -42,10 +41,16 @@ async function log(text) {
     }
 }
 
-function init(client) {
-    logChannel = client.channels.cache.get(LOGGER.CHANNELS);
+function init(client, channelId = null) {
+    // If no channel ID provided, logger will just log to console
+    if (!channelId) {
+        console.log("⚠️  No logger channel ID provided. Logging to console only.");
+        return;
+    }
+
+    logChannel = client.channels.cache.get(channelId);
     if (!logChannel) {
-        console.error("Log channel not found!");
+        console.error(`Log channel not found: ${channelId}`);
         hasPermission = false;
         return;
     }

@@ -100,8 +100,8 @@ async function startBotById(botId, bot) {
                 info.pid = null;
                 info.startTime = null;
                 info.process = null;
-            }
-
+                    }
+                    
             // Update bot status in database
             try {
                 await db.updateBot(botId, {
@@ -135,8 +135,8 @@ async function startBotById(botId, bot) {
             } catch (updateErr) { }
 
             logger.log(`Failed to start bot ${botId}: ${err.message}`);
-        });
-
+            });
+            
         // Wait a moment for process to fully start, then update status to running
         setTimeout(async () => {
             // Verify process is still running
@@ -164,7 +164,7 @@ async function startBotById(botId, bot) {
                         uptime_started_at: null
                     });
                 } catch (updateErr) { }
-            }
+                            }
         }, 2000); // Wait 2 seconds for process to start
 
         logger.log(`✅ Started bot ${botId} (${bot.bot_type}) with PID ${botProcess.pid}`);
@@ -172,7 +172,7 @@ async function startBotById(botId, bot) {
     } catch (error) {
         return { success: false, error: error.message };
     }
-}
+    }
 
 // Stop a specific bot by ID
 async function stopBotById(botId) {
@@ -181,7 +181,7 @@ async function stopBotById(botId) {
         await db.updateBot(botId, { status: 'stopping' });
     } catch (err) {
         logger.log(`⚠️  Failed to update bot status: ${err.message}`);
-    }
+                        }
 
     const botInfo = botProcesses.get(botId);
 
@@ -412,7 +412,7 @@ export async function init() {
             res.json({ panelExists: false, error: error.message });
         }
     });
-    
+
     // Register panel password (first time setup)
     app.post('/api/panel/register', async (req, res) => {
         try {
@@ -444,6 +444,18 @@ export async function init() {
             // Set session
             req.session.authenticated = true;
             req.session.panel_id = panel.id;
+            
+            // Wait for session to be saved before sending response
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        logger.log(`⚠️  Session save error: ${err.message}`);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
             
             // Log registration (successful)
             await db.createPanelLog({
@@ -509,6 +521,18 @@ export async function init() {
             // Set session
             req.session.authenticated = true;
             req.session.panel_id = panel.id;
+            
+            // Wait for session to be saved before sending response
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        logger.log(`⚠️  Session save error: ${err.message}`);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
             
             res.json({ success: true, message: 'Login successful' });
         } catch (error) {
@@ -674,6 +698,52 @@ export async function init() {
         try {
             const servers = await db.getServersForBot(req.params.id);
             res.json(servers);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    // Get server settings (protected)
+    app.get('/api/servers/:id/settings', requireAuth, async (req, res) => {
+        try {
+            const { component } = req.query;
+            const settings = await db.getServerSettings(req.params.id, component);
+            res.json(settings);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    // Save server settings (protected)
+    app.put('/api/servers/:id/settings', requireAuth, async (req, res) => {
+        try {
+            const { component_name, settings } = req.body;
+            if (!component_name) {
+                return res.status(400).json({ error: 'component_name is required' });
+            }
+            const result = await db.upsertServerSettings(req.params.id, component_name, settings);
+            res.json({ success: true, data: result });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    // Get channels for a server (protected)
+    app.get('/api/servers/:id/channels', requireAuth, async (req, res) => {
+        try {
+            const { search } = req.query;
+            let channels = await db.getChannelsForServer(req.params.id);
+            
+            // Filter by search term if provided
+            if (search) {
+                const searchLower = search.toLowerCase();
+                channels = channels.filter(ch => 
+                    ch.name?.toLowerCase().includes(searchLower) ||
+                    ch.discord_channel_id?.includes(searchLower)
+                );
+            }
+            
+            res.json(channels);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

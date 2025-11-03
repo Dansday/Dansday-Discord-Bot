@@ -94,23 +94,43 @@ export function getApplicationId() {
     return botConfig.application_id;
 }
 
-// Main Channel Configuration
-export const MAIN_CHANNEL_CONFIG = {
-    PRODUCTION: "1364374299359707212",
-    TEST: "1422599583456039228",
-    // Get main channel based on is_testing from database
-    get MAIN_CHANNEL() {
-        if (!botConfig) {
-            throw new Error('Bot config not loaded. Call initializeConfig() first.');
-        }
-        // Use TEST channel if is_testing is true, otherwise use PRODUCTION
-        return botConfig.is_testing ? this.TEST : this.PRODUCTION;
+// Helper function to get server by Discord server ID
+async function getServerByDiscordId(discordServerId) {
+    if (!botConfig) {
+        throw new Error('Bot config not loaded. Call initializeConfig() first.');
     }
-};
+    const server = await db.getServerByDiscordId(botConfig.id, discordServerId);
+    if (!server) {
+        throw new Error(`Server not found for Discord ID: ${discordServerId}`);
+    }
+    return server;
+}
 
-// Export MAIN_CHANNEL as getter function (lazy-loaded to avoid evaluation at module load)
-export function getMainChannel() {
-    return MAIN_CHANNEL_CONFIG.MAIN_CHANNEL;
+// Get main channel for a specific server (from server settings)
+export async function getMainChannel(guildId) {
+    if (!botConfig) {
+        throw new Error('Bot config not loaded. Call initializeConfig() first.');
+    }
+    if (!guildId) {
+        throw new Error('Guild ID is required to get main channel.');
+    }
+
+    const server = await getServerByDiscordId(guildId);
+    const settings = await db.getServerSettings(server.id, 'main_config');
+    
+    if (!settings || !settings.settings) {
+        throw new Error(`Server settings not found for guild ${guildId}`);
+    }
+
+    const channelId = botConfig.is_testing 
+        ? settings.settings.test_channel 
+        : settings.settings.production_channel;
+    
+    if (!channelId) {
+        throw new Error(`Channel not configured for ${botConfig.is_testing ? 'testing' : 'production'} mode in guild ${guildId}`);
+    }
+
+    return channelId;
 }
 
 // Permissions Configuration
@@ -156,25 +176,69 @@ export const COMMUNICATION = {
     }
 };
 
-// Embed Configuration
-export const EMBED = {
-    // Color for forwarded message embeds (red)
-    COLOR: 0xff0000,
-    // Footer text for all embeds
-    FOOTER: `Copyright GO BLOX ${new Date().getFullYear()}`
-};
+// Get embed configuration for a specific server (from server settings)
+export async function getEmbedConfig(guildId) {
+    if (!botConfig) {
+        throw new Error('Bot config not loaded. Call initializeConfig() first.');
+    }
+    if (!guildId) {
+        throw new Error('Guild ID is required to get embed config.');
+    }
 
-// Logger Configuration
-export const LOGGER = {
-    CHANNELS: "1382897055034511431"
-};
+    const server = await getServerByDiscordId(guildId);
+    const settings = await db.getServerSettings(server.id, 'main_config');
+    
+    if (!settings || !settings.settings) {
+        throw new Error(`Server settings not found for guild ${guildId}`);
+    }
+
+    const config = settings.settings;
+    
+    if (!config.embed_color) {
+        throw new Error(`Embed color not configured for guild ${guildId}`);
+    }
+
+    // Convert hex color to integer
+    const hex = config.embed_color.replace('#', '');
+    const color = parseInt(hex, 16);
+    
+    if (!config.embed_footer) {
+        throw new Error(`Embed footer not configured for guild ${guildId}`);
+    }
+
+    return {
+        COLOR: color,
+        FOOTER: config.embed_footer
+    };
+}
+
+// Get logger channel for a specific server (from server settings)
+export async function getLoggerChannel(guildId) {
+    if (!botConfig) {
+        throw new Error('Bot config not loaded. Call initializeConfig() first.');
+    }
+    if (!guildId) {
+        throw new Error('Guild ID is required to get logger channel.');
+    }
+
+    const server = await getServerByDiscordId(guildId);
+    const settings = await db.getServerSettings(server.id, 'main_config');
+    
+    if (!settings || !settings.settings) {
+        throw new Error(`Server settings not found for guild ${guildId}`);
+    }
+
+    if (!settings.settings.logger_channel) {
+        throw new Error(`Logger channel not configured for guild ${guildId}`);
+    }
+
+    return settings.settings.logger_channel;
+}
 
 // Welcomer Configuration
 export const WELCOMER = {
-    get CHANNELS() {
-        return {
-            "1364374298307072010": MAIN_CHANNEL_CONFIG.MAIN_CHANNEL
-        };
+    async getChannel(guildId) {
+        return await getMainChannel(guildId);
     },
     MESSAGES: [
         "Selamat datang, {user}! Semoga betah di sini ya 😄",
@@ -192,10 +256,8 @@ export const WELCOMER = {
 
 // Booster Configuration
 export const BOOSTER = {
-    get CHANNELS() {
-        return {
-            "1364374298307072010": MAIN_CHANNEL_CONFIG.MAIN_CHANNEL
-        };
+    async getChannel(guildId) {
+        return await getMainChannel(guildId);
     },
     MESSAGES: [
         "Terima kasih banyak, {user}! Server boost kamu sangat berarti untuk kami! 💎",

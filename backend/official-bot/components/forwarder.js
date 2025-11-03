@@ -1,4 +1,4 @@
-import { FORWARDER, EMBED } from "../../config.js";
+import { FORWARDER, getEmbedConfig } from "../../config.js";
 import logger from "../../logger.js";
 
 // Function to remove custom emojis and unknown roles from text
@@ -27,11 +27,19 @@ export async function processMessageFromSelfBot(messageData, client) {
     }
 
     try {
+        // Get embed config for the target channel's guild
+        const targetGuildId = targetChannel.guild?.id;
+        if (!targetGuildId) {
+            throw new Error('Target channel does not have a guild ID');
+        }
+        
+        const embedConfig = await getEmbedConfig(targetGuildId);
+
         let embeds = [];
 
         // Always create our own embed for the message content first
         const messageEmbed = {
-            color: EMBED.COLOR,
+            color: embedConfig.COLOR,
             title: `Message from ${messageData.channel.name}`,
             author: {
                 name: messageData.author.displayName || `${messageData.author.username}#${messageData.author.discriminator}`,
@@ -41,7 +49,7 @@ export async function processMessageFromSelfBot(messageData, client) {
             },
             timestamp: new Date(messageData.createdTimestamp).toISOString(),
             footer: {
-                text: `Server: ${messageData.guild.name}`
+                text: embedConfig.FOOTER
             }
         };
 

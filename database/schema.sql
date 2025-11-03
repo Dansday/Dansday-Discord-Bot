@@ -92,6 +92,17 @@ CREATE TABLE IF NOT EXISTS roles (
     UNIQUE(server_id, discord_role_id)
 );
 
+-- Server settings table (stores per-server component configurations)
+CREATE TABLE IF NOT EXISTS server_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+    component_name TEXT NOT NULL,
+    settings JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(server_id, component_name)
+);
+
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_bots_type ON bots(bot_type);
 CREATE INDEX IF NOT EXISTS idx_bots_connect_to ON bots(connect_to);
@@ -105,5 +116,7 @@ CREATE INDEX IF NOT EXISTS idx_channels_discord_id ON channels(discord_channel_i
 CREATE INDEX IF NOT EXISTS idx_channels_category_id ON channels(category_id);
 CREATE INDEX IF NOT EXISTS idx_roles_server_id ON roles(server_id);
 CREATE INDEX IF NOT EXISTS idx_roles_discord_id ON roles(discord_role_id);
+CREATE INDEX IF NOT EXISTS idx_server_settings_server_id ON server_settings(server_id);
+CREATE INDEX IF NOT EXISTS idx_server_settings_component ON server_settings(server_id, component_name);
 CREATE INDEX IF NOT EXISTS idx_panel_logs_panel_id ON panel_logs(panel_id);
 CREATE INDEX IF NOT EXISTS idx_panel_logs_attempted_at ON panel_logs(attempted_at);

@@ -1,5 +1,5 @@
 import { ModalBuilder, TextInputBuilder, ActionRowBuilder, EmbedBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputStyle } from 'discord.js';
-import { EMBED } from "../../../config.js";
+import { getEmbedConfig } from "../../../config.js";
 import logger from "../../../logger.js";
 import { hasPermission } from "../permissions.js";
 
@@ -374,8 +374,11 @@ export async function handleSendMessageModal(interaction) {
             return;
         }
 
-        // Parse color - use config default if not provided
-        let embedColor = EMBED.COLOR;
+        // Get embed config from server settings
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
+        
+        // Parse color - use server config default if not provided
+        let embedColor = embedConfig.COLOR;
         if (colorInput && colorInput.trim()) {
             const parsedColor = parseColor(colorInput.trim());
             if (parsedColor !== null) {
@@ -390,8 +393,8 @@ export async function handleSendMessageModal(interaction) {
         }
 
 
-        // Determine footer text - use custom footer if provided, otherwise use config default
-        const footerText = (footerInput && footerInput.trim()) ? footerInput.trim() : EMBED.FOOTER;
+        // Determine footer text - use custom footer if provided, otherwise use server config default
+        const footerText = (footerInput && footerInput.trim()) ? footerInput.trim() : embedConfig.FOOTER;
 
         // Create embed with footer (custom or default)
         const embed = new EmbedBuilder()

@@ -1,4 +1,4 @@
-import { EMBED } from "../../../config.js";
+import { getEmbedConfig } from "../../../config.js";
 import { EmbedBuilder } from "discord.js";
 import { hasPermission } from "../permissions.js";
 
@@ -12,8 +12,10 @@ export async function handleHelpButton(interaction) {
         });
         return;
     }
+    
+    const embedConfig = await getEmbedConfig(interaction.guild.id);
     const helpEmbed = new EmbedBuilder()
-        .setColor(EMBED.COLOR)
+        .setColor(embedConfig.COLOR)
         .setTitle("🤖 GO BLOX Bot Panel - Help")
         .setDescription("Welcome to the GO BLOX Bot interface! Use the buttons below to interact with the bot. All responses are private (ephemeral).")
         .addFields([
@@ -63,7 +65,7 @@ export async function handleHelpButton(interaction) {
                 inline: false
             }
         ])
-        .setFooter({ text: EMBED.FOOTER })
+        .setFooter({ text: embedConfig.FOOTER })
         .setTimestamp();
 
     await interaction.reply({

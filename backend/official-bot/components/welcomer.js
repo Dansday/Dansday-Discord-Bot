@@ -1,4 +1,4 @@
-import { WELCOMER, EMBED } from "../../config.js";
+import { WELCOMER, getEmbedConfig } from "../../config.js";
 import { EmbedBuilder } from "discord.js";
 import logger from "../../logger.js";
 
@@ -8,12 +8,7 @@ function getRandomMessage() {
 }
 
 async function welcomeUser(member, client) {
-    const welcomeChannelId = WELCOMER.CHANNELS[member.guild.id];
-    if (!welcomeChannelId) {
-        await logger.log(`❌ No welcome channel configured for guild ${member.guild.id}`);
-        return;
-    }
-
+    const welcomeChannelId = await WELCOMER.getChannel(member.guild.id);
     const welcomeChannel = client.channels.cache.get(welcomeChannelId);
     if (!welcomeChannel) {
         await logger.log(`❌ Welcome channel not found: ${welcomeChannelId}`);
@@ -29,10 +24,11 @@ async function welcomeUser(member, client) {
         }
 
         const welcomeMessage = getRandomMessage().replace("{user}", `<@${member.user.id}>`);
+        const embedConfig = await getEmbedConfig(member.guild.id);
 
         // Create simple welcome embed
         const welcomeEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle("🎉 Welcome to the Server!")
             .setDescription(welcomeMessage)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -48,7 +44,7 @@ async function welcomeUser(member, client) {
                     inline: true
                 }
             ])
-            .setFooter({ text: EMBED.FOOTER })
+            .setFooter({ text: embedConfig.FOOTER })
             .setTimestamp();
 
         await welcomeChannel.send({ embeds: [welcomeEmbed] });

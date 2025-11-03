@@ -1,4 +1,4 @@
-import { EMBED } from "../../../config.js";
+import { getEmbedConfig } from "../../../config.js";
 import { EmbedBuilder } from "discord.js";
 import { hasPermission } from "../permissions.js";
 
@@ -18,8 +18,9 @@ export async function handleStatusButton(interaction) {
     const minutes = Math.floor((uptime % 3600) / 60);
     const seconds = uptime % 60;
 
+    const embedConfig = await getEmbedConfig(guild.id);
     const statusEmbed = new EmbedBuilder()
-        .setColor(EMBED.COLOR)
+        .setColor(embedConfig.COLOR)
         .setTitle("📊 Bot Status")
         .addFields([
             {
@@ -43,7 +44,7 @@ export async function handleStatusButton(interaction) {
                 inline: true
             }
         ])
-        .setFooter({ text: EMBED.FOOTER })
+        .setFooter({ text: embedConfig.FOOTER })
         .setTimestamp();
 
     await interaction.reply({

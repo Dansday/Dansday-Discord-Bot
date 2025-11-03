@@ -1,4 +1,4 @@
-import { BOOSTER, EMBED } from "../../config.js";
+import { BOOSTER, getEmbedConfig } from "../../config.js";
 import { EmbedBuilder } from "discord.js";
 import logger from "../../logger.js";
 
@@ -8,12 +8,7 @@ function getRandomMessage() {
 }
 
 async function thankBooster(member, client) {
-    const boosterChannelId = BOOSTER.CHANNELS[member.guild.id];
-    if (!boosterChannelId) {
-        await logger.log(`❌ No booster channel configured for guild ${member.guild.id}`);
-        return;
-    }
-
+    const boosterChannelId = await BOOSTER.getChannel(member.guild.id);
     const boosterChannel = client.channels.cache.get(boosterChannelId);
     if (!boosterChannel) {
         await logger.log(`❌ Booster channel not found: ${boosterChannelId}`);
@@ -22,10 +17,11 @@ async function thankBooster(member, client) {
 
     try {
         const thankMessage = getRandomMessage().replace("{user}", `<@${member.user.id}>`);
+        const embedConfig = await getEmbedConfig(member.guild.id);
 
         // Create booster thank you embed
         const boosterEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle("💎 Thank You for Boosting!")
             .setDescription(thankMessage)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -46,7 +42,7 @@ async function thankBooster(member, client) {
                     inline: false
                 }
             ])
-            .setFooter({ text: EMBED.FOOTER })
+            .setFooter({ text: embedConfig.FOOTER })
             .setTimestamp();
 
         await boosterChannel.send({ embeds: [boosterEmbed] });

@@ -1,5 +1,5 @@
 import { ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, EmbedBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { EMBED, CUSTOM_SUPPORTER_ROLE } from '../../../config.js';
+import { getEmbedConfig, CUSTOM_SUPPORTER_ROLE } from '../../../config.js';
 import logger from '../../../logger.js';
 import { hasPermission } from '../permissions.js';
 
@@ -172,8 +172,9 @@ export async function handleCustomSupporterRoleButton(interaction) {
 
             const buttonRow = new ActionRowBuilder().addComponents(editButton, deleteButton);
 
+            const embedConfig = await getEmbedConfig(interaction.guild.id);
             const embed = new EmbedBuilder()
-                .setColor(EMBED.COLOR)
+                .setColor(embedConfig.COLOR)
                 .setTitle('💎 Custom Supporter Role')
                 .setDescription(`You already have a custom role: **${existingRole.name}**\n\nChoose an action:`)
                 .addFields({
@@ -370,12 +371,13 @@ export async function handleDeleteCustomSupporterRole(interaction) {
         // Remove from map
         supporterRoles.delete(member.id);
 
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
         const successEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfig.COLOR)
             .setTitle('✅ Custom Supporter Role Deleted')
             .setDescription(`Your custom role **${roleName}** has been deleted.`)
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfig.FOOTER });
 
         await interaction.editReply({
             embeds: [successEmbed]
@@ -495,8 +497,9 @@ export async function handleCustomSupporterRoleModal(interaction) {
                 else if (iconStatus === 'failed') iconStatusText = `Failed (role updated without icon)`;
                 else if (iconStatus === 'invalid') iconStatusText = 'Invalid format (role updated without icon)';
 
+                const embedConfig = await getEmbedConfig(interaction.guild.id);
                 const successEmbed = new EmbedBuilder()
-                    .setColor(EMBED.COLOR)
+                    .setColor(embedConfig.COLOR)
                     .setTitle('✅ Custom Supporter Role Updated!')
                     .setDescription(`Your custom role **${roleName}** has been updated!${iconError ? '\n\n⚠️ Note: Icon could not be set, but role was updated successfully.' : ''}`)
                     .addFields([
@@ -512,7 +515,7 @@ export async function handleCustomSupporterRoleModal(interaction) {
                         }
                     ])
                     .setTimestamp()
-                    .setFooter({ text: EMBED.FOOTER });
+                    .setFooter({ text: embedConfig.FOOTER });
 
                 await interaction.editReply({
                     embeds: [successEmbed]
@@ -550,8 +553,9 @@ export async function handleCustomSupporterRoleModal(interaction) {
         }
 
         // Parse color - always provide a valid color number
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
         const roleColor = parseColor(colorInput);
-        const finalColor = roleColor !== null ? roleColor : EMBED.COLOR;
+        const finalColor = roleColor !== null ? roleColor : embedConfig.COLOR;
 
         // Check icon type before creating role
         const trimmedIconInput = iconInput?.trim() || '';
@@ -637,8 +641,9 @@ export async function handleCustomSupporterRoleModal(interaction) {
         else if (iconStatus === 'failed') iconStatusText = 'Failed (role created without icon)';
         else if (iconStatus === 'invalid') iconStatusText = 'Invalid format (role created without icon)';
 
+        const embedConfigForCreate = await getEmbedConfig(interaction.guild.id);
         const successEmbed = new EmbedBuilder()
-            .setColor(EMBED.COLOR)
+            .setColor(embedConfigForCreate.COLOR)
             .setTitle('✅ Custom Supporter Role Created!')
             .setDescription(`Your custom role **${roleName}** has been created and assigned to you!${iconError ? '\n\n⚠️ Note: Icon could not be set, but role was created successfully.' : ''}`)
             .addFields([
@@ -654,7 +659,7 @@ export async function handleCustomSupporterRoleModal(interaction) {
                 }
             ])
             .setTimestamp()
-            .setFooter({ text: EMBED.FOOTER });
+            .setFooter({ text: embedConfigForCreate.FOOTER });
 
         await interaction.editReply({
             embeds: [successEmbed]

@@ -1,4 +1,4 @@
-import { EMBED } from "../../config.js";
+import { getEmbedConfig } from "../../config.js";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import logger from "../../logger.js";
 import { handleStatusButton } from './interface/status.js';
@@ -77,16 +77,21 @@ export async function handleButtonInteraction(interaction, client) {
 }
 
 // Create interface embed and buttons
-export function createInterfaceEmbed(client) {
+export async function createInterfaceEmbed(client, guildId) {
+    if (!guildId) {
+        throw new Error('Guild ID is required to create interface embed');
+    }
+    
+    const embedConfig = await getEmbedConfig(guildId);
     const interfaceEmbed = {
-        color: EMBED.COLOR,
+        color: embedConfig.COLOR,
         title: "GO BLOX Bot Panel",
         description: "Use the buttons below to interact with the bot",
         thumbnail: {
             url: client.user.displayAvatarURL()
         },
         footer: {
-            text: EMBED.FOOTER
+            text: embedConfig.FOOTER
         },
         timestamp: new Date().toISOString()
     };
@@ -150,7 +155,7 @@ export function createInterfaceButtons() {
 // Send interface to channel
 export async function sendInterfaceToChannel(targetChannel, interaction, client) {
     try {
-        const interfaceEmbed = createInterfaceEmbed(client);
+        const interfaceEmbed = await createInterfaceEmbed(client, interaction.guild.id);
         const buttonRow = createInterfaceButtons();
 
         // Send the interface to the target channel

@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GO BLOX Bot Control Panel</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Bot Control Panel</title>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
@@ -306,6 +304,44 @@
             border: 1px solid #333333;
         }
 
+        .component-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .component-item:hover {
+            background: #252525;
+            border-color: #dc3545;
+        }
+
+        .component-item.active {
+            background: #dc3545;
+            border-color: #dc3545;
+            font-weight: 600;
+        }
+
+        .channel-selector-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            color: #ffffff;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .channel-selector-item:hover {
+            background: #1a1a1a;
+        }
+
+        .channel-selector-item:last-child {
+            border-bottom: none;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -356,6 +392,57 @@
             border-color: #dc3545;
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(220, 53, 69, 0.15);
+        }
+
+        .channel-selector {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            margin-top: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .channel-selector-item {
+            padding: 10px;
+            cursor: pointer;
+            color: #ffffff;
+            border-bottom: 1px solid #333333;
+            transition: background-color 0.2s ease;
+        }
+
+        .channel-selector-item:hover {
+            background: #dc3545;
+        }
+
+        .channel-selector-item:last-child {
+            border-bottom: none;
+        }
+
+        .component-item {
+            padding: 12px;
+            cursor: pointer;
+            color: #cccccc;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .component-item:hover {
+            background: #2a2a2a;
+            color: #ffffff;
+        }
+
+        .component-item.active {
+            background: #dc3545;
+            color: #ffffff;
+            font-weight: 600;
         }
 
         .server-icon {
@@ -567,10 +654,13 @@
 
 <body>
     <!-- Header -->
-    <header style="background: #1a1a1a; border-bottom: 2px solid #dc3545; padding: 20px 0; margin-bottom: 30px; transition: background-color 0.5s ease, border-color 0.5s ease;">
-        <div style="max-width: 1200px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: space-between; align-items: center;">
+    <header
+        style="background: #1a1a1a; border-bottom: 2px solid #dc3545; padding: 20px 0; margin-bottom: 30px; transition: background-color 0.5s ease, border-color 0.5s ease;">
+        <div
+            style="margin: 0 auto; padding: 0 40px; display: flex; justify-content: space-between; align-items: center;">
             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">⚡ Dansthorized</h1>
-            <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode" style="background: #0d0d0d; border: 1px solid #333333; border-radius: 8px; padding: 10px 15px; color: #ffffff; cursor: pointer; font-size: 20px; transition: all 0.3s ease;">
+            <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode"
+                style="background: #0d0d0d; border: 1px solid #333333; border-radius: 8px; padding: 10px 15px; color: #ffffff; cursor: pointer; font-size: 20px; transition: all 0.3s ease;">
                 🌙
             </button>
         </div>
@@ -588,7 +678,8 @@
                     <label for="authPassword">Password <span style="color: red;">*</span>:</label>
                     <input type="password" id="authPassword" placeholder="Enter password" required>
                 </div>
-                <button class="btn btn-success" onclick="handleAuth()" style="width: 100%;" id="authButton">Login</button>
+                <button class="btn btn-success" onclick="handleAuth()" style="width: 100%;"
+                    id="authButton">Login</button>
             </div>
         </div>
 
@@ -598,7 +689,8 @@
                 <h2>Your Bots</h2>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-success" onclick="showAddBotForm()">➕ Add Bot</button>
-                    <button class="btn btn-secondary" onclick="handleLogout()" style="background: #6c757d;">🚪 Logout</button>
+                    <button class="btn btn-secondary" onclick="handleLogout()" style="background: #6c757d;">🚪
+                        Logout</button>
                 </div>
             </div>
             <div class="bot-list" id="botList"></div>
@@ -668,6 +760,103 @@
             </div>
             <div id="botDetailContent"></div>
         </div>
+
+        <!-- Server Settings View -->
+        <div id="serverSettingsView" style="display: none;">
+            <div class="back-btn">
+                <button class="btn btn-secondary" onclick="backToBotDetail()">← Back to Bot</button>
+            </div>
+            <div style="display: flex; gap: 20px; margin-top: 20px;">
+                <!-- Component List Sidebar -->
+                <div id="componentList"
+                    style="width: 250px; background: #0d0d0d; border-radius: 12px; padding: 20px; border: 1px solid #333333;">
+                    <!-- Component items will be loaded here -->
+                </div>
+
+                <!-- Main Content Area -->
+                <div id="serverSettingsContent" style="flex: 1;">
+                    <!-- Main Config Component -->
+                    <div id="serverSettingsMainConfig" style="display: none;">
+                        <h3 style="margin-bottom: 20px;">⚙️ Main Config</h3>
+                        <div class="form-section"
+                            style="background: #0d0d0d; border-radius: 12px; padding: 24px; border: 1px solid #333333;">
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="testChannel"
+                                    style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Channel
+                                    for Testing</label>
+                                <div style="position: relative;">
+                                    <input type="text" id="testChannel" placeholder="Click to select channel" readonly
+                                        onclick="toggleChannelSelector('testChannel')"
+                                        style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333333; border-radius: 8px; color: #ffffff; cursor: pointer;">
+                                    <div id="testChannelSelector" class="channel-selector"
+                                        style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: #0d0d0d; border: 1px solid #333333; border-radius: 8px; max-height: 300px; overflow-y: auto; margin-top: 4px;">
+                                        <!-- Channel list will be rendered here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="productionChannel"
+                                    style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Channel
+                                    for Production</label>
+                                <div style="position: relative;">
+                                    <input type="text" id="productionChannel" placeholder="Click to select channel"
+                                        readonly onclick="toggleChannelSelector('productionChannel')"
+                                        style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333333; border-radius: 8px; color: #ffffff; cursor: pointer;">
+                                    <div id="productionChannelSelector" class="channel-selector"
+                                        style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: #0d0d0d; border: 1px solid #333333; border-radius: 8px; max-height: 300px; overflow-y: auto; margin-top: 4px;">
+                                        <!-- Channel list will be rendered here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="loggerChannel"
+                                    style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Channel
+                                    for Logger</label>
+                                <div style="position: relative;">
+                                    <input type="text" id="loggerChannel" placeholder="Click to select channel" readonly
+                                        onclick="toggleChannelSelector('loggerChannel')"
+                                        style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333333; border-radius: 8px; color: #ffffff; cursor: pointer;">
+                                    <div id="loggerChannelSelector" class="channel-selector"
+                                        style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: #0d0d0d; border: 1px solid #333333; border-radius: 8px; max-height: 300px; overflow-y: auto; margin-top: 4px;">
+                                        <!-- Channel list will be rendered here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="embedColor"
+                                    style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Default
+                                    Embed Color</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="color" id="embedColor" value="#ff0000"
+                                        style="width: 60px; height: 40px; border: 1px solid #333333; border-radius: 8px; cursor: pointer;">
+                                    <input type="text" id="embedColorHex" placeholder="#FF0000"
+                                        style="flex: 1; padding: 12px; background: #1a1a1a; border: 1px solid #333333; border-radius: 8px; color: #ffffff;">
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="embedFooter"
+                                    style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Footer</label>
+                                <input type="text" id="embedFooter" placeholder="Embed footer text"
+                                    style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333333; border-radius: 8px; color: #ffffff;">
+                            </div>
+
+                            <button class="btn btn-success" onclick="saveMainConfig()" style="width: 100%;">💾 Save
+                                Config</button>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder for other components -->
+                    <div id="serverSettingsPlaceholder"
+                        style="display: none; text-align: center; padding: 40px; color: #999;">
+                        <p>Component configuration will be available here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -683,12 +872,16 @@
         async function checkAuthStatus() {
             try {
                 // Check if panel exists
-                const panelStatusRes = await fetch('/api/panel/status');
+                const panelStatusRes = await fetch('/api/panel/status', {
+                    credentials: 'include'
+                });
                 const panelStatus = await panelStatusRes.json();
                 panelExists = panelStatus.panelExists;
 
                 // Check if authenticated
-                const authRes = await fetch('/api/panel/auth');
+                const authRes = await fetch('/api/panel/auth', {
+                    credentials: 'include'
+                });
                 const authStatus = await authRes.json();
                 isAuthenticated = authStatus.authenticated;
 
@@ -698,6 +891,7 @@
                     document.getElementById('botListView').style.display = 'none';
                     document.getElementById('addBotForm').style.display = 'none';
                     document.getElementById('botDetailView').style.display = 'none';
+                    document.getElementById('serverSettingsView').style.display = 'none';
 
                     // Update UI based on panel existence
                     if (panelExists) {
@@ -736,6 +930,7 @@
                     res = await fetch('/api/panel/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({ password })
                     });
                 } else {
@@ -743,6 +938,7 @@
                     res = await fetch('/api/panel/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({ password })
                     });
                 }
@@ -753,10 +949,29 @@
                     showMessage(data.message || 'Success!', 'success');
                     // Clear password field
                     document.getElementById('authPassword').value = '';
-                    // Refresh auth status
-                    setTimeout(() => {
-                        checkAuthStatus();
-                    }, 500);
+                    // Wait a moment for session cookie to be set, then verify and load
+                    setTimeout(async () => {
+                        // Verify auth status before proceeding
+                        const authCheck = await fetch('/api/panel/auth', {
+                            credentials: 'include'
+                        });
+                        const authStatus = await authCheck.json();
+
+                        if (authStatus.authenticated) {
+                            // Session is ready, proceed with loading
+                            isAuthenticated = true;
+                            document.getElementById('authView').style.display = 'none';
+                            document.getElementById('botListView').style.display = 'block';
+                            document.getElementById('botDetailView').style.display = 'none';
+                            document.getElementById('serverSettingsView').style.display = 'none';
+                            await loadBots();
+                        } else {
+                            // Session not ready yet, retry
+                            setTimeout(async () => {
+                                await checkAuthStatus();
+                            }, 200);
+                        }
+                    }, 100);
                 } else {
                     showMessage(data.error || 'Authentication failed', 'error');
                 }
@@ -770,7 +985,7 @@
             try {
                 const res = await fetch('/api/panel/logout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    credentials: 'include'
                 });
 
                 const data = await res.json();
@@ -791,8 +1006,10 @@
 
         async function loadBots() {
             try {
-                const res = await fetch('/api/bots');
-                
+                const res = await fetch('/api/bots', {
+                    credentials: 'include' // Include cookies/session
+                });
+
                 // Check if unauthorized
                 if (res.status === 401) {
                     // Not authenticated, redirect to auth
@@ -800,11 +1017,11 @@
                     await checkAuthStatus();
                     return;
                 }
-                
+
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
-                
+
                 const bots = await res.json();
 
                 const botListEl = document.getElementById('botList');
@@ -878,8 +1095,10 @@
 
         async function loadOfficialBots() {
             try {
-                const res = await fetch('/api/bots');
-                
+                const res = await fetch('/api/bots', {
+                    credentials: 'include'
+                });
+
                 // Check if unauthorized
                 if (res.status === 401) {
                     // Not authenticated, redirect to auth
@@ -887,11 +1106,11 @@
                     await checkAuthStatus();
                     return;
                 }
-                
+
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
-                
+
                 const bots = await res.json();
                 const officialBots = bots.filter(b => b.bot_type === 'official');
 
@@ -967,6 +1186,7 @@
                 const res = await fetch('/api/bots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({
                         name: null, // Will be set when bot connects
                         token,
@@ -1000,8 +1220,8 @@
 
             try {
                 const [botRes, serversRes] = await Promise.all([
-                    fetch(`/api/bots/${botId}`),
-                    fetch(`/api/bots/${botId}/servers`)
+                    fetch(`/api/bots/${botId}`, { credentials: 'include' }),
+                    fetch(`/api/bots/${botId}/servers`, { credentials: 'include' })
                 ]);
 
                 const bot = await botRes.json();
@@ -1118,7 +1338,7 @@
                     <div class="server-list">
                         ${servers.length === 0 ? '<p class="empty-message" style="grid-column: 1/-1; text-align: center; color: #cccccc; padding: 40px; transition: color 0.5s ease;">No servers yet. Bot will sync servers automatically when running.</p>' :
                         servers.map(server => `
-                            <div class="server-card">
+                            <div class="server-card" onclick="viewServerSettings('${server.id}', '${server.name}', '${bot.id}')" style="cursor: pointer;">
                                 ${server.server_icon ? `<img src="${server.server_icon}" class="server-icon">` : '<div class="server-icon" style="background: #dc3545;"></div>'}
                                 <h4 style="color: #ffffff; transition: color 0.5s ease;">${server.name}</h4>
                                 <div class="server-info" style="font-size: 12px; color: #cccccc; margin-top: 12px; transition: color 0.5s ease;">
@@ -1151,8 +1371,15 @@
                 const res = await fetch('/api/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ bot_id: botId })
                 });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
                 const data = await res.json();
                 if (data.success) {
                     showMessage('Bot started successfully!', 'success');
@@ -1187,8 +1414,15 @@
                 const res = await fetch('/api/stop', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ bot_id: botId })
                 });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
                 const data = await res.json();
                 if (data.success) {
                     showMessage('Bot stopped successfully!', 'success');
@@ -1223,8 +1457,15 @@
                 const res = await fetch('/api/restart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ bot_id: botId })
                 });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
                 const data = await res.json();
                 if (data.success) {
                     showMessage('Bot restarting...', 'success');
@@ -1252,6 +1493,18 @@
 
         // Auto-refresh bot list and detail view every 5 seconds to show updated status/uptime
         setInterval(() => {
+            // Don't auto-refresh if not authenticated
+            if (!isAuthenticated) {
+                return;
+            }
+
+            // Check if we're on server settings page - don't auto-refresh if so
+            const serverSettingsView = document.getElementById('serverSettingsView');
+            if (serverSettingsView && serverSettingsView.style.display !== 'none') {
+                // We're on server settings page, skip auto-refresh
+                return;
+            }
+
             if (currentBotId) {
                 // Refresh bot detail view
                 viewBot(currentBotId).catch(() => { });
@@ -1269,8 +1522,15 @@
                 const res = await fetch(`/api/bots/${botId}/mode`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ is_testing: isTesting })
                 });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
 
                 const data = await res.json();
 
@@ -1293,6 +1553,295 @@
             }
         }
 
+        let currentServerId = null;
+        let currentServerBotId = null;
+
+        function backToBotDetail() {
+            document.getElementById('serverSettingsView').style.display = 'none';
+            document.getElementById('botDetailView').style.display = 'block';
+        }
+
+        async function viewServerSettings(serverId, serverName, botId) {
+            // Clear previous server data first
+            currentServerId = null;
+            currentServerBotId = null;
+            window.serverChannels = null; // Clear cached channels
+
+            // Set new server
+            currentServerId = serverId;
+            currentServerBotId = botId;
+
+            // Hide bot detail view
+            document.getElementById('botDetailView').style.display = 'none';
+            document.getElementById('serverSettingsView').style.display = 'block';
+
+            // Clear all form fields before loading new data
+            document.getElementById('testChannel').value = '';
+            document.getElementById('testChannel').dataset.channelId = '';
+            document.getElementById('productionChannel').value = '';
+            document.getElementById('productionChannel').dataset.channelId = '';
+            document.getElementById('loggerChannel').value = '';
+            document.getElementById('loggerChannel').dataset.channelId = '';
+            document.getElementById('embedColor').value = '#ff0000';
+            document.getElementById('embedColorHex').value = '#ff0000';
+            document.getElementById('embedFooter').value = '';
+
+            // Load component list
+            loadComponentList();
+
+            // Load Main Config by default (this will load server-specific settings)
+            await loadComponentConfig('main_config');
+        }
+
+        function loadComponentList() {
+            const componentList = document.getElementById('componentList');
+            const components = [
+                { id: 'main_config', name: '⚙️ Main Config' }
+                // More components can be added here
+            ];
+
+            componentList.innerHTML = components.map(comp => `
+                <div class="component-item" onclick="loadComponentConfig('${comp.id}')" id="component_${comp.id}">
+                    ${comp.name}
+                </div>
+            `).join('');
+
+            // Set first component as active
+            if (components.length > 0) {
+                document.getElementById(`component_${components[0].id}`).classList.add('active');
+            }
+        }
+
+        async function loadComponentConfig(componentId) {
+            // Update active component
+            document.querySelectorAll('.component-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById(`component_${componentId}`).classList.add('active');
+
+            // Show placeholder for now
+            document.getElementById('serverSettingsPlaceholder').style.display = 'none';
+
+            if (componentId === 'main_config') {
+                document.getElementById('serverSettingsMainConfig').style.display = 'block';
+                await loadMainConfig();
+            } else {
+                document.getElementById('serverSettingsMainConfig').style.display = 'none';
+                document.getElementById('serverSettingsPlaceholder').style.display = 'block';
+            }
+        }
+
+        async function loadMainConfig() {
+            try {
+                if (!currentServerId) {
+                    showMessage('No server selected', 'error');
+                    return;
+                }
+
+                const res = await fetch(`/api/servers/${currentServerId}/settings?component=main_config`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
+
+                const settings = await res.json();
+
+                if (settings && settings.settings) {
+                    const config = settings.settings;
+                    if (config.test_channel) {
+                        await loadChannelDisplay('testChannel', config.test_channel);
+                    }
+                    if (config.production_channel) {
+                        await loadChannelDisplay('productionChannel', config.production_channel);
+                    }
+                    if (config.logger_channel) {
+                        await loadChannelDisplay('loggerChannel', config.logger_channel);
+                    }
+                    if (config.embed_color) {
+                        document.getElementById('embedColor').value = config.embed_color;
+                        document.getElementById('embedColorHex').value = config.embed_color;
+                    }
+                    if (config.embed_footer) {
+                        document.getElementById('embedFooter').value = config.embed_footer;
+                    }
+                }
+
+                // Load channels for selectors
+                await loadChannelsForSelectors();
+            } catch (err) {
+                console.error('Error loading main config:', err);
+                showMessage('Failed to load config', 'error');
+            }
+        }
+
+        async function loadChannelsForSelectors() {
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}/channels`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
+
+                window.serverChannels = await res.json();
+            } catch (err) {
+                console.error('Error loading channels:', err);
+                showMessage('Failed to load channels', 'error');
+            }
+        }
+
+        async function loadChannelDisplay(fieldId, channelId) {
+            try {
+                if (!window.serverChannels) {
+                    const res = await fetch(`/api/servers/${currentServerId}/channels`, {
+                        credentials: 'include'
+                    });
+                    if (res.status === 401) {
+                        isAuthenticated = false;
+                        await checkAuthStatus();
+                        return;
+                    }
+                    window.serverChannels = await res.json();
+                }
+                const channels = window.serverChannels;
+                const channel = channels.find(ch => ch.discord_channel_id === channelId);
+                if (channel) {
+                    document.getElementById(fieldId).value = `#${channel.name || channelId}`;
+                    document.getElementById(fieldId).dataset.channelId = channelId;
+                }
+            } catch (err) {
+                console.error('Error loading channel display:', err);
+            }
+        }
+
+        function toggleChannelSelector(fieldId) {
+            const selector = document.getElementById(`${fieldId}Selector`);
+            const isVisible = selector.style.display !== 'none';
+
+            // Close all selectors
+            document.querySelectorAll('.channel-selector').forEach(sel => {
+                sel.style.display = 'none';
+            });
+
+            if (!isVisible) {
+                selector.style.display = 'block';
+                renderChannelSelector(fieldId);
+            }
+        }
+
+        async function renderChannelSelector(fieldId) {
+            const selector = document.getElementById(`${fieldId}Selector`);
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search channels...';
+            searchInput.style.cssText = 'width: 100%; padding: 10px; background: #0d0d0d; border: 1px solid #333333; border-radius: 4px; color: #ffffff; margin-bottom: 8px;';
+            searchInput.oninput = (e) => filterChannels(fieldId, e.target.value);
+
+            const channelList = document.createElement('div');
+            channelList.id = `${fieldId}ChannelList`;
+
+            selector.innerHTML = '';
+            selector.appendChild(searchInput);
+            selector.appendChild(channelList);
+
+            await filterChannels(fieldId, '');
+        }
+
+        async function filterChannels(fieldId, searchTerm) {
+            const channelList = document.getElementById(`${fieldId}ChannelList`);
+            let channels = window.serverChannels || [];
+
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                channels = channels.filter(ch =>
+                    ch.name?.toLowerCase().includes(searchLower) ||
+                    ch.discord_channel_id?.includes(searchTerm)
+                );
+            }
+
+            channelList.innerHTML = channels.map(channel => `
+                <div class="channel-selector-item" onclick="selectChannel('${fieldId}', '${channel.discord_channel_id}', '${channel.name || channel.discord_channel_id}')">
+                    #${channel.name || channel.discord_channel_id}
+                </div>
+            `).join('') || '<div class="channel-selector-item" style="color: #999;">No channels found</div>';
+        }
+
+        function selectChannel(fieldId, channelId, channelName) {
+            document.getElementById(fieldId).value = `#${channelName}`;
+            document.getElementById(fieldId).dataset.channelId = channelId;
+            document.getElementById(`${fieldId}Selector`).style.display = 'none';
+        }
+
+        async function saveMainConfig() {
+            try {
+                if (!currentServerId) {
+                    showMessage('No server selected', 'error');
+                    return;
+                }
+
+                const settings = {
+                    test_channel: document.getElementById('testChannel').dataset.channelId || null,
+                    production_channel: document.getElementById('productionChannel').dataset.channelId || null,
+                    logger_channel: document.getElementById('loggerChannel').dataset.channelId || null,
+                    embed_color: document.getElementById('embedColor').value,
+                    embed_footer: document.getElementById('embedFooter').value || null
+                };
+
+                const res = await fetch(`/api/servers/${currentServerId}/settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        component_name: 'main_config',
+                        settings: settings
+                    })
+                });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('Main config saved successfully!', 'success');
+                } else {
+                    showMessage('Failed to save config', 'error');
+                }
+            } catch (err) {
+                console.error('Error saving main config:', err);
+                showMessage('Failed to save config', 'error');
+            }
+        }
+
+        // Sync color picker with hex input
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const colorPicker = document.getElementById('embedColor');
+                const hexInput = document.getElementById('embedColorHex');
+                if (colorPicker && hexInput) {
+                    colorPicker.addEventListener('input', (e) => {
+                        hexInput.value = e.target.value;
+                    });
+                    hexInput.addEventListener('input', (e) => {
+                        const value = e.target.value;
+                        if (/^#[0-9A-F]{6}$/i.test(value)) {
+                            colorPicker.value = value;
+                        }
+                    });
+                }
+            }, 100);
+        });
+
         async function deleteBot(botId) {
             if (!confirm('Are you sure you want to delete this bot? This will also delete all associated servers, channels, and roles.')) {
                 return;
@@ -1300,8 +1849,15 @@
 
             try {
                 const res = await fetch(`/api/bots/${botId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'include'
                 });
+
+                if (res.status === 401) {
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
 
                 const data = await res.json();
 
@@ -1392,10 +1948,13 @@
     </script>
 
     <!-- Footer -->
-    <footer style="background: #1a1a1a; border-top: 2px solid #dc3545; padding: 20px 0; margin-top: 40px; text-align: center; transition: background-color 0.5s ease, border-color 0.5s ease;">
+    <footer
+        style="background: #1a1a1a; border-top: 2px solid #dc3545; padding: 20px 0; margin-top: 40px; text-align: center; transition: background-color 0.5s ease, border-color 0.5s ease;">
         <div style="max-width: 1200px; margin: 0 auto; padding: 0 40px;">
             <p style="color: #cccccc; margin: 0; font-size: 14px; transition: color 0.5s ease;">
-                Copyright © <span id="currentYear"></span> <a href="https://dansday.com" target="_blank" style="color: #dc3545; text-decoration: none; transition: color 0.3s ease;">dansday.com</a>. All rights reserved.
+                Copyright © <span id="currentYear"></span> <a href="https://dansday.com" target="_blank"
+                    style="color: #dc3545; text-decoration: none; transition: color 0.3s ease;">dansday.com</a>. All
+                rights reserved.
             </p>
         </div>
     </footer>
