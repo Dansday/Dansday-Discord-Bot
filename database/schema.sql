@@ -1,5 +1,23 @@
 -- GO BLOX Bot System Database Schema
 
+-- Panel table (stores panel administrator credentials)
+CREATE TABLE IF NOT EXISTS panel (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Panel logs table (stores login attempt logs)
+CREATE TABLE IF NOT EXISTS panel_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    panel_id UUID REFERENCES panel(id) ON DELETE SET NULL,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT,
+    success BOOLEAN DEFAULT FALSE,
+    attempted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Bots table (stores bot configurations)
 CREATE TABLE IF NOT EXISTS bots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -11,6 +29,7 @@ CREATE TABLE IF NOT EXISTS bots (
     port INTEGER,
     secret_key TEXT,
     connect_to UUID REFERENCES bots(id) ON DELETE SET NULL,
+    panel_id UUID REFERENCES panel(id) ON DELETE SET NULL,
     is_testing BOOLEAN DEFAULT FALSE,
     status TEXT DEFAULT 'stopped' CHECK (status IN ('running', 'stopped', 'starting', 'stopping')),
     process_id INTEGER,
@@ -76,6 +95,7 @@ CREATE TABLE IF NOT EXISTS roles (
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_bots_type ON bots(bot_type);
 CREATE INDEX IF NOT EXISTS idx_bots_connect_to ON bots(connect_to);
+CREATE INDEX IF NOT EXISTS idx_bots_panel_id ON bots(panel_id);
 CREATE INDEX IF NOT EXISTS idx_servers_bot_id ON servers(bot_id);
 CREATE INDEX IF NOT EXISTS idx_servers_discord_id ON servers(discord_server_id);
 CREATE INDEX IF NOT EXISTS idx_categories_server_id ON categories(server_id);
@@ -85,3 +105,5 @@ CREATE INDEX IF NOT EXISTS idx_channels_discord_id ON channels(discord_channel_i
 CREATE INDEX IF NOT EXISTS idx_channels_category_id ON channels(category_id);
 CREATE INDEX IF NOT EXISTS idx_roles_server_id ON roles(server_id);
 CREATE INDEX IF NOT EXISTS idx_roles_discord_id ON roles(discord_role_id);
+CREATE INDEX IF NOT EXISTS idx_panel_logs_panel_id ON panel_logs(panel_id);
+CREATE INDEX IF NOT EXISTS idx_panel_logs_attempted_at ON panel_logs(attempted_at);

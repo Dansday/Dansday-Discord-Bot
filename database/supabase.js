@@ -76,6 +76,8 @@ async function setupDatabase() {
     logger.log('🔍 Checking database tables...');
 
     const tables = [
+        { name: 'panel', required: true },
+        { name: 'panel_logs', required: true },
         { name: 'bots', required: true },
         { name: 'servers', required: true },
         { name: 'categories', required: true },
@@ -211,7 +213,8 @@ export async function createBot(botData) {
                 bot_icon: botData.bot_icon || null, // Will be updated from Discord avatar
                 port: botData.port !== undefined ? botData.port : (botData.bot_type === 'official' ? 7777 : null), // Port only for official bots, null for selfbots
                 secret_key: botData.secret_key || null,
-                connect_to: botData.connect_to || null
+                connect_to: botData.connect_to || null,
+                panel_id: botData.panel_id || null
             })
             .select()
             .single();
@@ -625,6 +628,82 @@ export async function syncRoles(serverId, roles) {
     }
 }
 
+// Panel functions
+async function getPanel() {
+    const { data, error } = await supabase
+        .from('panel')
+        .select('*')
+        .limit(1)
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') {
+            // No panel found
+            return null;
+        }
+        throw error;
+    }
+
+    return data;
+}
+
+async function createPanel(passwordHash) {
+    // Check if panel already exists
+    const existing = await getPanel();
+    if (existing) {
+        throw new Error('Panel already exists');
+    }
+
+    const { data, error } = await supabase
+        .from('panel')
+        .insert({ password_hash: passwordHash })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+async function updatePanelPassword(panelId, passwordHash) {
+    const { data, error } = await supabase
+        .from('panel')
+        .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+        .eq('id', panelId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+async function createPanelLog(logData) {
+    const { data, error } = await supabase
+        .from('panel_logs')
+        .insert({
+            panel_id: logData.panel_id || null,
+            ip_address: logData.ip_address,
+            user_agent: logData.user_agent || null,
+            success: logData.success || false,
+            attempted_at: logData.attempted_at || new Date().toISOString()
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+async function getPanelLogs(limit = 100) {
+    const { data, error } = await supabase
+        .from('panel_logs')
+        .select('*')
+        .order('attempted_at', { ascending: false })
+        .limit(limit);
+
+    if (error) throw error;
+    return data;
+}
+
 export default {
     supabase,
     getAllBots,
@@ -642,5 +721,10 @@ export default {
     syncChannels,
     getRoles,
     upsertRole,
-    syncRoles
+    syncRoles,
+    getPanel,
+    createPanel,
+    updatePanelPassword,
+    createPanelLog,
+    getPanelLogs
 };

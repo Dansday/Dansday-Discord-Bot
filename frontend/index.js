@@ -1,8 +1,10 @@
 import express from 'express';
+import session from 'express-session';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import bcrypt from 'bcrypt';
 import { CONTROL_PANEL } from './config.js';
 import logger from '../backend/logger.js';
 import db, { initializeDatabase } from '../database/supabase.js';
@@ -363,20 +365,177 @@ export async function init() {
 
     app = express();
     app.use(express.json());
+    
+    // Session middleware
+    app.use(session({
+        secret: process.env.SESSION_SECRET || 'goblox-panel-secret-change-in-production',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: false, // Set to true if using HTTPS
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        }
+    }));
+    
     app.use(express.static(__dirname));
+    
+    // Helper function to get client IP
+    function getClientIp(req) {
+        return req.headers['x-forwarded-for']?.split(',')[0] || 
+               req.headers['x-real-ip'] || 
+               req.connection.remoteAddress || 
+               req.socket.remoteAddress ||
+               (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
+               'unknown';
+    }
+    
+    // Helper function to get user agent
+    function getUserAgent(req) {
+        return req.headers['user-agent'] || 'unknown';
+    }
+    
+    // Authentication middleware
+    async function requireAuth(req, res, next) {
+        if (req.session && req.session.authenticated) {
+            return next();
+        }
+        return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    // Check setup status endpoint
-    app.get('/api/setup/status', async (req, res) => {
+    // Check panel setup status (if panel password exists)
+    app.get('/api/panel/status', async (req, res) => {
         try {
-            const bots = await db.getAllBots();
-            res.json({ setupRequired: bots.length === 0 });
+            const panel = await db.getPanel();
+            res.json({ panelExists: panel !== null });
         } catch (error) {
-            res.json({ setupRequired: true });
+            res.json({ panelExists: false, error: error.message });
         }
     });
+    
+    // Register panel password (first time setup)
+    app.post('/api/panel/register', async (req, res) => {
+        try {
+            const { password } = req.body;
+            
+            if (!password || password.length < 6) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Password must be at least 6 characters long' 
+                });
+            }
+            
+            // Check if panel already exists
+            const existing = await db.getPanel();
+            if (existing) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Panel already registered. Please login instead.' 
+                });
+            }
+            
+            // Hash password
+            const saltRounds = 10;
+            const passwordHash = await bcrypt.hash(password, saltRounds);
+            
+            // Create panel
+            const panel = await db.createPanel(passwordHash);
+            
+            // Set session
+            req.session.authenticated = true;
+            req.session.panel_id = panel.id;
+            
+            // Log registration (successful)
+            await db.createPanelLog({
+                panel_id: panel.id,
+                ip_address: getClientIp(req),
+                user_agent: getUserAgent(req),
+                success: true
+            });
+            
+            res.json({ success: true, message: 'Panel registered successfully' });
+        } catch (error) {
+            logger.log(`❌ Panel registration error: ${error.message}`);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+    
+    // Login endpoint
+    app.post('/api/panel/login', async (req, res) => {
+        try {
+            const { password } = req.body;
+            
+            if (!password) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Password is required' 
+                });
+            }
+            
+            // Get panel
+            const panel = await db.getPanel();
+            if (!panel) {
+                // Log failed attempt
+                await db.createPanelLog({
+                    panel_id: null,
+                    ip_address: getClientIp(req),
+                    user_agent: getUserAgent(req),
+                    success: false
+                });
+                return res.status(401).json({ 
+                    success: false, 
+                    error: 'Panel not registered. Please register first.' 
+                });
+            }
+            
+            // Verify password
+            const isValid = await bcrypt.compare(password, panel.password_hash);
+            
+            // Log attempt
+            await db.createPanelLog({
+                panel_id: panel.id,
+                ip_address: getClientIp(req),
+                user_agent: getUserAgent(req),
+                success: isValid
+            });
+            
+            if (!isValid) {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: 'Invalid password' 
+                });
+            }
+            
+            // Set session
+            req.session.authenticated = true;
+            req.session.panel_id = panel.id;
+            
+            res.json({ success: true, message: 'Login successful' });
+        } catch (error) {
+            logger.log(`❌ Panel login error: ${error.message}`);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+    
+    // Logout endpoint
+    app.post('/api/panel/logout', (req, res) => {
+        req.session.destroy((err) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: 'Failed to logout' });
+            }
+            res.json({ success: true, message: 'Logged out successfully' });
+        });
+    });
+    
+    // Check authentication status
+    app.get('/api/panel/auth', (req, res) => {
+        res.json({ 
+            authenticated: req.session && req.session.authenticated || false 
+        });
+    });
 
-    // Get all bots
-    app.get('/api/bots', async (req, res) => {
+    // Get all bots (protected)
+    app.get('/api/bots', requireAuth, async (req, res) => {
         try {
             const bots = await db.getAllBots();
             // Don't send tokens in response
@@ -448,8 +607,8 @@ export async function init() {
         }
     });
 
-    // Get bot by ID
-    app.get('/api/bots/:id', async (req, res) => {
+    // Get bot by ID (protected)
+    app.get('/api/bots/:id', requireAuth, async (req, res) => {
         try {
             const bot = await db.getBot(req.params.id);
             if (!bot) {
@@ -510,8 +669,8 @@ export async function init() {
         }
     });
 
-    // Get servers for a bot
-    app.get('/api/bots/:id/servers', async (req, res) => {
+    // Get servers for a bot (protected)
+    app.get('/api/bots/:id/servers', requireAuth, async (req, res) => {
         try {
             const servers = await db.getServersForBot(req.params.id);
             res.json(servers);
@@ -520,8 +679,8 @@ export async function init() {
         }
     });
 
-    // Create bot
-    app.post('/api/bots', async (req, res) => {
+    // Create bot (protected)
+    app.post('/api/bots', requireAuth, async (req, res) => {
         try {
             await initializeDatabase();
 
@@ -535,6 +694,9 @@ export async function init() {
                 secret_key,
                 connect_to
             } = req.body;
+            
+            // Get panel_id from session
+            const panel_id = req.session.panel_id;
 
             // Validate required fields
             if (!token || !bot_type) {
@@ -607,7 +769,8 @@ export async function init() {
                 bot_icon: bot_icon || null,
                 port: bot_type === 'official' ? (port || 7777) : null, // Port only for official bots, null for selfbots
                 secret_key: secret_key || null,
-                connect_to: connect_to || null
+                connect_to: connect_to || null,
+                panel_id: panel_id || null
             });
 
             res.json({ success: true, bot });
@@ -618,8 +781,8 @@ export async function init() {
     });
 
 
-    // Update bot mode (testing/production) - only for official bots
-    app.put('/api/bots/:id/mode', async (req, res) => {
+    // Update bot mode (testing/production) - only for official bots (protected)
+    app.put('/api/bots/:id/mode', requireAuth, async (req, res) => {
         try {
             const bot = await db.getBot(req.params.id);
             if (!bot) {
@@ -654,8 +817,8 @@ export async function init() {
         }
     });
 
-    // Delete bot
-    app.delete('/api/bots/:id', async (req, res) => {
+    // Delete bot (protected)
+    app.delete('/api/bots/:id', requireAuth, async (req, res) => {
         try {
             await db.deleteBot(req.params.id);
             res.json({ success: true });
@@ -666,8 +829,8 @@ export async function init() {
     });
 
 
-    // Control endpoints - bot-specific
-    app.post('/api/start', async (req, res) => {
+    // Control endpoints - bot-specific (protected)
+    app.post('/api/start', requireAuth, async (req, res) => {
         const { bot_id } = req.body;
         if (!bot_id) {
             return res.json({ success: false, error: 'bot_id is required' });
@@ -686,7 +849,7 @@ export async function init() {
         }
     });
 
-    app.post('/api/stop', async (req, res) => {
+    app.post('/api/stop', requireAuth, async (req, res) => {
         const { bot_id } = req.body;
         if (!bot_id) {
             return res.json({ success: false, error: 'bot_id is required' });
@@ -700,7 +863,7 @@ export async function init() {
         }
     });
 
-    app.post('/api/restart', async (req, res) => {
+    app.post('/api/restart', requireAuth, async (req, res) => {
         const { bot_id } = req.body;
         if (!bot_id) {
             return res.json({ success: false, error: 'bot_id is required' });

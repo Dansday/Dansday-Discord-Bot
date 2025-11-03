@@ -580,11 +580,26 @@
 
         <div class="message" id="message"></div>
 
+        <!-- Login/Register View -->
+        <div id="authView" style="display: none;">
+            <div class="form-section" style="max-width: 400px; margin: 40px auto;">
+                <h2 style="margin-bottom: 20px; text-align: center;" id="authTitle">Login</h2>
+                <div class="form-group">
+                    <label for="authPassword">Password <span style="color: red;">*</span>:</label>
+                    <input type="password" id="authPassword" placeholder="Enter password" required>
+                </div>
+                <button class="btn btn-success" onclick="handleAuth()" style="width: 100%;" id="authButton">Login</button>
+            </div>
+        </div>
+
         <!-- Bot List View -->
-        <div id="botListView">
+        <div id="botListView" style="display: none;">
             <div class="header-actions">
                 <h2>Your Bots</h2>
-                <button class="btn btn-success" onclick="showAddBotForm()">➕ Add Bot</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="showAddBotForm()">➕ Add Bot</button>
+                    <button class="btn btn-secondary" onclick="handleLogout()" style="background: #6c757d;">🚪 Logout</button>
+                </div>
             </div>
             <div class="bot-list" id="botList"></div>
         </div>
@@ -657,15 +672,139 @@
 
     <script>
         let currentBotId = null;
+        let isAuthenticated = false;
+        let panelExists = false;
 
-        // Load bots on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadBots();
+        // Check authentication status on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthStatus();
         });
+
+        async function checkAuthStatus() {
+            try {
+                // Check if panel exists
+                const panelStatusRes = await fetch('/api/panel/status');
+                const panelStatus = await panelStatusRes.json();
+                panelExists = panelStatus.panelExists;
+
+                // Check if authenticated
+                const authRes = await fetch('/api/panel/auth');
+                const authStatus = await authRes.json();
+                isAuthenticated = authStatus.authenticated;
+
+                if (!isAuthenticated) {
+                    // Show auth view
+                    document.getElementById('authView').style.display = 'block';
+                    document.getElementById('botListView').style.display = 'none';
+                    document.getElementById('addBotForm').style.display = 'none';
+                    document.getElementById('botDetailView').style.display = 'none';
+
+                    // Update UI based on panel existence
+                    if (panelExists) {
+                        document.getElementById('authTitle').textContent = 'Login';
+                        document.getElementById('authButton').textContent = 'Login';
+                    } else {
+                        document.getElementById('authTitle').textContent = 'Register';
+                        document.getElementById('authButton').textContent = 'Register';
+                    }
+                } else {
+                    // Show bot list
+                    document.getElementById('authView').style.display = 'none';
+                    document.getElementById('botListView').style.display = 'block';
+                    loadBots();
+                }
+            } catch (err) {
+                console.error('Error checking auth status:', err);
+                showMessage('Failed to check authentication status', 'error');
+                // On error, try to show auth view
+                document.getElementById('authView').style.display = 'block';
+                document.getElementById('botListView').style.display = 'none';
+            }
+        }
+
+        async function handleAuth() {
+            const password = document.getElementById('authPassword').value;
+            if (!password) {
+                showMessage('Password is required', 'error');
+                return;
+            }
+
+            try {
+                let res;
+                if (panelExists) {
+                    // Login
+                    res = await fetch('/api/panel/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+                } else {
+                    // Register
+                    res = await fetch('/api/panel/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+                }
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage(data.message || 'Success!', 'success');
+                    // Clear password field
+                    document.getElementById('authPassword').value = '';
+                    // Refresh auth status
+                    setTimeout(() => {
+                        checkAuthStatus();
+                    }, 500);
+                } else {
+                    showMessage(data.error || 'Authentication failed', 'error');
+                }
+            } catch (err) {
+                console.error('Auth error:', err);
+                showMessage('Authentication failed', 'error');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                const res = await fetch('/api/panel/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('Logged out successfully', 'success');
+                    setTimeout(() => {
+                        checkAuthStatus();
+                    }, 500);
+                } else {
+                    showMessage('Failed to logout', 'error');
+                }
+            } catch (err) {
+                console.error('Logout error:', err);
+                showMessage('Failed to logout', 'error');
+            }
+        }
 
         async function loadBots() {
             try {
                 const res = await fetch('/api/bots');
+                
+                // Check if unauthorized
+                if (res.status === 401) {
+                    // Not authenticated, redirect to auth
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
                 const bots = await res.json();
 
                 const botListEl = document.getElementById('botList');
@@ -740,6 +879,19 @@
         async function loadOfficialBots() {
             try {
                 const res = await fetch('/api/bots');
+                
+                // Check if unauthorized
+                if (res.status === 401) {
+                    // Not authenticated, redirect to auth
+                    isAuthenticated = false;
+                    await checkAuthStatus();
+                    return;
+                }
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
                 const bots = await res.json();
                 const officialBots = bots.filter(b => b.bot_type === 'official');
 
