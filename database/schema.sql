@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS categories (
     server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
     discord_category_id TEXT NOT NULL,
     name TEXT,
+    position INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(server_id, discord_category_id)
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS channels (
     name TEXT,
     type TEXT,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    position INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(server_id, discord_channel_id)

@@ -2279,6 +2279,18 @@
                 );
             }
 
+            // Sort by position (null positions last), then by name
+            channels.sort((a, b) => {
+                const posA = a.position !== null && a.position !== undefined ? a.position : Infinity;
+                const posB = b.position !== null && b.position !== undefined ? b.position : Infinity;
+                if (posA !== posB) {
+                    return posA - posB;
+                }
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+
             channelList.innerHTML = channels.map(channel => `
                 <div class="channel-selector-item" onclick="selectChannel('${fieldId}', '${channel.discord_channel_id}', '${channel.name || channel.discord_channel_id}')">
                     #${channel.name || channel.discord_channel_id}
@@ -2512,13 +2524,25 @@
             const container = document.getElementById('forwarderSourceChannels');
             const searchLower = searchTerm.toLowerCase();
             
-            const filteredChannels = searchTerm 
+            let filteredChannels = searchTerm 
                 ? allForwarderChannels.filter(channel => {
                     const channelName = (channel.name || channel.discord_channel_id || '').toLowerCase();
                     const channelId = (channel.discord_channel_id || '').toString();
                     return channelName.includes(searchLower) || channelId.includes(searchTerm);
                 })
                 : allForwarderChannels;
+
+            // Sort by position (null positions last), then by name
+            filteredChannels.sort((a, b) => {
+                const posA = a.position !== null && a.position !== undefined ? a.position : Infinity;
+                const posB = b.position !== null && b.position !== undefined ? b.position : Infinity;
+                if (posA !== posB) {
+                    return posA - posB;
+                }
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
 
             if (filteredChannels.length === 0) {
                 container.innerHTML = '<p style="color: #999; margin: 0; padding: 20px; text-align: center;">No channels match your search</p>';
@@ -3051,13 +3075,25 @@
 
             const searchLower = searchTerm.toLowerCase();
             
-            const filteredChannels = searchTerm 
+            let filteredChannels = searchTerm 
                 ? allWelcomerChannels.filter(channel => {
                     const channelName = (channel.name || channel.discord_channel_id || '').toLowerCase();
                     const channelId = (channel.discord_channel_id || '').toString();
                     return channelName.includes(searchLower) || channelId.includes(searchTerm);
                 })
                 : allWelcomerChannels;
+
+            // Sort by position (null positions last), then by name
+            filteredChannels.sort((a, b) => {
+                const posA = a.position !== null && a.position !== undefined ? a.position : Infinity;
+                const posB = b.position !== null && b.position !== undefined ? b.position : Infinity;
+                if (posA !== posB) {
+                    return posA - posB;
+                }
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
 
             if (filteredChannels.length === 0) {
                 container.innerHTML = '<p style="color: #999; margin: 0; padding: 20px; text-align: center;">No channels match your search</p>';
@@ -3338,6 +3374,18 @@
                     ch.discord_channel_id?.includes(searchTerm)
                 );
             }
+
+            // Sort by position (null positions last), then by name
+            filteredChannels.sort((a, b) => {
+                const posA = a.position !== null && a.position !== undefined ? a.position : Infinity;
+                const posB = b.position !== null && b.position !== undefined ? b.position : Infinity;
+                if (posA !== posB) {
+                    return posA - posB;
+                }
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
 
             if (!filteredChannels || filteredChannels.length === 0) {
                 channelList.innerHTML = '<p style="color: #999; margin: 0; padding: 20px; text-align: center;">No channels found</p>';

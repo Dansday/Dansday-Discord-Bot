@@ -385,6 +385,7 @@ export async function upsertCategory(serverId, categoryData) {
                 server_id: serverId,
                 discord_category_id: categoryData.id,
                 name: categoryData.name,
+                position: categoryData.position !== undefined ? categoryData.position : null,
                 updated_at: new Date().toISOString()
             }, {
                 onConflict: 'server_id,discord_category_id'
@@ -420,7 +421,8 @@ export async function syncCategories(serverId, categories) {
             const operations = batch.map(category =>
                 upsertCategory(serverId, {
                     id: category.id,
-                    name: category.name
+                    name: category.name,
+                    position: category.position
                 }).catch(err => {
                     console.error(`Error upserting category ${category.id}:`, err.message);
                     return null; // Return null on error, continue with others
@@ -467,6 +469,7 @@ export async function upsertChannel(serverId, channelData, categoryMap = null) {
                 name: channelData.name,
                 type: channelData.type,
                 category_id: categoryId,
+                position: channelData.position !== undefined ? channelData.position : null,
                 updated_at: new Date().toISOString()
             }, {
                 onConflict: 'server_id,discord_channel_id'
@@ -521,7 +524,8 @@ export async function syncChannels(serverId, channels, categoryMap = null) {
                     id: channel.id,
                     name: channel.name,
                     type: channel.type,
-                    parent_id: channel.parent_id || null
+                    parent_id: channel.parent_id || null,
+                    position: channel.position
                 }, categoryMap).catch(err => {
                     console.error(`Error upserting channel ${channel.id}:`, err.message);
                     return null; // Return null on error, continue with others
@@ -759,6 +763,7 @@ async function getChannelsForServer(serverId) {
             .from('channels')
             .select('*')
             .eq('server_id', serverId)
+            .order('position', { ascending: true, nullsFirst: false })
             .order('name', { ascending: true });
 
         if (error) throw error;

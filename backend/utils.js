@@ -38,13 +38,13 @@ export function separateChannelsAndCategories(guildChannels) {
         return false;
     };
 
-    // Helper function to check if a channel is text or news
+    // Helper function to check if a channel is text, news, voice, or stage
     const isTextOrNewsType = (type) => {
         if (typeof type === 'number') {
-            return type === 0 || type === 5; // GUILD_TEXT or GUILD_NEWS
+            return type === 0 || type === 5 || type === 2 || type === 13; // GUILD_TEXT, GUILD_NEWS, GUILD_VOICE, GUILD_STAGE_VOICE
         }
         if (typeof type === 'string') {
-            return type === 'GUILD_TEXT' || type === 'GUILD_NEWS';
+            return type === 'GUILD_TEXT' || type === 'GUILD_NEWS' || type === 'GUILD_VOICE' || type === 'GUILD_STAGE_VOICE';
         }
         return false;
     };
@@ -65,8 +65,8 @@ export function separateChannelsAndCategories(guildChannels) {
         return isCategoryType(ch.type);
     });
 
-    // Only include GUILD_TEXT and GUILD_NEWS for channels table
-    // Exclude all other types (voice, stage, forum, etc.)
+    // Include GUILD_TEXT, GUILD_NEWS, GUILD_VOICE, and GUILD_STAGE_VOICE for channels table
+    // Exclude all other types (forum, etc.)
     const channels = allChannels.filter(ch => {
         return isTextOrNewsType(ch.type);
     });
@@ -78,7 +78,8 @@ export function separateChannelsAndCategories(guildChannels) {
 export function mapCategoriesForSync(categories) {
     return categories.map(cat => ({
         id: cat.id,
-        name: cat.name
+        name: cat.name,
+        position: cat.position !== undefined ? cat.position : null
     }));
 }
 
@@ -88,7 +89,8 @@ export function mapChannelsForSync(channels) {
         id: ch.id,
         name: ch.name,
         type: ch.type,
-        parent_id: ch.parentId || null
+        parent_id: ch.parentId || null,
+        position: ch.position !== undefined ? ch.position : null
     }));
 }
 
