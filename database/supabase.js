@@ -774,6 +774,23 @@ async function getChannelsForServer(serverId) {
     }
 }
 
+async function getCategoriesForServer(serverId) {
+    try {
+        await initializeDatabase();
+        const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('server_id', serverId)
+            .order('position', { ascending: true, nullsFirst: false });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error getting categories for server:', error);
+        return [];
+    }
+}
+
 export default {
     supabase,
     getAllBots,
@@ -799,5 +816,6 @@ export default {
     getPanelLogs,
     getServerSettings,
     upsertServerSettings,
-    getChannelsForServer
+    getChannelsForServer,
+    getCategoriesForServer
 };

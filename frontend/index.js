@@ -762,6 +762,16 @@ export async function init() {
         }
     });
 
+    // Get categories for a server (protected)
+    app.get('/api/servers/:id/categories', requireAuth, async (req, res) => {
+        try {
+            const categories = await db.getCategoriesForServer(req.params.id);
+            res.json(categories);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     // Get selfbots connected to an official bot (protected)
     app.get('/api/bots/:id/selfbots', requireAuth, async (req, res) => {
         try {
