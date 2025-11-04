@@ -267,7 +267,8 @@
                         <span class="hidden sm:inline">Back to Bot</span>
                     </button>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <h1 class="text-base sm:text-lg font-semibold text-white truncate max-w-xs sm:max-w-none" id="serverConfigTitle">
+                        <h1 class="text-base sm:text-lg font-semibold text-white truncate max-w-xs sm:max-w-none"
+                            id="serverConfigTitle">
                             Server Configuration
                         </h1>
                     </div>
@@ -433,6 +434,39 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Channel Selector Modal -->
+    <div id="channelSelectorModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div
+            class="bg-gray-800 rounded-2xl border border-gray-700 max-w-lg w-full p-4 sm:p-6 my-4 max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-hashtag text-red-500"></i>
+                    Select Channel
+                </h3>
+                <button onclick="closeChannelSelector()" class="text-gray-400 hover:text-white transition-colors p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-4">
+                <div class="relative">
+                    <input type="text" id="channelSearchInput" placeholder="Search channels..."
+                        oninput="searchChannels()"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base">
+                    <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Channel List -->
+            <div id="channelList" class="flex-1 overflow-y-auto space-y-2 min-h-0">
+                <!-- Channels will be rendered here -->
+            </div>
         </div>
     </div>
 
@@ -1156,7 +1190,7 @@
         function renderBotDetail(bot, servers) {
             const isOfficial = bot.bot_type === 'official';
             const status = formatStatus(bot.status);
-            
+
             // Store bot type globally for server list
             window.currentBotType = bot.bot_type;
 
@@ -1334,10 +1368,10 @@
                         <div onclick="viewServerConfig('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
-                                    ${server.server_icon 
-                                        ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
-                                        : `<i class="fas fa-server text-white text-lg"></i>`
-                                    }
+                                    ${server.server_icon
+                            ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
+                            : `<i class="fas fa-server text-white text-lg"></i>`
+                        }
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
@@ -1384,10 +1418,10 @@
                         <div class="bg-gray-700 rounded-lg border border-gray-600 p-4 opacity-75">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
-                                    ${server.server_icon 
-                                        ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
-                                        : `<i class="fas fa-server text-white text-lg"></i>`
-                                    }
+                                    ${server.server_icon
+                            ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
+                            : `<i class="fas fa-server text-white text-lg"></i>`
+                        }
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
@@ -1540,7 +1574,7 @@
         let currentServerId = null;
         let currentBotIdForServer = null;
         const components = [
-            { id: 'main', name: 'Main Config', icon: 'fa-cog' },
+            { id: 'main_config', name: 'Main Config', icon: 'fa-cog' },
             { id: 'welcomer', name: 'Welcomer', icon: 'fa-hand' },
             { id: 'booster', name: 'Booster', icon: 'fa-gift' },
             { id: 'permissions', name: 'Permissions', icon: 'fa-shield-alt' },
@@ -1548,23 +1582,23 @@
             { id: 'feedback', name: 'Feedback', icon: 'fa-comment-dots' },
             { id: 'forwarder', name: 'Forwarder', icon: 'fa-exchange-alt' }
         ];
-        let currentComponent = 'main';
+        let currentComponent = 'main_config';
 
         // View server configuration
         function viewServerConfig(serverId, serverName) {
             currentServerId = serverId;
             currentBotIdForServer = currentBotId;
-            
+
             // Hide bot detail, show server config
             document.getElementById('botDetailContainer').classList.add('hidden');
             document.getElementById('serverConfigContainer').classList.remove('hidden');
-            
+
             // Update title
             document.getElementById('serverConfigTitle').textContent = `${serverName} - Configuration`;
-            
+
             // Load component navigation and content
             renderComponentNav();
-            loadComponent('main');
+            loadComponent('main_config');
         }
 
         // Show bot detail (from server config)
@@ -1573,7 +1607,7 @@
             document.getElementById('serverConfigContainer').classList.add('hidden');
             document.getElementById('botDetailContainer').classList.remove('hidden');
             currentServerId = null;
-            currentComponent = 'main';
+            currentComponent = 'main_config';
         }
 
         // Render component navigation
@@ -1583,11 +1617,10 @@
                 const isActive = comp.id === currentComponent;
                 return `
                     <button onclick="loadComponent('${comp.id}')"
-                        class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${
-                            isActive 
-                                ? 'bg-red-600 text-white' 
-                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
-                        }">
+                        class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${isActive
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                    }">
                         <i class="fas ${comp.icon}"></i>
                         <span class="hidden sm:inline">${comp.name}</span>
                         <span class="sm:hidden">${comp.name.split(' ')[0]}</span>
@@ -1628,6 +1661,12 @@
             const contentContainer = document.getElementById('componentContent');
             const component = components.find(c => c.id === componentId);
 
+            if (!component) {
+                console.error('Component not found:', componentId);
+                contentContainer.innerHTML = '<div class="bg-gray-700 rounded-lg p-4 sm:p-6"><p class="text-gray-300 text-sm sm:text-base">Component not found.</p></div>';
+                return;
+            }
+
             let contentHTML = `
                 <div class="mb-4 sm:mb-6">
                     <h2 class="text-xl sm:text-2xl font-bold text-white mb-2 flex items-center gap-2">
@@ -1642,13 +1681,22 @@
 
             // Placeholder content for each component
             switch (componentId) {
-                case 'main':
-                    contentHTML += `
+                case 'main_config':
+                    // Render main config asynchronously
+                    renderMainConfig(settings).then(html => {
+                        contentContainer.innerHTML = contentHTML + html;
+                        // Setup color picker sync after render
+                        setTimeout(() => setupColorPickerSync(), 100);
+                    });
+                    // Show loading state
+                    contentContainer.innerHTML = contentHTML + `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                            <p class="text-gray-300 text-sm sm:text-base">Main configuration settings will be available here.</p>
+                            <div class="flex items-center justify-center py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                            </div>
                         </div>
                     `;
-                    break;
+                    return; // Exit early, content will be set in promise
                 case 'welcomer':
                     contentHTML += `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
@@ -1701,6 +1749,337 @@
 
             contentContainer.innerHTML = contentHTML;
         }
+
+        // Load channel names for display
+        async function loadChannelNames(channelIds) {
+            if (!channelIds || channelIds.length === 0) return {};
+
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}/channels`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return {};
+                }
+
+                const channels = res.ok ? await res.json() : [];
+                const channelMap = {};
+
+                channels.forEach(ch => {
+                    if (channelIds.includes(ch.discord_channel_id)) {
+                        channelMap[ch.discord_channel_id] = ch.name || `Channel ${ch.discord_channel_id}`;
+                    }
+                });
+
+                return channelMap;
+            } catch (err) {
+                console.error('Error loading channel names:', err);
+                return {};
+            }
+        }
+
+        // Render Main Config
+        async function renderMainConfig(settings) {
+            // Handle both direct settings object and nested settings.settings
+            let config = {};
+            if (settings) {
+                if (settings.settings) {
+                    config = settings.settings;
+                } else if (typeof settings === 'object') {
+                    // If settings is already the config object
+                    config = settings;
+                }
+            }
+
+            // Load channel names for display
+            const channelIds = [
+                config.testing_channel,
+                config.production_channel,
+                config.logger_channel
+            ].filter(Boolean);
+
+            const channelNames = await loadChannelNames(channelIds);
+
+            return `
+                <form id="mainConfigForm" class="space-y-4 sm:space-y-6">
+                    <!-- Channel for Production -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-rocket mr-2"></i>Channel for Production
+                        </label>
+                        <button type="button" onclick="openChannelSelector('production_channel')"
+                            class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-left flex items-center justify-between hover:border-gray-500 transition-all text-sm sm:text-base">
+                            <span id="production_channel_display" class="text-gray-300">${config.production_channel && channelNames[config.production_channel] ? `#${channelNames[config.production_channel]}` : config.production_channel ? `Channel ${config.production_channel}` : 'Select channel...'}</span>
+                            <i class="fas fa-chevron-down text-gray-400"></i>
+                        </button>
+                        <input type="hidden" id="production_channel" name="production_channel" value="${config.production_channel || ''}">
+                    </div>
+
+                    <!-- Channel for Testing -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-flask mr-2"></i>Channel for Testing
+                        </label>
+                        <button type="button" onclick="openChannelSelector('testing_channel')"
+                            class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-left flex items-center justify-between hover:border-gray-500 transition-all text-sm sm:text-base">
+                            <span id="testing_channel_display" class="text-gray-300">${config.testing_channel && channelNames[config.testing_channel] ? `#${channelNames[config.testing_channel]}` : config.testing_channel ? `Channel ${config.testing_channel}` : 'Select channel...'}</span>
+                            <i class="fas fa-chevron-down text-gray-400"></i>
+                        </button>
+                        <input type="hidden" id="testing_channel" name="testing_channel" value="${config.testing_channel || ''}">
+                    </div>
+
+                    <!-- Channel for Logger -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-file-alt mr-2"></i>Channel for Logger
+                        </label>
+                        <button type="button" onclick="openChannelSelector('logger_channel')"
+                            class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-left flex items-center justify-between hover:border-gray-500 transition-all text-sm sm:text-base">
+                            <span id="logger_channel_display" class="text-gray-300">${config.logger_channel && channelNames[config.logger_channel] ? `#${channelNames[config.logger_channel]}` : config.logger_channel ? `Channel ${config.logger_channel}` : 'Select channel...'}</span>
+                            <i class="fas fa-chevron-down text-gray-400"></i>
+                        </button>
+                        <input type="hidden" id="logger_channel" name="logger_channel" value="${config.logger_channel || ''}">
+                    </div>
+
+                    <!-- Default Embed Color -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-palette mr-2"></i>Default Embed Color
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="embed_color" name="embed_color" value="${config.embed_color || '#FF0000'}"
+                                class="w-16 h-10 sm:w-20 sm:h-12 rounded-lg cursor-pointer border border-gray-600 bg-gray-700">
+                            <input type="text" id="embed_color_text" name="embed_color_text" value="${config.embed_color || '#FF0000'}"
+                                class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base"
+                                placeholder="#FF5733" pattern="^#[0-9A-Fa-f]{6}$">
+                        </div>
+                        <p class="mt-1.5 text-xs text-gray-500">Hex color format (e.g., #FF0000)</p>
+                    </div>
+
+                    <!-- Default Embed Footer -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-align-left mr-2"></i>Default Embed Footer
+                        </label>
+                        <input type="text" id="embed_footer" name="embed_footer" value="${(config.embed_footer || '').replace(/"/g, '&quot;')}"
+                            class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base"
+                            placeholder="Enter footer text...">
+                        <div class="mt-2 bg-blue-900 border border-blue-700 rounded-lg p-3">
+                            <p class="text-xs text-blue-200 mb-2 font-medium">Available placeholders:</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-300">
+                                <div class="flex items-center gap-2">
+                                    <code class="bg-blue-800 px-1.5 py-0.5 rounded text-blue-200">{server}</code>
+                                    <span>Server name</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <code class="bg-blue-800 px-1.5 py-0.5 rounded text-blue-200">{year}</code>
+                                    <span>Current year</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <code class="bg-blue-800 px-1.5 py-0.5 rounded text-blue-200">{date}</code>
+                                    <span>Current date</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <code class="bg-blue-800 px-1.5 py-0.5 rounded text-blue-200">{time}</code>
+                                    <span>Current time</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="pt-4 border-t border-gray-700">
+                        <button type="submit" id="saveMainConfigBtn"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                            <i class="fas fa-spinner fa-spin hidden" id="saveMainConfigLoading"></i>
+                            <i class="fas fa-save"></i>
+                            <span>Save Configuration</span>
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        // Channel Selector Modal
+        let currentChannelField = null;
+        let allChannels = [];
+
+        // Open channel selector
+        async function openChannelSelector(fieldId) {
+            currentChannelField = fieldId;
+
+            try {
+                // Load channels
+                const res = await fetch(`/api/servers/${currentServerId}/channels`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                allChannels = res.ok ? await res.json() : [];
+
+                // Show modal
+                document.getElementById('channelSelectorModal').classList.remove('hidden');
+                renderChannelList(allChannels);
+            } catch (err) {
+                console.error('Error loading channels:', err);
+                showMessage('Failed to load channels', 'error');
+            }
+        }
+
+        // Close channel selector
+        function closeChannelSelector() {
+            document.getElementById('channelSelectorModal').classList.add('hidden');
+            document.getElementById('channelSearchInput').value = '';
+            currentChannelField = null;
+        }
+
+        // Render channel list
+        function renderChannelList(channels) {
+            const channelList = document.getElementById('channelList');
+
+            if (!channels || channels.length === 0) {
+                channelList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400 text-sm">
+                        <i class="fas fa-inbox text-3xl mb-2"></i>
+                        <p>No channels found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            channelList.innerHTML = channels.map(channel => {
+                const channelName = channel.name || `Channel ${channel.discord_channel_id}`;
+                const channelType = channel.type === '4' ? 'Category' : channel.type === '0' ? 'Text' : channel.type === '2' ? 'Voice' : 'Other';
+
+                return `
+                    <button onclick="selectChannel('${channel.discord_channel_id}', '${channelName.replace(/'/g, "\\'")}')"
+                        class="w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <i class="fas fa-hashtag text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white font-medium truncate">${channelName}</p>
+                                <p class="text-xs text-gray-400">${channelType}</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors"></i>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Search channels
+        function searchChannels() {
+            const searchTerm = document.getElementById('channelSearchInput').value.toLowerCase();
+            const filtered = allChannels.filter(ch =>
+                (ch.name || '').toLowerCase().includes(searchTerm) ||
+                (ch.discord_channel_id || '').includes(searchTerm)
+            );
+            renderChannelList(filtered);
+        }
+
+        // Select channel
+        function selectChannel(channelId, channelName) {
+            if (!currentChannelField) return;
+
+            // Update hidden input
+            document.getElementById(currentChannelField).value = channelId;
+
+            // Update display - show channel name properly
+            const displayEl = document.getElementById(`${currentChannelField}_display`);
+            if (displayEl) {
+                displayEl.textContent = channelName.startsWith('#') ? channelName : `#${channelName}`;
+            }
+
+            closeChannelSelector();
+        }
+
+        // Setup color picker sync when main config is rendered
+        function setupColorPickerSync() {
+            const colorPicker = document.getElementById('embed_color');
+            const colorText = document.getElementById('embed_color_text');
+
+            if (!colorPicker || !colorText) return;
+
+            // Remove existing listeners if any
+            const newColorPicker = colorPicker.cloneNode(true);
+            const newColorText = colorText.cloneNode(true);
+            colorPicker.parentNode.replaceChild(newColorPicker, colorPicker);
+            colorText.parentNode.replaceChild(newColorText, colorText);
+
+            // Add new listeners
+            document.getElementById('embed_color').addEventListener('input', function () {
+                document.getElementById('embed_color_text').value = this.value;
+            });
+
+            document.getElementById('embed_color_text').addEventListener('input', function () {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    document.getElementById('embed_color').value = this.value;
+                }
+            });
+        }
+
+        // Handle main config form submission
+        document.addEventListener('submit', async function (e) {
+            if (e.target.id !== 'mainConfigForm') return;
+            e.preventDefault();
+
+            const formData = {
+                testing_channel: document.getElementById('testing_channel').value || null,
+                production_channel: document.getElementById('production_channel').value || null,
+                logger_channel: document.getElementById('logger_channel').value || null,
+                embed_color: document.getElementById('embed_color').value,
+                embed_footer: document.getElementById('embed_footer').value || null
+            };
+
+            // Show loading state
+            const submitBtn = document.getElementById('saveMainConfigBtn');
+            const loadingIcon = document.getElementById('saveMainConfigLoading');
+            submitBtn.disabled = true;
+            loadingIcon.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        component_name: 'main_config',
+                        settings: formData
+                    })
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('Configuration saved successfully!', 'success');
+                    // Reload component to show updated values
+                    setTimeout(() => {
+                        loadComponent('main_config');
+                    }, 500);
+                } else {
+                    showMessage(data.error || 'Failed to save configuration', 'error');
+                }
+            } catch (err) {
+                console.error('Error saving main config:', err);
+                showMessage('Failed to save configuration. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loadingIcon.classList.add('hidden');
+            }
+        });
 
         // Set server config year
         document.getElementById('serverConfigYear').textContent = new Date().getFullYear();
