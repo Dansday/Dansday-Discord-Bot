@@ -539,7 +539,7 @@ export const FORWARDER = {
         const settings = await db.getServerSettings(server.id, 'forwarder');
 
         if (!settings || !settings.settings) {
-            return { production: [], test: [] };
+            return { production: [], testing: [] };
         }
 
         return settings.settings;
@@ -575,7 +575,7 @@ export const FORWARDER = {
 
             // Get all servers for the official bot
             const officialServers = await db.getServersForBot(officialBot.id);
-            const environment = botConfig.is_testing ? 'test' : 'production';
+            const environment = botConfig.is_testing ? 'testing' : 'production';
 
             // Check all official bot servers for forwarder configs
             for (const officialServer of officialServers) {
@@ -634,7 +634,7 @@ export const FORWARDER = {
         // 2. The source channel is in forwarder.source_channels
 
         const allGuilds = await db.getServersForBot(botConfig.id);
-        const environment = botConfig.is_testing ? 'test' : 'production';
+        const environment = botConfig.is_testing ? 'testing' : 'production';
 
         // First, find which selfbot sent this message by checking all selfbots connected to this official bot
         const allBots = await db.getAllBots();

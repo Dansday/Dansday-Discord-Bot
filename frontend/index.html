@@ -1452,8 +1452,7 @@
                                 <div class="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform ${isProduction ? 'translate-x-5' : ''}"></div>
                                 </div>
                             <span class="text-xs sm:text-sm lg:text-base font-medium text-white whitespace-nowrap">
-                                <span class="hidden sm:inline">${isProduction ? 'Production' : 'Testing'}</span>
-                                <span class="sm:hidden">${isProduction ? 'Prod' : 'Test'}</span>
+                                <span class="sm:inline">${isProduction ? 'Production' : 'Testing'}</span>
                             </span>
                             </div>
                     </label>
@@ -1672,8 +1671,7 @@
                     // Update text
                     const textSpan = event.target.closest('label').querySelector('span span');
                     if (textSpan) {
-                        const isMobile = window.innerWidth < 640;
-                        textSpan.textContent = newIsTesting ? (isMobile ? 'Test' : 'Testing') : (isMobile ? 'Prod' : 'Production');
+                        textSpan.textContent = newIsTesting ? 'Testing' : 'Production';
                     }
                     // Refresh bot detail after a short delay
                     setTimeout(() => {
