@@ -631,7 +631,8 @@
                         <i class="fas fa-server text-red-500 mr-2"></i>Server (Where Selfbot is in)
                     </label>
                     <select id="forwarder_server" onchange="onForwarderServerChange()"
-                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base" disabled>
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base"
+                        disabled>
                         <option value="">Select server...</option>
                         <!-- Options will be populated dynamically -->
                     </select>
@@ -643,12 +644,16 @@
                         <i class="fas fa-hashtag text-red-500 mr-2"></i>From Channels
                     </label>
                     <button type="button" onclick="openForwarderChannelSelector()" id="forwarder_from_channels_btn"
-                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group" disabled>
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group"
+                        disabled>
                         <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                            <i class="fas fa-hashtag text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
-                            <span id="forwarder_from_channels_display" class="text-gray-300 text-sm sm:text-base">Select channels...</span>
+                            <i
+                                class="fas fa-hashtag text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                            <span id="forwarder_from_channels_display" class="text-gray-300 text-sm sm:text-base">Select
+                                channels...</span>
                         </div>
-                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                        <i
+                            class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
                     </button>
                     <div id="forwarder_from_channels_selected" class="mt-2 flex flex-wrap gap-2">
                         <!-- Selected channels will be shown here -->
@@ -677,10 +682,13 @@
                     <button type="button" onclick="openRoleSelector('forwarder_role_pings')"
                         class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
                         <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                            <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
-                            <span id="forwarder_role_pings_button_text" class="text-gray-300 text-sm sm:text-base">Select roles...</span>
+                            <i
+                                class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                            <span id="forwarder_role_pings_button_text"
+                                class="text-gray-300 text-sm sm:text-base">Select roles...</span>
                         </div>
-                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                        <i
+                            class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
                     </button>
                     <div id="forwarder_role_pings_display" class="mt-2 flex flex-wrap gap-2">
                         <!-- Selected roles will be shown here -->
@@ -691,7 +699,8 @@
                 <!-- Tag (Optional) -->
                 <div>
                     <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
-                        <i class="fas fa-tag text-red-500 mr-2"></i>Tag <span class="text-gray-400 text-xs">(Optional)</span>
+                        <i class="fas fa-tag text-red-500 mr-2"></i>Tag <span
+                            class="text-gray-400 text-xs">(Optional)</span>
                     </label>
                     <input type="text" id="forwarder_tag" name="forwarder_tag" placeholder="Enter tag (optional)..."
                         class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base">
@@ -1573,7 +1582,7 @@
                                 <span class="sm:inline">${isProduction ? 'Production' : 'Testing'}</span>
                             </span>
                             </div>
-                    </label>
+                                </label>
                 `;
             }
 
@@ -1614,7 +1623,7 @@
                             ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
                             : `<i class="fas fa-server text-white text-lg"></i>`
                         }
-                                </div>
+                            </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
                                         ${server.name || 'Unnamed Server'}
@@ -1629,14 +1638,14 @@
                                         Members
                                     </span>
                                     <span class="text-white font-medium">${formatNumber(server.total_members || 0)}</span>
-                                </div>
+                        </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-400 flex items-center gap-1.5">
                                         <i class="fas fa-star w-4"></i>
                                         Boost Level
                                     </span>
                                     <span class="text-white font-medium">${server.boost_level || 0}</span>
-                                </div>
+                    </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-400 flex items-center gap-1.5">
                                         <i class="fas fa-gift w-4"></i>
@@ -1650,10 +1659,10 @@
                                         Channels
                                     </span>
                                     <span class="text-white font-medium">${formatNumber(server.total_channels || 0)}</span>
-                                </div>
                             </div>
-                        </div>
-                    `;
+                            </div>
+                    </div>
+                `;
                 } else {
                     // Selfbot - not clickable, show info message
                     return `
@@ -2377,7 +2386,7 @@
                                     </button>
                                 </span>
                             `).join('') : ''}
-                        </div>
+                    </div>
                     </div>
 
                     <!-- Booster Messages -->
@@ -2462,7 +2471,7 @@
                                     <p class="text-yellow-200 text-xs sm:text-sm">
                                         <strong>Note:</strong> The bot needs to be restarted for permission changes to take effect.
                                     </p>
-                                </div>
+                </div>
                             </div>
                         </div>
 
@@ -2477,8 +2486,8 @@
                                     <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
                                     <span id="admin_roles_button_text" class="text-gray-300 text-sm sm:text-base">
                                         ${config.admin_roles && config.admin_roles.length > 0
-                                            ? `${config.admin_roles.length} role${config.admin_roles.length > 1 ? 's' : ''} selected`
-                                            : 'Select Admin Roles'}
+                    ? `${config.admin_roles.length} role${config.admin_roles.length > 1 ? 's' : ''} selected`
+                    : 'Select Admin Roles'}
                                     </span>
                                 </div>
                                 <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
@@ -2500,8 +2509,8 @@
                                     <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
                                     <span id="staff_roles_button_text" class="text-gray-300 text-sm sm:text-base">
                                         ${config.staff_roles && config.staff_roles.length > 0
-                                            ? `${config.staff_roles.length} role${config.staff_roles.length > 1 ? 's' : ''} selected`
-                                            : 'Select Staff Roles'}
+                    ? `${config.staff_roles.length} role${config.staff_roles.length > 1 ? 's' : ''} selected`
+                    : 'Select Staff Roles'}
                                     </span>
                                 </div>
                                 <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
@@ -2523,8 +2532,8 @@
                                     <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
                                     <span id="supporter_roles_button_text" class="text-gray-300 text-sm sm:text-base">
                                         ${config.supporter_roles && config.supporter_roles.length > 0
-                                            ? `${config.supporter_roles.length} role${config.supporter_roles.length > 1 ? 's' : ''} selected`
-                                            : 'Select Supporter Roles'}
+                    ? `${config.supporter_roles.length} role${config.supporter_roles.length > 1 ? 's' : ''} selected`
+                    : 'Select Supporter Roles'}
                                     </span>
                                 </div>
                                 <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
@@ -2546,8 +2555,8 @@
                                     <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
                                     <span id="member_roles_button_text" class="text-gray-300 text-sm sm:text-base">
                                         ${config.member_roles && config.member_roles.length > 0
-                                            ? `${config.member_roles.length} role${config.member_roles.length > 1 ? 's' : ''} selected`
-                                            : 'Select Member Roles'}
+                    ? `${config.member_roles.length} role${config.member_roles.length > 1 ? 's' : ''} selected`
+                    : 'Select Member Roles'}
                                     </span>
                                 </div>
                                 <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
@@ -2606,11 +2615,11 @@
                                     <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
                                     <span id="role_above_display" class="text-gray-300 text-sm sm:text-base">
                                         ${roleAbove
-                                            ? `<span class="inline-flex items-center gap-1.5">
+                    ? `<span class="inline-flex items-center gap-1.5">
                                                 <span class="w-3 h-3 rounded-full" style="background-color: ${roleAbove.color || '#7289da'};"></span>
                                                 ${escapeHtml(roleAbove.name || 'Unknown Role')}
                                             </span>`
-                                            : 'Select role...'}
+                    : 'Select role...'}
                                     </span>
                                 </div>
                                 <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
@@ -2629,11 +2638,11 @@
                                     <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
                                     <span id="role_below_display" class="text-gray-300 text-sm sm:text-base">
                                         ${roleBelow
-                                            ? `<span class="inline-flex items-center gap-1.5">
+                    ? `<span class="inline-flex items-center gap-1.5">
                                                 <span class="w-3 h-3 rounded-full" style="background-color: ${roleBelow.color || '#7289da'};"></span>
                                                 ${escapeHtml(roleBelow.name || 'Unknown Role')}
                                             </span>`
-                                            : 'Select role...'}
+                    : 'Select role...'}
                                     </span>
                                 </div>
                                 <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
@@ -2882,10 +2891,10 @@
 
             // Load channel names for all forwarders (from selfbot servers)
             const forwarderDataPromises = forwarders.map(async (forwarder) => {
-                const channelIds = Array.isArray(forwarder.source_channels) 
+                const channelIds = Array.isArray(forwarder.source_channels)
                     ? forwarder.source_channels.map(ch => ch.channel_id || ch).filter(Boolean)
                     : [];
-                
+
                 // Get server info - ensure it's loaded
                 let servers = forwarderSelfbotServers[forwarder.selfbot_id] || [];
                 if (servers.length === 0) {
@@ -2908,7 +2917,7 @@
                 // Get channel names from selfbot server
                 const cacheKey = `${forwarder.selfbot_id}_${forwarder.server_id}`;
                 let channels = [];
-                
+
                 // Always try to fetch channels if not cached or if we don't have names for the channels we need
                 if (!forwarderSelfbotServerChannels[cacheKey] || channelIds.some(chId => {
                     const cached = forwarderSelfbotServerChannels[cacheKey];
@@ -2949,7 +2958,7 @@
                 });
 
                 const sourceChannelNames = channelIds.map(chId => channelMap[chId] || `Channel ${chId}`);
-                
+
                 // Get target channel name
                 const targetChannelId = forwarder.target_channel_id || forwarder.target_channel;
                 const targetChannelName = targetChannelId ? (targetChannelNames[targetChannelId] || `Channel ${targetChannelId}`) : null;
@@ -2977,24 +2986,24 @@
                                 <div class="flex items-center gap-2 mb-1">
                                     <i class="fas fa-exchange-alt text-red-500"></i>
                                     <span class="text-white font-medium text-sm sm:text-base">${escapeHtml(selfbotName)}</span>
-                                </div>
+                        </div>
                                 ${forwarderData && forwarderData.serverName ? `<div class="text-xs text-gray-500 mb-1.5"><i class="fas fa-server mr-1"></i>${escapeHtml(forwarderData.serverName)}</div>` : ''}
                                 <div class="text-xs sm:text-sm text-gray-400 space-y-1">
                                     <div>
                                         <div class="font-medium mb-0.5">From:</div>
-                                        ${forwarderData && forwarderData.sourceChannelNames.length > 0 
-                                            ? forwarderData.sourceChannelNames.map(name => `<div>• ${escapeHtml(name)}</div>`).join('')
-                                            : `<div>${sourceChannelsCount} channel${sourceChannelsCount !== 1 ? 's' : ''}</div>`
-                                        }
-                                    </div>
+                                        ${forwarderData && forwarderData.sourceChannelNames.length > 0
+                        ? forwarderData.sourceChannelNames.map(name => `<div>• ${escapeHtml(name)}</div>`).join('')
+                        : `<div>${sourceChannelsCount} channel${sourceChannelsCount !== 1 ? 's' : ''}</div>`
+                    }
+                        </div>
                                     ${forwarderData && forwarderData.targetChannelName ? `
                                     <div>
                                         <div class="font-medium mb-0.5">To:</div>
                                         <div>• ${escapeHtml(forwarderData.targetChannelName)}</div>
-                                    </div>
+                    </div>
                                     ` : ''}
                                     ${forwarder.tag ? `<div>Tag: ${escapeHtml(forwarder.tag)}</div>` : ''}
-                                </div>
+                </div>
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 <button type="button" onclick="editForwarder(${index})"
@@ -3188,7 +3197,7 @@
 
             const serverDbId = serverSelect.value;
             currentForwarderServerDbId = serverDbId;
-            
+
             // Get discord_server_id for the selected server
             const selfbotId = currentForwarderSelfbotId;
             if (!selfbotId || !serverDbId) {
@@ -3239,7 +3248,7 @@
 
                 channels = channelsRes.ok ? await channelsRes.json() : [];
                 categories = categoriesRes.ok ? await categoriesRes.json() : [];
-                
+
                 // Update cache
                 forwarderSelfbotServerChannels[cacheKey] = { channels, categories };
 
@@ -3918,7 +3927,7 @@
             const displayEl = document.getElementById(`${currentChannelField}_display`);
             if (displayEl) {
                 const count = selectedChannels.length;
-                displayEl.textContent = count > 0 
+                displayEl.textContent = count > 0
                     ? `${count} channel${count !== 1 ? 's' : ''} selected`
                     : 'Select channels...';
             }
@@ -5347,4 +5356,3 @@
 </body>
 
 </html>
-

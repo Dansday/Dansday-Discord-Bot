@@ -214,7 +214,7 @@ export async function handleAFKButton(interaction) {
         await logger.log(`⏸️ AFK modal shown to ${member.user.tag} (${member.user.id})`);
 
     } catch (error) {
-        await logger.log(`❌ Error showing AFK modal: ${error.message}`);
+        await logger.log(`❌ Error showing AFK modal: ${error.message}`, interaction.guild?.id);
         await interaction.reply({
             content: `❌ Failed to open AFK form: ${error.message}`,
             flags: 64
@@ -272,7 +272,7 @@ export async function handleAFKModal(interaction) {
         await logger.log(`✅ AFK status set for ${member.user.tag} (${member.user.id}): "${afkMessage}"${shouldDeafen ? ' (will be deafened)' : ' (not deafened)'}`);
 
     } catch (error) {
-        await logger.log(`❌ Error setting AFK: ${error.message}`);
+        await logger.log(`❌ Error setting AFK: ${error.message}`, interaction.guild?.id);
         await interaction.editReply({
             content: `❌ **Failed to Set AFK**\n\nError: ${error.message}\n\nPlease try again later.`
         });
@@ -321,7 +321,7 @@ export async function handleRemoveAFKButton(interaction) {
         await logger.log(`✅ AFK manually removed by ${member.user.tag} (${member.user.id})`);
 
     } catch (error) {
-        await logger.log(`❌ Error removing AFK: ${error.message}`);
+        await logger.log(`❌ Error removing AFK: ${error.message}`, interaction.guild?.id);
         await interaction.reply({
             content: `❌ **Failed to Remove AFK**\n\nError: ${error.message}\n\nPlease try again later.`,
             flags: 64

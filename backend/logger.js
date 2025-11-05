@@ -1,11 +1,35 @@
 import { formatTimestamp } from "./utils.js";
+import { getLoggerChannel } from "./config.js";
 
 let logChannel = null;
+let logChannelId = null;
+let clientInstance = null;
 let hasPermission = true; // Track if we have permission to log
 let permissionWarningShown = false; // Track if we've already warned about missing permission
 
 async function log(text, guildId = null) {
-    // If no channel set up, silently return (no console logging)
+    // If guildId is provided, get the logger channel for that specific server
+    if (guildId && clientInstance) {
+        try {
+            const serverLoggerChannelId = await getLoggerChannel(guildId);
+            if (serverLoggerChannelId) {
+                const serverLogChannel = clientInstance.channels.cache.get(serverLoggerChannelId);
+                if (serverLogChannel) {
+                    try {
+                        const timestamp = formatTimestamp(Date.now(), true);
+                        await serverLogChannel.send(`[${timestamp}] ${text}`);
+                        return;
+                    } catch (err) {
+                        // Fall through to default logger if server-specific logger fails
+                    }
+                }
+            }
+        } catch (error) {
+            // Logger channel not configured for this server, fall through to default logger
+        }
+    }
+
+    // Use default logger channel if no guildId provided or server-specific logger failed
     if (!logChannel || !hasPermission) {
         return;
     }
@@ -29,12 +53,16 @@ async function log(text, guildId = null) {
 }
 
 function init(client, channelId = null) {
+    // Store client instance for dynamic logging
+    clientInstance = client;
+
     // If no channel ID provided, silently return (no console logging)
     if (!channelId) {
         return;
     }
 
     logChannel = client.channels.cache.get(channelId);
+    logChannelId = channelId;
     if (!logChannel) {
         hasPermission = false;
         return;

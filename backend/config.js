@@ -535,7 +535,18 @@ export const FORWARDER = {
             throw new Error('Guild ID is required to get forwarder config.');
         }
 
-        const server = await getServerByDiscordId(guildId);
+        // For selfbots, forwarder config is stored on the official bot's server
+        // For official bots, forwarder config is stored on their own server
+        let botIdToUse = botConfig.id;
+        if (botConfig.bot_type === 'selfbot' && botConfig.connect_to) {
+            botIdToUse = botConfig.connect_to;
+        }
+
+        const server = await db.getServerByDiscordId(botIdToUse, guildId);
+        if (!server) {
+            return { production: [], testing: [] };
+        }
+
         const settings = await db.getServerSettings(server.id, 'forwarder');
 
         if (!settings || !settings.settings) {

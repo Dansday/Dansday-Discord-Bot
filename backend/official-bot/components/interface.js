@@ -12,8 +12,8 @@ export async function handleButtonInteraction(interaction, client) {
     const { customId } = interaction;
     const user = interaction.user;
 
-    // Log button interaction attempt
-    await logger.log(`🔘 Button clicked: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
+    // Log button interaction attempt to the specific server's logger channel
+    await logger.log(`🔘 Button clicked: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
 
     switch (customId) {
         case 'bot_help':
@@ -144,11 +144,25 @@ function init(client) {
     // Listen for button interactions
     client.on('interactionCreate', async (interaction) => {
         if (interaction.isButton()) {
+            // Skip if interaction is not from a guild
+            if (!interaction.guild) {
+                return;
+            }
+
+            // Check if this server belongs to this bot instance
+            try {
+                const { getServerByDiscordId } = await import('../../config.js');
+                await getServerByDiscordId(interaction.guild.id);
+            } catch (error) {
+                // Server not found for this bot, ignore interaction
+                return;
+            }
+
             // Handle button interactions
             try {
                 await handleButtonInteraction(interaction, client);
             } catch (error) {
-                await logger.log(`❌ Button interaction error: ${error.message}`);
+                await logger.log(`❌ Button interaction error: ${error.message}`, interaction.guild?.id);
 
                 try {
                     await interaction.reply({
@@ -156,15 +170,29 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send button error response: ${replyError.message}`);
+                    await logger.log(`❌ Failed to send button error response: ${replyError.message}`, interaction.guild?.id);
                 }
             }
         } else if (interaction.isModalSubmit()) {
+            // Skip if interaction is not from a guild
+            if (!interaction.guild) {
+                return;
+            }
+
+            // Check if this server belongs to this bot instance
+            try {
+                const { getServerByDiscordId } = await import('../../config.js');
+                await getServerByDiscordId(interaction.guild.id);
+            } catch (error) {
+                // Server not found for this bot, ignore interaction
+                return;
+            }
+
             // Handle modal submissions
             try {
                 const user = interaction.user;
                 const customId = interaction.customId;
-                await logger.log(`📝 Modal submitted: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
+                await logger.log(`📝 Modal submitted: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
 
                 if (interaction.customId.startsWith('send_message_modal_')) {
                     await handleSendMessageModal(interaction);
@@ -175,10 +203,10 @@ function init(client) {
                 } else if (interaction.customId === 'afk_set') {
                     await handleAFKModal(interaction);
                 } else {
-                    await logger.log(`⚠️ Unknown modal: "${customId}" by ${user.tag} (${user.id})`);
+                    await logger.log(`⚠️ Unknown modal: "${customId}" by ${user.tag} (${user.id})`, interaction.guild?.id);
                 }
             } catch (error) {
-                await logger.log(`❌ Modal submission error: ${error.message}`);
+                await logger.log(`❌ Modal submission error: ${error.message}`, interaction.guild?.id);
 
                 try {
                     await interaction.reply({
@@ -186,24 +214,38 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send modal error response: ${replyError.message}`);
+                    await logger.log(`❌ Failed to send modal error response: ${replyError.message}`, interaction.guild?.id);
                 }
             }
         } else if (interaction.isChannelSelectMenu()) {
+            // Skip if interaction is not from a guild
+            if (!interaction.guild) {
+                return;
+            }
+
+            // Check if this server belongs to this bot instance
+            try {
+                const { getServerByDiscordId } = await import('../../config.js');
+                await getServerByDiscordId(interaction.guild.id);
+            } catch (error) {
+                // Server not found for this bot, ignore interaction
+                return;
+            }
+
             // Handle channel selection
             try {
                 const user = interaction.user;
                 const customId = interaction.customId;
                 const selectedChannels = interaction.values;
-                await logger.log(`📋 Channel selected: "${customId}" → [${selectedChannels.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
+                await logger.log(`📋 Channel selected: "${customId}" → [${selectedChannels.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
 
                 if (interaction.customId === 'send_message_channel_select') {
                     await handleChannelSelection(interaction);
                 } else {
-                    await logger.log(`⚠️ Unknown channel select: "${customId}" by ${user.tag} (${user.id})`);
+                    await logger.log(`⚠️ Unknown channel select: "${customId}" by ${user.tag} (${user.id})`, interaction.guild?.id);
                 }
             } catch (error) {
-                await logger.log(`❌ Channel selection error: ${error.message}`);
+                await logger.log(`❌ Channel selection error: ${error.message}`, interaction.guild?.id);
 
                 try {
                     await interaction.reply({
@@ -211,25 +253,39 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send selection error response: ${replyError.message}`);
+                    await logger.log(`❌ Failed to send selection error response: ${replyError.message}`, interaction.guild?.id);
                 }
             }
         } else if (interaction.isRoleSelectMenu()) {
+            // Skip if interaction is not from a guild
+            if (!interaction.guild) {
+                return;
+            }
+
+            // Check if this server belongs to this bot instance
+            try {
+                const { getServerByDiscordId } = await import('../../config.js');
+                await getServerByDiscordId(interaction.guild.id);
+            } catch (error) {
+                // Server not found for this bot, ignore interaction
+                return;
+            }
+
             // Handle role selection
             try {
                 const user = interaction.user;
                 const customId = interaction.customId;
                 const selectedRoles = interaction.values;
-                await logger.log(`👥 Role selected: "${customId}" → [${selectedRoles.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
+                await logger.log(`👥 Role selected: "${customId}" → [${selectedRoles.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
 
                 if (interaction.customId.startsWith('send_message_role_select_')) {
                     await handleRoleSelection(interaction);
                 } else {
-                    await logger.log(`⚠️ Unknown role select: "${customId}" by ${user.tag} (${user.id})`);
+                    await logger.log(`⚠️ Unknown role select: "${customId}" by ${user.tag} (${user.id})`, interaction.guild?.id);
                 }
             } catch (error) {
-                await logger.log(`❌ Role selection error in interface.js: ${error.message}`);
-                await logger.log(`❌ Role selection error stack: ${error.stack}`);
+                await logger.log(`❌ Role selection error in interface.js: ${error.message}`, interaction.guild?.id);
+                await logger.log(`❌ Role selection error stack: ${error.stack}`, interaction.guild?.id);
 
                 try {
                     await interaction.reply({
@@ -237,7 +293,7 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send role selection error response: ${replyError.message}`);
+                    await logger.log(`❌ Failed to send role selection error response: ${replyError.message}`, interaction.guild?.id);
                 }
             }
         }
