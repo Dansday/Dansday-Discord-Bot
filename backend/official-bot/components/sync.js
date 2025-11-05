@@ -76,8 +76,8 @@ async function syncGuildData(guild) {
         // Sync channels (with category reference)
         await db.syncChannels(serverId, mapChannelsForSync(channels), categoryMap);
 
-        // Get all roles
-        const roles = Array.from(guild.roles.cache.values());
+        // Get all roles, excluding @everyone (role.id === guild.id)
+        const roles = Array.from(guild.roles.cache.values()).filter(role => role.id !== guild.id);
 
         // Sync roles to database
         await db.syncRoles(serverId, roles.map(role => ({
