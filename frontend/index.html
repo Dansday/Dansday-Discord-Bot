@@ -595,6 +595,124 @@
         </div>
     </div>
 
+    <!-- Add/Edit Forwarder Modal -->
+    <div id="addForwarderModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div
+            class="bg-gray-800 rounded-2xl border border-gray-700 max-w-2xl w-full p-4 sm:p-6 my-4 max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 id="addForwarderModalTitle" class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-exchange-alt text-red-500"></i>
+                    Add Forwarder
+                </h3>
+                <button onclick="closeAddForwarderModal()" class="text-gray-400 hover:text-white transition-colors p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="addForwarderForm" class="flex flex-col flex-1 min-h-0 space-y-4 sm:space-y-6">
+                <!-- Selfbot Selection -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-robot text-red-500 mr-2"></i>Selfbot
+                    </label>
+                    <select id="forwarder_selfbot" onchange="onSelfbotChange()"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base">
+                        <option value="">Select selfbot...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Server Selection -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-server text-red-500 mr-2"></i>Server (Where Selfbot is in)
+                    </label>
+                    <select id="forwarder_server" onchange="onForwarderServerChange()"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base" disabled>
+                        <option value="">Select server...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- From Channels (Multiselect) -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-hashtag text-red-500 mr-2"></i>From Channels
+                    </label>
+                    <button type="button" onclick="openForwarderChannelSelector()" id="forwarder_from_channels_btn"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group" disabled>
+                        <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            <i class="fas fa-hashtag text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                            <span id="forwarder_from_channels_display" class="text-gray-300 text-sm sm:text-base">Select channels...</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                    </button>
+                    <div id="forwarder_from_channels_selected" class="mt-2 flex flex-wrap gap-2">
+                        <!-- Selected channels will be shown here -->
+                    </div>
+                    <input type="hidden" id="forwarder_from_channels" name="forwarder_from_channels" value="">
+                </div>
+
+                <!-- Target Channel (Single Select) -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-bullseye text-red-500 mr-2"></i>Target Channel
+                    </label>
+                    <button type="button" onclick="openChannelSelector('forwarder_target_channel')"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-left flex items-center justify-between hover:border-gray-500 transition-all text-sm sm:text-base">
+                        <span id="forwarder_target_channel_display" class="text-gray-300">Select channel...</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </button>
+                    <input type="hidden" id="forwarder_target_channel" name="forwarder_target_channel" value="">
+                </div>
+
+                <!-- Role Pings (Multiselect) -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-user-shield text-red-500 mr-2"></i>Role Ping
+                    </label>
+                    <button type="button" onclick="openRoleSelector('forwarder_role_pings')"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                        <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                            <span id="forwarder_role_pings_button_text" class="text-gray-300 text-sm sm:text-base">Select roles...</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                    </button>
+                    <div id="forwarder_role_pings_display" class="mt-2 flex flex-wrap gap-2">
+                        <!-- Selected roles will be shown here -->
+                    </div>
+                    <input type="hidden" id="forwarder_role_pings" name="forwarder_role_pings" value="[]">
+                </div>
+
+                <!-- Tag (Optional) -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-tag text-red-500 mr-2"></i>Tag <span class="text-gray-400 text-xs">(Optional)</span>
+                    </label>
+                    <input type="text" id="forwarder_tag" name="forwarder_tag" placeholder="Enter tag (optional)..."
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base">
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex gap-2 sm:gap-3 pt-2 border-t border-gray-700">
+                    <button type="button" onclick="closeAddForwarderModal()"
+                        class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2.5 sm:py-3 rounded-lg transition-colors text-sm sm:text-base font-medium">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="addForwarderToList()"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium">
+                        <i class="fas fa-check"></i>
+                        <span>Add Forwarder</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal"
         class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -1920,12 +2038,23 @@
                     `;
                     return; // Exit early, content will be set in promise
                 case 'forwarder':
-                    contentHTML += `
+                    // Render forwarder asynchronously
+                    renderForwarder(settings).then(html => {
+                        contentContainer.innerHTML = contentHTML + html;
+                        // Render forwarders list after render
+                        setTimeout(() => {
+                            renderForwardersList();
+                        }, 100);
+                    });
+                    // Show loading state
+                    contentContainer.innerHTML = contentHTML + `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                            <p class="text-gray-300 text-sm sm:text-base">Forwarder configuration settings will be available here.</p>
+                            <div class="flex items-center justify-center py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                            </div>
                         </div>
                     `;
-                    break;
+                    return; // Exit early, content will be set in promise
                 default:
                     contentHTML += `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
@@ -2597,6 +2726,650 @@
             }
         }
 
+        // Forwarder state management
+        let forwardersData = {
+            testing: [],
+            production: []
+        };
+        let currentForwarderType = 'production';
+        let currentEditingForwarderIndex = null;
+        let forwarderSelfbots = [];
+        let forwarderSelfbotServers = {}; // Cache servers by selfbot ID
+        let forwarderSelfbotServerChannels = {}; // Cache channels by selfbot ID and server ID
+        let forwarderSelfbotServerRoles = {}; // Cache roles by selfbot ID and server ID
+        let currentForwarderSelfbotId = null;
+        let currentForwarderServerId = null;
+        let currentForwarderServerDbId = null;
+
+        // Render Forwarder Component
+        async function renderForwarder(settings) {
+            // Handle both direct settings object and nested settings.settings
+            let config = {};
+            if (settings) {
+                if (settings.settings) {
+                    config = settings.settings;
+                } else if (typeof settings === 'object') {
+                    config = settings;
+                }
+            }
+
+            // Load forwarders data
+            forwardersData.testing = Array.isArray(config.testing) ? config.testing : [];
+            forwardersData.production = Array.isArray(config.production) ? config.production : [];
+            currentForwarderType = 'production';
+
+            // Load selfbots for the current official bot
+            forwarderSelfbots = [];
+            try {
+                if (currentBotIdForServer) {
+                    const response = await fetch(`/api/bots/${currentBotIdForServer}/selfbots`, {
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        forwarderSelfbots = await response.json();
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading selfbots:', err);
+            }
+
+            return `
+                    <div class="space-y-4 sm:space-y-6">
+                        <!-- Type Selector -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-tasks text-red-500 mr-2"></i>Forwarder Type
+                            </label>
+                            <select id="forwarder_type" onchange="switchForwarderType()"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base">
+                                <option value="testing">Testing</option>
+                                <option value="production" selected>Production</option>
+                            </select>
+                        </div>
+
+                        <!-- Forwarders List -->
+                        <div id="forwarders_list" class="space-y-3">
+                            <!-- Forwarders will be rendered here -->
+                        </div>
+
+                        <!-- Add Forwarder Button -->
+                        <div>
+                            <button type="button" onclick="openAddForwarderModal()"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base font-medium">
+                                <i class="fas fa-plus"></i>
+                                <span>Add Forwarder</span>
+                            </button>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="pt-4 border-t border-gray-700">
+                            <button type="button" onclick="saveForwarderConfig()" id="saveForwarderConfigBtn"
+                                class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                <i class="fas fa-spinner fa-spin hidden" id="saveForwarderConfigLoading"></i>
+                                <i class="fas fa-save"></i>
+                                <span>Save Configuration</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+        }
+
+        // Switch forwarder type
+        function switchForwarderType() {
+            const typeSelect = document.getElementById('forwarder_type');
+            if (!typeSelect) return;
+            currentForwarderType = typeSelect.value;
+            renderForwardersList();
+        }
+
+        // Render forwarders list
+        async function renderForwardersList() {
+            const listContainer = document.getElementById('forwarders_list');
+            if (!listContainer) return;
+
+            const forwarders = forwardersData[currentForwarderType] || [];
+
+            if (forwarders.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6 text-center">
+                        <i class="fas fa-inbox text-3xl text-gray-500 mb-2"></i>
+                        <p class="text-gray-400 text-sm sm:text-base">No forwarders configured for ${currentForwarderType}</p>
+                        <p class="text-gray-500 text-xs mt-1">Add a forwarder to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Load names for display
+            const selfbotMap = {};
+            forwarderSelfbots.forEach(bot => {
+                selfbotMap[bot.id] = bot;
+            });
+
+            listContainer.innerHTML = forwarders.map((forwarder, index) => {
+                const selfbot = selfbotMap[forwarder.selfbot_id];
+                const selfbotName = selfbot ? selfbot.name : 'Unknown Selfbot';
+                const sourceChannelsCount = Array.isArray(forwarder.source_channels) ? forwarder.source_channels.length : 0;
+                const rolePingsCount = Array.isArray(forwarder.role_pings) ? forwarder.role_pings.length : 0;
+
+                return `
+                    <div class="bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-600">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-exchange-alt text-red-500"></i>
+                                    <span class="text-white font-medium text-sm sm:text-base">${escapeHtml(selfbotName)}</span>
+                                </div>
+                                <div class="text-xs sm:text-sm text-gray-400 space-y-1">
+                                    <div>From: ${sourceChannelsCount} channel${sourceChannelsCount !== 1 ? 's' : ''}</div>
+                                    <div>Roles: ${rolePingsCount} role${rolePingsCount !== 1 ? 's' : ''}</div>
+                                    ${forwarder.tag ? `<div>Tag: ${escapeHtml(forwarder.tag)}</div>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <button type="button" onclick="editForwarder(${index})"
+                                    class="p-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                                <button type="button" onclick="deleteForwarder(${index})"
+                                    class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                                    <i class="fas fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Open add forwarder modal
+        async function openAddForwarderModal(editIndex = null) {
+            currentEditingForwarderIndex = editIndex;
+            const modal = document.getElementById('addForwarderModal');
+            const title = document.getElementById('addForwarderModalTitle');
+            const selfbotSelect = document.getElementById('forwarder_selfbot');
+            const serverSelect = document.getElementById('forwarder_server');
+
+            if (!modal || !title || !selfbotSelect) return;
+
+            // Reset form
+            title.innerHTML = `<i class="fas fa-exchange-alt text-red-500"></i> ${editIndex !== null ? 'Edit' : 'Add'} Forwarder`;
+            selfbotSelect.innerHTML = '<option value="">Select selfbot...</option>';
+            serverSelect.innerHTML = '<option value="">Select server...</option>';
+            serverSelect.disabled = true;
+            document.getElementById('forwarder_from_channels_btn').disabled = true;
+            document.getElementById('forwarder_from_channels').value = '';
+            document.getElementById('forwarder_from_channels_display').textContent = 'Select channels...';
+            document.getElementById('forwarder_from_channels_selected').innerHTML = '';
+            document.getElementById('forwarder_target_channel').value = '';
+            document.getElementById('forwarder_target_channel_display').textContent = 'Select channel...';
+            document.getElementById('forwarder_role_pings').value = '[]';
+            document.getElementById('forwarder_role_pings_button_text').textContent = 'Select roles...';
+            document.getElementById('forwarder_role_pings_display').innerHTML = '';
+            document.getElementById('forwarder_tag').value = '';
+
+            // Populate selfbots
+            forwarderSelfbots.forEach(selfbot => {
+                const option = document.createElement('option');
+                option.value = selfbot.id;
+                option.textContent = selfbot.name || `Selfbot ${selfbot.id}`;
+                selfbotSelect.appendChild(option);
+            });
+
+            // If editing, populate form
+            if (editIndex !== null) {
+                const forwarder = forwardersData[currentForwarderType][editIndex];
+                if (forwarder) {
+                    selfbotSelect.value = forwarder.selfbot_id;
+                    await onSelfbotChange();
+                    if (forwarder.server_id) {
+                        serverSelect.value = forwarder.server_id;
+                        await onForwarderServerChange();
+                        // Load existing values
+                        if (forwarder.source_channels) {
+                            const channelIds = forwarder.source_channels.map(ch => ch.channel_id || ch).filter(Boolean);
+                            document.getElementById('forwarder_from_channels').value = channelIds.join(',');
+                            await updateForwarderFromChannelsDisplay();
+                        }
+                        if (forwarder.target_channel) {
+                            document.getElementById('forwarder_target_channel').value = forwarder.target_channel;
+                            await updateFeedbackChannelDisplay(); // Reuse for target channel
+                            const displayEl = document.getElementById('forwarder_target_channel_display');
+                            if (displayEl) {
+                                const channelNames = await loadChannelNames([forwarder.target_channel]);
+                                if (channelNames[forwarder.target_channel]) {
+                                    displayEl.textContent = `#${channelNames[forwarder.target_channel]}`;
+                                } else {
+                                    displayEl.textContent = `Channel ${forwarder.target_channel}`;
+                                }
+                            }
+                        }
+                    }
+                    if (forwarder.role_pings && Array.isArray(forwarder.role_pings)) {
+                        document.getElementById('forwarder_role_pings').value = JSON.stringify(forwarder.role_pings);
+                        updateForwarderRolePingsDisplay();
+                    }
+                    if (forwarder.tag) {
+                        document.getElementById('forwarder_tag').value = forwarder.tag;
+                    }
+                }
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // Close add forwarder modal
+        function closeAddForwarderModal() {
+            document.getElementById('addForwarderModal').classList.add('hidden');
+            currentEditingForwarderIndex = null;
+            currentForwarderSelfbotId = null;
+            currentForwarderServerId = null;
+            currentForwarderServerDbId = null;
+        }
+
+        // Handle selfbot change
+        async function onSelfbotChange() {
+            const selfbotSelect = document.getElementById('forwarder_selfbot');
+            const serverSelect = document.getElementById('forwarder_server');
+            const fromChannelsBtn = document.getElementById('forwarder_from_channels_btn');
+
+            if (!selfbotSelect || !serverSelect) return;
+
+            const selfbotId = selfbotSelect.value;
+            currentForwarderSelfbotId = selfbotId;
+            serverSelect.innerHTML = '<option value="">Select server...</option>';
+            serverSelect.disabled = !selfbotId;
+            fromChannelsBtn.disabled = true;
+
+            if (!selfbotId) {
+                return;
+            }
+
+            // Load servers for this selfbot
+            try {
+                let servers = [];
+                if (forwarderSelfbotServers[selfbotId]) {
+                    servers = forwarderSelfbotServers[selfbotId];
+                } else {
+                    const response = await fetch(`/api/bots/${selfbotId}/servers`, {
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        servers = await response.json();
+                        forwarderSelfbotServers[selfbotId] = servers;
+                    }
+                }
+
+                servers.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.id; // Database ID
+                    option.textContent = server.name || `Server ${server.discord_server_id}`;
+                    serverSelect.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Error loading servers:', err);
+                showMessage('Failed to load servers', 'error');
+            }
+        }
+
+        // Handle forwarder server change
+        async function onForwarderServerChange() {
+            const serverSelect = document.getElementById('forwarder_server');
+            const fromChannelsBtn = document.getElementById('forwarder_from_channels_btn');
+
+            if (!serverSelect || !fromChannelsBtn) return;
+
+            const serverDbId = serverSelect.value;
+            currentForwarderServerDbId = serverDbId;
+            
+            // Get discord_server_id for the selected server
+            const selfbotId = currentForwarderSelfbotId;
+            if (!selfbotId || !serverDbId) {
+                fromChannelsBtn.disabled = true;
+                return;
+            }
+
+            const servers = forwarderSelfbotServers[selfbotId] || [];
+            const selectedServer = servers.find(s => s.id === serverDbId);
+            currentForwarderServerId = selectedServer ? selectedServer.discord_server_id : null;
+
+            fromChannelsBtn.disabled = !serverDbId;
+        }
+
+        // Open forwarder channel selector (for from channels - selfbot server)
+        async function openForwarderChannelSelector() {
+            if (!currentForwarderSelfbotId || !currentForwarderServerDbId || !currentForwarderServerId) {
+                showMessage('Please select selfbot and server first', 'error');
+                return;
+            }
+
+            currentChannelField = 'forwarder_from_channels';
+            isMultiselectMode = true;
+
+            try {
+                // Get current selected channels
+                const hiddenInput = document.getElementById('forwarder_from_channels');
+                selectedChannels = hiddenInput && hiddenInput.value ? hiddenInput.value.split(',').filter(Boolean) : [];
+
+                // Load channels from selfbot server
+                const cacheKey = `${currentForwarderSelfbotId}_${currentForwarderServerDbId}`;
+                let channels = [];
+                let categories = [];
+
+                if (forwarderSelfbotServerChannels[cacheKey]) {
+                    channels = forwarderSelfbotServerChannels[cacheKey].channels || [];
+                    categories = forwarderSelfbotServerChannels[cacheKey].categories || [];
+                } else {
+                    const [channelsRes, categoriesRes] = await Promise.all([
+                        fetch(`/api/bots/${currentForwarderSelfbotId}/servers/${currentForwarderServerDbId}/channels?discordServerId=${currentForwarderServerId}`, {
+                            credentials: 'include'
+                        }),
+                        fetch(`/api/servers/${currentForwarderServerDbId}/categories`, {
+                            credentials: 'include'
+                        })
+                    ]);
+
+                    if (channelsRes.status === 401 || categoriesRes.status === 401) {
+                        await checkAuthStatus();
+                        return;
+                    }
+
+                    channels = channelsRes.ok ? await channelsRes.json() : [];
+                    categories = categoriesRes.ok ? await categoriesRes.json() : [];
+                    forwarderSelfbotServerChannels[cacheKey] = { channels, categories };
+                }
+
+                allChannels = channels;
+                allCategories = categories;
+
+                // Update modal title
+                document.getElementById('channelSelectorTitle').innerHTML = '<i class="fas fa-hashtag text-red-500"></i> Select From Channels';
+                document.getElementById('channelSelectorConfirm').classList.remove('hidden');
+
+                // Show modal
+                document.getElementById('channelSelectorModal').classList.remove('hidden');
+                renderChannelList(allChannels, allCategories);
+            } catch (err) {
+                console.error('Error loading channels:', err);
+                showMessage('Failed to load channels', 'error');
+            }
+        }
+
+        // Update forwarder from channels display
+        async function updateForwarderFromChannelsDisplay() {
+            const hiddenInput = document.getElementById('forwarder_from_channels');
+            const displayEl = document.getElementById('forwarder_from_channels_display');
+            const selectedEl = document.getElementById('forwarder_from_channels_selected');
+
+            if (!hiddenInput) return;
+
+            const channelIds = hiddenInput.value ? hiddenInput.value.split(',').filter(Boolean) : [];
+
+            if (channelIds.length === 0) {
+                if (displayEl) displayEl.textContent = 'Select channels...';
+                if (selectedEl) selectedEl.innerHTML = '';
+                return;
+            }
+
+            if (displayEl) {
+                displayEl.textContent = `${channelIds.length} channel${channelIds.length > 1 ? 's' : ''} selected`;
+            }
+
+            // Load channel names from selfbot server
+            if (selectedEl && currentForwarderSelfbotId && currentForwarderServerDbId) {
+                try {
+                    const cacheKey = `${currentForwarderSelfbotId}_${currentForwarderServerDbId}`;
+                    const cached = forwarderSelfbotServerChannels[cacheKey];
+                    const channels = cached ? cached.channels : [];
+
+                    const channelMap = {};
+                    channels.forEach(ch => {
+                        if (channelIds.includes(ch.discord_channel_id)) {
+                            channelMap[ch.discord_channel_id] = ch.name || `Channel ${ch.discord_channel_id}`;
+                        }
+                    });
+
+                    selectedEl.innerHTML = channelIds.map(chId => `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-red-600 text-white text-xs rounded-lg">
+                            ${channelMap[chId] ? `#${channelMap[chId]}` : `Channel ${chId}`}
+                            <button type="button" onclick="removeForwarderChannel('${chId}')" class="hover:text-red-200 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </span>
+                    `).join('');
+                } catch (err) {
+                    console.error('Error loading channel names:', err);
+                }
+            }
+        }
+
+        // Remove forwarder channel
+        async function removeForwarderChannel(channelId) {
+            const hiddenInput = document.getElementById('forwarder_from_channels');
+            if (!hiddenInput) return;
+
+            const channelIds = hiddenInput.value ? hiddenInput.value.split(',').filter(Boolean) : [];
+            const filtered = channelIds.filter(id => id !== channelId);
+            hiddenInput.value = filtered.join(',');
+
+            await updateForwarderFromChannelsDisplay();
+        }
+
+        // Update forwarder role pings display
+        function updateForwarderRolePingsDisplay() {
+            const hiddenInput = document.getElementById('forwarder_role_pings');
+            const displayEl = document.getElementById('forwarder_role_pings_display');
+            const buttonTextEl = document.getElementById('forwarder_role_pings_button_text');
+
+            if (!hiddenInput) return;
+
+            let roleIds = [];
+            try {
+                const value = hiddenInput.value.trim();
+                if (value) {
+                    roleIds = JSON.parse(value);
+                }
+            } catch (err) {
+                roleIds = [];
+            }
+
+            if (!Array.isArray(roleIds)) {
+                roleIds = [];
+            }
+
+            if (buttonTextEl) {
+                buttonTextEl.textContent = roleIds.length > 0
+                    ? `${roleIds.length} role${roleIds.length > 1 ? 's' : ''} selected`
+                    : 'Select roles...';
+            }
+
+            if (!displayEl) return;
+
+            if (roleIds.length === 0) {
+                displayEl.innerHTML = '';
+                return;
+            }
+
+            roleIds = roleIds.map(id => String(id));
+
+            displayEl.innerHTML = roleIds.map(roleId => {
+                const role = allRoles.find(r => String(r.discord_role_id) === String(roleId));
+                if (!role) {
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-xs sm:text-sm text-white">
+                            <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                            ${escapeHtml(`Role ${roleId}`)}
+                            <button type="button" onclick="removeForwarderRolePing('${roleId}')"
+                                class="text-gray-400 hover:text-red-400 transition-colors">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </span>
+                    `;
+                }
+
+                return `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-xs sm:text-sm text-white">
+                        <span class="w-3 h-3 rounded-full" style="background-color: ${role.color || '#7289da'};"></span>
+                        ${escapeHtml(role.name || 'Unknown Role')}
+                        <button type="button" onclick="removeForwarderRolePing('${roleId}')"
+                            class="text-gray-400 hover:text-red-400 transition-colors">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </span>
+                `;
+            }).filter(Boolean).join('');
+        }
+
+        // Remove forwarder role ping
+        function removeForwarderRolePing(roleId) {
+            const hiddenInput = document.getElementById('forwarder_role_pings');
+            if (!hiddenInput) return;
+
+            let roleIds = [];
+            try {
+                const value = hiddenInput.value.trim();
+                if (value) {
+                    roleIds = JSON.parse(value);
+                }
+            } catch (err) {
+                roleIds = [];
+            }
+
+            if (!Array.isArray(roleIds)) {
+                roleIds = [];
+            }
+
+            roleIds = roleIds.filter(id => String(id) !== String(roleId));
+            hiddenInput.value = JSON.stringify(roleIds);
+
+            updateForwarderRolePingsDisplay();
+        }
+
+        // Add forwarder to list
+        function addForwarderToList() {
+            const selfbotId = document.getElementById('forwarder_selfbot')?.value;
+            const serverDbId = document.getElementById('forwarder_server')?.value;
+            const fromChannelsInput = document.getElementById('forwarder_from_channels')?.value;
+            const targetChannel = document.getElementById('forwarder_target_channel')?.value;
+            const rolePingsInput = document.getElementById('forwarder_role_pings')?.value;
+            const tag = document.getElementById('forwarder_tag')?.value;
+
+            // Validation
+            if (!selfbotId || !serverDbId) {
+                showMessage('Please select selfbot and server', 'error');
+                return;
+            }
+
+            if (!fromChannelsInput || !fromChannelsInput.trim()) {
+                showMessage('Please select at least one source channel', 'error');
+                return;
+            }
+
+            if (!targetChannel) {
+                showMessage('Please select target channel', 'error');
+                return;
+            }
+
+            // Parse source channels
+            const sourceChannelIds = fromChannelsInput.split(',').filter(Boolean);
+            const sourceChannels = sourceChannelIds.map(chId => ({ channel_id: chId }));
+
+            // Parse role pings
+            let rolePings = [];
+            try {
+                if (rolePingsInput && rolePingsInput.trim()) {
+                    rolePings = JSON.parse(rolePingsInput);
+                }
+            } catch (err) {
+                rolePings = [];
+            }
+            if (!Array.isArray(rolePings)) {
+                rolePings = [];
+            }
+
+            const forwarder = {
+                selfbot_id: selfbotId,
+                server_id: serverDbId,
+                source_channels: sourceChannels,
+                target_channel: targetChannel,
+                role_pings: rolePings,
+                tag: tag || null
+            };
+
+            // Add or update forwarder
+            if (currentEditingForwarderIndex !== null) {
+                forwardersData[currentForwarderType][currentEditingForwarderIndex] = forwarder;
+            } else {
+                forwardersData[currentForwarderType].push(forwarder);
+            }
+
+            // Close modal and refresh list
+            closeAddForwarderModal();
+            renderForwardersList();
+            showMessage(`Forwarder ${currentEditingForwarderIndex !== null ? 'updated' : 'added'} successfully!`, 'success');
+        }
+
+        // Edit forwarder
+        async function editForwarder(index) {
+            await openAddForwarderModal(index);
+        }
+
+        // Delete forwarder
+        function deleteForwarder(index) {
+            if (confirm('Are you sure you want to delete this forwarder?')) {
+                forwardersData[currentForwarderType].splice(index, 1);
+                renderForwardersList();
+                showMessage('Forwarder deleted successfully!', 'success');
+            }
+        }
+
+        // Save forwarder configuration
+        async function saveForwarderConfig() {
+            const submitBtn = document.getElementById('saveForwarderConfigBtn');
+            const loadingIcon = document.getElementById('saveForwarderConfigLoading');
+            submitBtn.disabled = true;
+            loadingIcon.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        component_name: 'forwarder',
+                        settings: {
+                            testing: forwardersData.testing,
+                            production: forwardersData.production
+                        }
+                    })
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('Forwarder configuration saved successfully!', 'success');
+                    // Reload component to show updated values
+                    setTimeout(() => {
+                        loadComponent('forwarder');
+                    }, 500);
+                } else {
+                    showMessage(data.error || 'Failed to save configuration', 'error');
+                }
+            } catch (err) {
+                showMessage('Failed to save configuration. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loadingIcon.classList.add('hidden');
+            }
+        }
+
         // Helper function to escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -2955,6 +3728,8 @@
                 await updateSelectedChannelsDisplay();
             } else if (currentChannelField === 'booster_channels') {
                 await updateSelectedBoosterChannelsDisplay();
+            } else if (currentChannelField === 'forwarder_from_channels') {
+                await updateForwarderFromChannelsDisplay();
             }
 
             closeChannelSelector();
@@ -3065,9 +3840,19 @@
                 displayEl.textContent = channelName.startsWith('#') ? channelName : `#${channelName}`;
             }
 
-            // Update feedback channel display if needed
+            // Update channel display if needed
             if (currentChannelField === 'feedback_channel') {
                 await updateFeedbackChannelDisplay();
+            } else if (currentChannelField === 'forwarder_target_channel') {
+                const targetDisplayEl = document.getElementById('forwarder_target_channel_display');
+                if (targetDisplayEl) {
+                    const channelNames = await loadChannelNames([channelId]);
+                    if (channelNames[channelId]) {
+                        targetDisplayEl.textContent = `#${channelNames[channelId]}`;
+                    } else {
+                        targetDisplayEl.textContent = channelName.startsWith('#') ? channelName : `#${channelName}`;
+                    }
+                }
             }
 
             closeChannelSelector();
@@ -3130,7 +3915,8 @@
                     'admin_roles': 'Select Admin Roles',
                     'staff_roles': 'Select Staff Roles',
                     'supporter_roles': 'Select Supporter Roles',
-                    'member_roles': 'Select Member Roles'
+                    'member_roles': 'Select Member Roles',
+                    'forwarder_role_pings': 'Select Role Pings'
                 };
                 document.getElementById('roleSelectorTitle').innerHTML = `<i class="fas fa-user-shield text-red-500"></i> ${titles[fieldId] || 'Select Roles'}`;
 
@@ -3306,8 +4092,12 @@
                 hiddenInput.value = JSON.stringify(selectedRoles);
             }
 
-            // Update display
-            updatePermissionRoleDisplay(currentRoleField);
+            // Update display based on field type
+            if (currentRoleField.startsWith('forwarder_')) {
+                updateForwarderRolePingsDisplay();
+            } else {
+                updatePermissionRoleDisplay(currentRoleField);
+            }
 
             closeRoleSelector();
         }
