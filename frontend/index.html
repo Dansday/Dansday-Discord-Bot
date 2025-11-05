@@ -509,8 +509,8 @@
                 <!-- Roles will be rendered here -->
             </div>
 
-            <!-- Confirm Button -->
-            <div class="mt-4 pt-4 border-t border-gray-700">
+            <!-- Confirm Button (for multiselect) -->
+            <div id="roleSelectorConfirm" class="mt-4 pt-4 border-t border-gray-700">
                 <button onclick="confirmRoleSelection()"
                     class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium">
                     <i class="fas fa-check"></i>
@@ -1890,12 +1890,19 @@
                     `;
                     return; // Exit early, content will be set in promise
                 case 'custom_supporter_role':
-                    contentHTML += `
+                    // Render custom supporter role asynchronously
+                    renderCustomSupporterRole(settings).then(html => {
+                        contentContainer.innerHTML = contentHTML + html;
+                    });
+                    // Show loading state
+                    contentContainer.innerHTML = contentHTML + `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                            <p class="text-gray-300 text-sm sm:text-base">Custom Supporter Role configuration settings will be available here.</p>
+                            <div class="flex items-center justify-center py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                            </div>
                         </div>
                     `;
-                    break;
+                    return; // Exit early, content will be set in promise
                 case 'feedback':
                     contentHTML += `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
@@ -2430,6 +2437,89 @@
                 `;
         }
 
+        // Render Custom Supporter Role Component
+        async function renderCustomSupporterRole(settings) {
+            // Handle both direct settings object and nested settings.settings
+            let config = {};
+            if (settings) {
+                if (settings.settings) {
+                    config = settings.settings;
+                } else if (typeof settings === 'object') {
+                    // If settings is already the config object
+                    config = settings;
+                }
+            }
+
+            // Load roles for display
+            await loadRolesForServer();
+
+            // Load role names for display
+            const roleAboveId = config.role_above || '';
+            const roleBelowId = config.role_below || '';
+            const roleAbove = roleAboveId ? allRoles.find(r => String(r.discord_role_id) === String(roleAboveId)) : null;
+            const roleBelow = roleBelowId ? allRoles.find(r => String(r.discord_role_id) === String(roleBelowId)) : null;
+
+            return `
+                    <form id="customSupporterRoleConfigForm" class="space-y-4 sm:space-y-6">
+                        <!-- Role Above (Maximum Position) -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-arrow-up text-red-500 mr-2"></i>Role Above (Maximum Position)
+                            </label>
+                            <button type="button" onclick="openRoleSelectorSingle('role_above')"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                                <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                    <span id="role_above_display" class="text-gray-300 text-sm sm:text-base">
+                                        ${roleAbove
+                                            ? `<span class="inline-flex items-center gap-1.5">
+                                                <span class="w-3 h-3 rounded-full" style="background-color: ${roleAbove.color || '#7289da'};"></span>
+                                                ${escapeHtml(roleAbove.name || 'Unknown Role')}
+                                            </span>`
+                                            : 'Select role...'}
+                                    </span>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                            </button>
+                            <input type="hidden" id="role_above" name="role_above" value="${roleAboveId}">
+                        </div>
+
+                        <!-- Role Below (Minimum Position) -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-arrow-down text-red-500 mr-2"></i>Role Below (Minimum Position)
+                            </label>
+                            <button type="button" onclick="openRoleSelectorSingle('role_below')"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                                <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                    <span id="role_below_display" class="text-gray-300 text-sm sm:text-base">
+                                        ${roleBelow
+                                            ? `<span class="inline-flex items-center gap-1.5">
+                                                <span class="w-3 h-3 rounded-full" style="background-color: ${roleBelow.color || '#7289da'};"></span>
+                                                ${escapeHtml(roleBelow.name || 'Unknown Role')}
+                                            </span>`
+                                            : 'Select role...'}
+                                    </span>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                            </button>
+                            <input type="hidden" id="role_below" name="role_below" value="${roleBelowId}">
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="pt-4 border-t border-gray-700">
+                            <button type="submit" id="saveCustomSupporterRoleConfigBtn"
+                                class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                <i class="fas fa-spinner fa-spin hidden" id="saveCustomSupporterRoleConfigLoading"></i>
+                                <i class="fas fa-save"></i>
+                                <span>Save Configuration</span>
+                            </button>
+                        </div>
+                    </form>
+                `;
+        }
+
         // Helper function to escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -2454,6 +2544,7 @@
         let currentRoleField = null;
         let selectedRoles = [];
         let allRoles = [];
+        let isRoleMultiselectMode = true; // Default to multiselect for permissions
 
         // Open channel selector
         async function openChannelSelector(fieldId) {
@@ -2923,9 +3014,10 @@
             }
         }
 
-        // Open role selector
+        // Open role selector (multiselect mode)
         async function openRoleSelector(fieldId) {
             currentRoleField = fieldId;
+            isRoleMultiselectMode = true;
 
             try {
                 // Load roles if not already loaded
@@ -2960,6 +3052,40 @@
                 };
                 document.getElementById('roleSelectorTitle').innerHTML = `<i class="fas fa-user-shield text-red-500"></i> ${titles[fieldId] || 'Select Roles'}`;
 
+                // Show confirm button for multiselect
+                document.getElementById('roleSelectorConfirm').classList.remove('hidden');
+
+                // Show modal
+                document.getElementById('roleSelectorModal').classList.remove('hidden');
+                renderRoleList();
+            } catch (err) {
+                console.error('Error opening role selector:', err);
+                showMessage('Failed to load roles', 'error');
+            }
+        }
+
+        // Open role selector (single select mode)
+        async function openRoleSelectorSingle(fieldId) {
+            currentRoleField = fieldId;
+            isRoleMultiselectMode = false;
+            selectedRoles = [];
+
+            try {
+                // Load roles if not already loaded
+                if (allRoles.length === 0) {
+                    await loadRolesForServer();
+                }
+
+                // Update modal title based on field
+                const titles = {
+                    'role_above': 'Select Role Above (Maximum Position)',
+                    'role_below': 'Select Role Below (Minimum Position)'
+                };
+                document.getElementById('roleSelectorTitle').innerHTML = `<i class="fas fa-user-shield text-red-500"></i> ${titles[fieldId] || 'Select Role'}`;
+
+                // Hide confirm button for single select
+                document.getElementById('roleSelectorConfirm').classList.add('hidden');
+
                 // Show modal
                 document.getElementById('roleSelectorModal').classList.remove('hidden');
                 renderRoleList();
@@ -2975,6 +3101,7 @@
             document.getElementById('roleSearchInput').value = '';
             currentRoleField = null;
             selectedRoles = [];
+            isRoleMultiselectMode = true; // Reset to default
         }
 
         // Render role list
@@ -3010,18 +3137,35 @@
                 const roleColor = role.color || '#7289da';
                 const isSelected = selectedRoles.includes(role.discord_role_id);
 
-                return `
-                    <button onclick="toggleRoleSelection('${role.discord_role_id}')"
-                        class="w-full text-left px-4 py-2.5 ${isSelected ? 'bg-red-900 border border-red-600' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg transition-colors flex items-center justify-between group cursor-pointer">
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
-                            <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${roleColor};"></span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-white font-medium truncate text-sm">${escapeHtml(roleName)}</p>
+                if (isRoleMultiselectMode) {
+                    // Multiselect mode - show checkmarks
+                    return `
+                        <button onclick="toggleRoleSelection('${role.discord_role_id}')"
+                            class="w-full text-left px-4 py-2.5 ${isSelected ? 'bg-red-900 border border-red-600' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg transition-colors flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${roleColor};"></span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-white font-medium truncate text-sm">${escapeHtml(roleName)}</p>
+                                </div>
                             </div>
-                        </div>
-                        ${isSelected ? '<i class="fas fa-check text-red-500 text-sm"></i>' : '<i class="fas fa-check text-transparent text-sm"></i>'}
-                    </button>
-                `;
+                            ${isSelected ? '<i class="fas fa-check text-red-500 text-sm"></i>' : '<i class="fas fa-check text-transparent text-sm"></i>'}
+                        </button>
+                    `;
+                } else {
+                    // Single select mode - select immediately
+                    return `
+                        <button onclick="selectRole('${role.discord_role_id}', '${escapeHtml(roleName)}')"
+                            class="w-full text-left px-4 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${roleColor};"></span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-white font-medium truncate text-sm">${escapeHtml(roleName)}</p>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                        </button>
+                    `;
+                }
             }).join('');
         }
 
@@ -3041,9 +3185,38 @@
             renderRoleList();
         }
 
-        // Confirm role selection
+        // Select role (single select mode)
+        function selectRole(roleId, roleName) {
+            if (!currentRoleField || isRoleMultiselectMode) return;
+
+            // Update hidden input
+            const hiddenInput = document.getElementById(currentRoleField);
+            if (hiddenInput) {
+                hiddenInput.value = roleId;
+            }
+
+            // Update display - show role name with color
+            const displayEl = document.getElementById(`${currentRoleField}_display`);
+            if (displayEl) {
+                const role = allRoles.find(r => String(r.discord_role_id) === String(roleId));
+                if (role) {
+                    displayEl.innerHTML = `
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full" style="background-color: ${role.color || '#7289da'};"></span>
+                            ${escapeHtml(role.name || 'Unknown Role')}
+                        </span>
+                    `;
+                } else {
+                    displayEl.textContent = roleName;
+                }
+            }
+
+            closeRoleSelector();
+        }
+
+        // Confirm role selection (multiselect mode)
         function confirmRoleSelection() {
-            if (!currentRoleField) return;
+            if (!currentRoleField || !isRoleMultiselectMode) return;
 
             // Update hidden input
             const hiddenInput = document.getElementById(currentRoleField);
@@ -3951,6 +4124,62 @@
                     // Reload component to show updated values
                     setTimeout(() => {
                         loadComponent('permissions');
+                    }, 500);
+                } else {
+                    showMessage(data.error || 'Failed to save configuration', 'error');
+                }
+            } catch (err) {
+                showMessage('Failed to save configuration. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loadingIcon.classList.add('hidden');
+            }
+        });
+
+        // Handle custom supporter role form submission
+        document.addEventListener('submit', async function (e) {
+            if (e.target.id !== 'customSupporterRoleConfigForm') return;
+            e.preventDefault();
+
+            const roleAboveInput = document.getElementById('role_above');
+            const roleBelowInput = document.getElementById('role_below');
+
+            const formData = {
+                role_above: roleAboveInput?.value || null,
+                role_below: roleBelowInput?.value || null
+            };
+
+            // Show loading state
+            const submitBtn = document.getElementById('saveCustomSupporterRoleConfigBtn');
+            const loadingIcon = document.getElementById('saveCustomSupporterRoleConfigLoading');
+            submitBtn.disabled = true;
+            loadingIcon.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        component_name: 'custom_supporter_role',
+                        settings: formData
+                    })
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('Custom Supporter Role configuration saved successfully!', 'success');
+                    // Reload component to show updated values
+                    setTimeout(() => {
+                        loadComponent('custom_supporter_role');
                     }, 500);
                 } else {
                     showMessage(data.error || 'Failed to save configuration', 'error');
