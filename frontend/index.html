@@ -479,6 +479,47 @@
         </div>
     </div>
 
+    <!-- Role Selector Modal -->
+    <div id="roleSelectorModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div
+            class="bg-gray-800 rounded-2xl border border-gray-700 max-w-lg w-full p-4 sm:p-6 my-4 max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 id="roleSelectorTitle" class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-user-shield text-red-500"></i>
+                    Select Roles
+                </h3>
+                <button onclick="closeRoleSelector()" class="text-gray-400 hover:text-white transition-colors p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-4">
+                <div class="relative">
+                    <input type="text" id="roleSearchInput" placeholder="Search roles..." oninput="searchRoles()"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base">
+                    <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Role List -->
+            <div id="roleList" class="flex-1 overflow-y-auto space-y-1 min-h-0">
+                <!-- Roles will be rendered here -->
+            </div>
+
+            <!-- Confirm Button -->
+            <div class="mt-4 pt-4 border-t border-gray-700">
+                <button onclick="confirmRoleSelection()"
+                    class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium">
+                    <i class="fas fa-check"></i>
+                    <span>Confirm Selection</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Welcome Message Modal -->
     <div id="messageModal"
         class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
@@ -847,7 +888,7 @@
                         ? `<img src="${bot.bot_icon}" alt="${bot.name}" class="w-full h-full object-cover">`
                         : `<i class="fas fa-robot text-white text-lg sm:text-xl"></i>`
                     }
-                                </div>
+                        </div>
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-semibold text-white text-sm sm:text-base truncate" title="${bot.name}">${bot.name || 'Unnamed Bot'}</h3>
                                     <div class="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
@@ -855,7 +896,7 @@
                                             <i class="fas fa-${isOfficial ? 'shield' : 'user'} text-[10px] sm:text-xs"></i>
                                             <span class="text-[10px] sm:text-xs">${isOfficial ? 'Official' : 'Selfbot'}</span>
                                         </span>
-                                    </div>
+                                </div>
                                 </div>
                             </div>
                             <button onclick="event.stopPropagation(); showDeleteModal('${bot.id}', '${(bot.name || 'Unnamed Bot').replace(/'/g, "\\'")}')"
@@ -873,8 +914,8 @@
                             <span class="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${isTesting ? 'bg-yellow-900 text-yellow-200' : 'bg-green-900 text-green-200'}">
                                 <i class="fas fa-${isTesting ? 'flask' : 'rocket'} text-[10px] sm:text-xs"></i>
                                 <span class="text-[10px] sm:text-xs">${isTesting ? 'Testing' : 'Production'}</span>
-                            </span>
-                        </div>
+                                        </span>
+                                    </div>
 
                         <!-- Bot Info -->
                         <div class="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-400">
@@ -888,10 +929,10 @@
                                 <div class="flex items-center gap-1.5 sm:gap-2">
                                     <i class="fas fa-link w-3 sm:w-4 text-[10px] sm:text-xs"></i>
                                     <span class="truncate">Connected to: ${bot.connected_bot_name}</span>
-                                </div>
+                            </div>
                             ` : ''}
+                            </div>
                         </div>
-                    </div>
                 `;
             }).join('');
         }
@@ -1294,7 +1335,7 @@
                 <span class="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-medium ${isOfficial ? 'bg-red-900 text-red-200' : 'bg-gray-700 text-gray-300'}">
                     <i class="fas fa-${isOfficial ? 'shield' : 'user'}"></i>
                     ${isOfficial ? 'Official' : 'Selfbot'}
-                </span>
+                                </span>
                 <span class="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-medium ${bot.is_testing ? 'bg-yellow-900 text-yellow-200' : 'bg-green-900 text-green-200'}">
                     <i class="fas fa-${bot.is_testing ? 'flask' : 'rocket'}"></i>
                     ${bot.is_testing ? 'Testing' : 'Production'}
@@ -1311,9 +1352,9 @@
                     <div class="flex items-center gap-2 mb-1">
                         <i class="fas ${status.icon} text-xs ${status.color === 'bg-green-500' ? 'text-green-400' : status.color === 'bg-yellow-500' ? 'text-yellow-400' : status.color === 'bg-orange-500' ? 'text-orange-400' : 'text-gray-400'}"></i>
                         <span class="text-xs text-gray-400">Status</span>
-                    </div>
+                            </div>
                     <p class="text-sm sm:text-base font-semibold text-white">${status.text}</p>
-                </div>
+                        </div>
             `;
 
             if (isOfficial) {
@@ -1324,9 +1365,9 @@
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fas fa-hashtag text-xs text-gray-400"></i>
                                 <span class="text-xs text-gray-400">Process ID</span>
-                            </div>
-                            <p class="text-sm sm:text-base font-semibold text-white">${bot.process_id}</p>
                         </div>
+                            <p class="text-sm sm:text-base font-semibold text-white">${bot.process_id}</p>
+                    </div>
                     `;
                 }
 
@@ -1336,9 +1377,9 @@
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fas fa-clock text-xs text-gray-400"></i>
                                 <span class="text-xs text-gray-400">Uptime</span>
-                            </div>
+                                </div>
                             <p class="text-sm sm:text-base font-semibold text-white">${formatUptime(bot.uptime_ms)}</p>
-                        </div>
+                            </div>
                     `;
                 }
 
@@ -1350,7 +1391,7 @@
                                 <span class="text-xs text-gray-400">Port</span>
                             </div>
                             <p class="text-sm sm:text-base font-semibold text-white">${bot.port}</p>
-                        </div>
+                            </div>
                     `;
                 }
             } else {
@@ -1363,7 +1404,7 @@
                                 <span class="text-xs text-gray-400">Connected To</span>
                             </div>
                             <p class="text-sm sm:text-base font-semibold text-white truncate" title="${bot.connected_bot_name}">${bot.connected_bot_name}</p>
-                        </div>
+                            </div>
                     `;
                 }
             }
@@ -1409,12 +1450,12 @@
                         <div class="flex items-center gap-2 sm:gap-2.5">
                             <div class="relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer transition-colors ${isProduction ? 'bg-green-600' : ''}">
                                 <div class="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform ${isProduction ? 'translate-x-5' : ''}"></div>
-                            </div>
+                                </div>
                             <span class="text-xs sm:text-sm lg:text-base font-medium text-white whitespace-nowrap">
                                 <span class="hidden sm:inline">${isProduction ? 'Production' : 'Testing'}</span>
                                 <span class="sm:hidden">${isProduction ? 'Prod' : 'Test'}</span>
                             </span>
-                        </div>
+                            </div>
                     </label>
                 `;
             }
@@ -1831,12 +1872,23 @@
                     `;
                     return; // Exit early, content will be set in promise
                 case 'permissions':
-                    contentHTML += `
+                    // Render permissions asynchronously
+                    renderPermissions(settings).then(html => {
+                        contentContainer.innerHTML = contentHTML + html;
+                        // Small delay to ensure DOM is ready
+                        setTimeout(() => {
+                            updatePermissionRoleDisplays();
+                        }, 150);
+                    });
+                    // Show loading state
+                    contentContainer.innerHTML = contentHTML + `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                            <p class="text-gray-300 text-sm sm:text-base">Permissions configuration settings will be available here.</p>
+                            <div class="flex items-center justify-center py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                            </div>
                         </div>
                     `;
-                    break;
+                    return; // Exit early, content will be set in promise
                 case 'custom_supporter_role':
                     contentHTML += `
                         <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
@@ -2016,7 +2068,7 @@
                             <i class="fas fa-save"></i>
                             <span>Save Configuration</span>
                         </button>
-                    </div>
+                </div>
                 </form>
             `;
         }
@@ -2206,7 +2258,7 @@
                                     <div class="bg-gray-700 rounded-lg p-3 sm:p-4 flex items-start justify-between gap-3">
                                         <div class="flex-1 min-w-0">
                                             <p class="text-white text-sm sm:text-base break-words">${escapeHtml(msg)}</p>
-                                        </div>
+                        </div>
                                         <div class="flex items-center gap-2 flex-shrink-0">
                                             <button type="button" onclick="editBoosterMessage(${index})"
                                                 class="p-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors">
@@ -2216,8 +2268,8 @@
                                                 class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                                                 <i class="fas fa-trash text-xs"></i>
                                             </button>
-                                        </div>
-                                    </div>
+                    </div>
+                </div>
                                 `).join('')
                     : `
                                     <div class="bg-gray-700 rounded-lg p-4 sm:p-6 text-center">
@@ -2243,6 +2295,125 @@
             `;
         }
 
+        // Render Permissions Component
+        async function renderPermissions(settings) {
+            // Handle both direct settings object and nested settings.settings
+            let config = {};
+            if (settings) {
+                if (settings.settings) {
+                    config = settings.settings;
+                } else if (typeof settings === 'object') {
+                    // If settings is already the config object
+                    config = settings;
+                }
+            }
+
+            // Load roles for display
+            await loadRolesForServer();
+
+            return `
+                    <form id="permissionsConfigForm" class="space-y-4 sm:space-y-6">
+                        <!-- Info Alert -->
+                        <div class="bg-yellow-900 border border-yellow-700 rounded-lg p-3 sm:p-4">
+                            <div class="flex items-start gap-2 sm:gap-3">
+                                <i class="fas fa-info-circle text-yellow-400 mt-0.5 flex-shrink-0"></i>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-yellow-200 text-xs sm:text-sm">
+                                        <strong>Note:</strong> The bot needs to be restarted for permission changes to take effect.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Roles -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-shield-alt text-red-500 mr-2"></i>Admin Roles
+                            </label>
+                            <button type="button" onclick="openRoleSelector('admin_roles')"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                                <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                    <span class="text-gray-300 text-sm sm:text-base">Select Admin Roles</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                            </button>
+                            <div id="admin_roles_display" class="mt-2 flex flex-wrap gap-2">
+                                <!-- Roles will be loaded here -->
+                            </div>
+                            <input type="hidden" id="admin_roles" name="admin_roles" value="${escapeJsonForAttribute(config.admin_roles || [])}">
+                        </div>
+
+                        <!-- Staff Roles -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-user-tie text-red-500 mr-2"></i>Staff Roles
+                            </label>
+                            <button type="button" onclick="openRoleSelector('staff_roles')"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                                <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                    <span class="text-gray-300 text-sm sm:text-base">Select Staff Roles</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                            </button>
+                            <div id="staff_roles_display" class="mt-2 flex flex-wrap gap-2">
+                                <!-- Roles will be loaded here -->
+                            </div>
+                            <input type="hidden" id="staff_roles" name="staff_roles" value="${escapeJsonForAttribute(config.staff_roles || [])}">
+                        </div>
+
+                        <!-- Supporter Roles -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-heart text-red-500 mr-2"></i>Supporter Roles
+                            </label>
+                            <button type="button" onclick="openRoleSelector('supporter_roles')"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                                <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                    <span class="text-gray-300 text-sm sm:text-base">Select Supporter Roles</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                            </button>
+                            <div id="supporter_roles_display" class="mt-2 flex flex-wrap gap-2">
+                                <!-- Roles will be loaded here -->
+                            </div>
+                            <input type="hidden" id="supporter_roles" name="supporter_roles" value="${escapeJsonForAttribute(config.supporter_roles || [])}">
+                        </div>
+
+                        <!-- Member Roles -->
+                        <div>
+                            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-users text-red-500 mr-2"></i>Member Roles
+                            </label>
+                            <button type="button" onclick="openRoleSelector('member_roles')"
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-left transition-colors flex items-center justify-between group">
+                                <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-user-shield text-gray-400 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                    <span class="text-gray-300 text-sm sm:text-base">Select Member Roles</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                            </button>
+                            <div id="member_roles_display" class="mt-2 flex flex-wrap gap-2">
+                                <!-- Roles will be loaded here -->
+                            </div>
+                            <input type="hidden" id="member_roles" name="member_roles" value="${escapeJsonForAttribute(config.member_roles || [])}">
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="pt-4 border-t border-gray-700">
+                            <button type="submit" id="savePermissionsConfigBtn"
+                                class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                <i class="fas fa-spinner fa-spin hidden" id="savePermissionsConfigLoading"></i>
+                                <i class="fas fa-save"></i>
+                                <span>Save Configuration</span>
+                            </button>
+                        </div>
+                    </form>
+                `;
+        }
+
         // Helper function to escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -2250,11 +2421,23 @@
             return div.innerHTML;
         }
 
+        // Helper function to escape JSON for HTML attributes
+        function escapeJsonForAttribute(json) {
+            // Convert to string and escape quotes for HTML attributes
+            const jsonString = JSON.stringify(json);
+            return jsonString.replace(/"/g, '&quot;');
+        }
+
         // Channel Selector Modal
         let currentChannelField = null;
         let isMultiselectMode = false;
         let selectedChannels = [];
         let allChannels = [];
+
+        // Role Selector Modal
+        let currentRoleField = null;
+        let selectedRoles = [];
+        let allRoles = [];
 
         // Open channel selector
         async function openChannelSelector(fieldId) {
@@ -2701,6 +2884,256 @@
             closeChannelSelector();
         }
 
+        // Load roles for server
+        async function loadRolesForServer() {
+            try {
+                const response = await fetch(`/api/servers/${currentServerId}/roles`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                if (response.ok) {
+                    allRoles = await response.json();
+                } else {
+                    allRoles = [];
+                }
+            } catch (err) {
+                console.error('Error loading roles:', err);
+                allRoles = [];
+            }
+        }
+
+        // Open role selector
+        async function openRoleSelector(fieldId) {
+            currentRoleField = fieldId;
+
+            try {
+                // Load roles if not already loaded
+                if (allRoles.length === 0) {
+                    await loadRolesForServer();
+                }
+
+                // Get current selected roles
+                const hiddenInput = document.getElementById(fieldId);
+                selectedRoles = [];
+                if (hiddenInput && hiddenInput.value) {
+                    try {
+                        const value = hiddenInput.value.trim();
+                        if (value) {
+                            selectedRoles = JSON.parse(value);
+                        }
+                    } catch (err) {
+                        selectedRoles = [];
+                    }
+                }
+
+                if (!Array.isArray(selectedRoles)) {
+                    selectedRoles = [];
+                }
+
+                // Update modal title based on field
+                const titles = {
+                    'admin_roles': 'Select Admin Roles',
+                    'staff_roles': 'Select Staff Roles',
+                    'supporter_roles': 'Select Supporter Roles',
+                    'member_roles': 'Select Member Roles'
+                };
+                document.getElementById('roleSelectorTitle').innerHTML = `<i class="fas fa-user-shield text-red-500"></i> ${titles[fieldId] || 'Select Roles'}`;
+
+                // Show modal
+                document.getElementById('roleSelectorModal').classList.remove('hidden');
+                renderRoleList();
+            } catch (err) {
+                console.error('Error opening role selector:', err);
+                showMessage('Failed to load roles', 'error');
+            }
+        }
+
+        // Close role selector
+        function closeRoleSelector() {
+            document.getElementById('roleSelectorModal').classList.add('hidden');
+            document.getElementById('roleSearchInput').value = '';
+            currentRoleField = null;
+            selectedRoles = [];
+        }
+
+        // Render role list
+        function renderRoleList() {
+            const roleList = document.getElementById('roleList');
+            if (!roleList) return;
+
+            const searchTerm = document.getElementById('roleSearchInput').value.toLowerCase().trim();
+            let filteredRoles = allRoles;
+
+            if (searchTerm) {
+                filteredRoles = allRoles.filter(role => {
+                    const name = (role.name || '').toLowerCase();
+                    return name.includes(searchTerm);
+                });
+            }
+
+            if (filteredRoles.length === 0) {
+                roleList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400 text-sm">
+                        <i class="fas fa-inbox text-3xl mb-2"></i>
+                        <p>No roles found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort roles by position (descending, higher position = higher in Discord)
+            filteredRoles.sort((a, b) => (b.position || 0) - (a.position || 0));
+
+            roleList.innerHTML = filteredRoles.map(role => {
+                const roleName = role.name || `Role ${role.discord_role_id}`;
+                const roleColor = role.color || '#7289da';
+                const isSelected = selectedRoles.includes(role.discord_role_id);
+
+                return `
+                    <button onclick="toggleRoleSelection('${role.discord_role_id}')"
+                        class="w-full text-left px-4 py-2.5 ${isSelected ? 'bg-red-900 border border-red-600' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg transition-colors flex items-center justify-between group cursor-pointer">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${roleColor};"></span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white font-medium truncate text-sm">${escapeHtml(roleName)}</p>
+                            </div>
+                        </div>
+                        ${isSelected ? '<i class="fas fa-check text-red-500 text-sm"></i>' : '<i class="fas fa-check text-transparent text-sm"></i>'}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Search roles
+        function searchRoles() {
+            renderRoleList();
+        }
+
+        // Toggle role selection
+        function toggleRoleSelection(roleId) {
+            const index = selectedRoles.indexOf(roleId);
+            if (index > -1) {
+                selectedRoles.splice(index, 1);
+            } else {
+                selectedRoles.push(roleId);
+            }
+            renderRoleList();
+        }
+
+        // Confirm role selection
+        function confirmRoleSelection() {
+            if (!currentRoleField) return;
+
+            // Update hidden input
+            const hiddenInput = document.getElementById(currentRoleField);
+            if (hiddenInput) {
+                hiddenInput.value = JSON.stringify(selectedRoles);
+            }
+
+            // Update display
+            updatePermissionRoleDisplay(currentRoleField);
+
+            closeRoleSelector();
+        }
+
+        // Update permission role display
+        function updatePermissionRoleDisplay(fieldId) {
+            const hiddenInput = document.getElementById(fieldId);
+            if (!hiddenInput) return;
+
+            let roleIds = [];
+            try {
+                const value = hiddenInput.value.trim();
+                if (value) {
+                    roleIds = JSON.parse(value);
+                }
+            } catch (err) {
+                roleIds = [];
+            }
+
+            if (!Array.isArray(roleIds)) {
+                roleIds = [];
+            }
+
+            const displayEl = document.getElementById(`${fieldId}_display`);
+            if (!displayEl) return;
+
+            if (roleIds.length === 0) {
+                displayEl.innerHTML = '';
+                return;
+            }
+
+            // Ensure roleIds are strings for comparison
+            roleIds = roleIds.map(id => String(id));
+
+            displayEl.innerHTML = roleIds.map(roleId => {
+                // Find role by comparing as strings
+                const role = allRoles.find(r => String(r.discord_role_id) === String(roleId));
+                if (!role) {
+                    // If role not found, still show it with a placeholder
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-xs sm:text-sm text-white">
+                            <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                            ${escapeHtml(`Role ${roleId}`)}
+                            <button type="button" onclick="removePermissionRole('${fieldId}', '${roleId}')"
+                                class="text-gray-400 hover:text-red-400 transition-colors">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </span>
+                    `;
+                }
+
+                return `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-xs sm:text-sm text-white">
+                        <span class="w-3 h-3 rounded-full" style="background-color: ${role.color || '#7289da'};"></span>
+                        ${escapeHtml(role.name || 'Unknown Role')}
+                        <button type="button" onclick="removePermissionRole('${fieldId}', '${roleId}')"
+                            class="text-gray-400 hover:text-red-400 transition-colors">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </span>
+                `;
+            }).filter(Boolean).join('');
+        }
+
+        // Update all permission role displays
+        function updatePermissionRoleDisplays() {
+            updatePermissionRoleDisplay('admin_roles');
+            updatePermissionRoleDisplay('staff_roles');
+            updatePermissionRoleDisplay('supporter_roles');
+            updatePermissionRoleDisplay('member_roles');
+        }
+
+        // Remove permission role
+        function removePermissionRole(fieldId, roleId) {
+            const hiddenInput = document.getElementById(fieldId);
+            if (!hiddenInput) return;
+
+            let roleIds = [];
+            try {
+                const value = hiddenInput.value.trim();
+                if (value) {
+                    roleIds = JSON.parse(value);
+                }
+            } catch (err) {
+                roleIds = [];
+            }
+
+            if (!Array.isArray(roleIds)) {
+                roleIds = [];
+            }
+
+            roleIds = roleIds.filter(id => id !== roleId);
+            hiddenInput.value = JSON.stringify(roleIds);
+
+            updatePermissionRoleDisplay(fieldId);
+        }
+
         // Message Management (Welcomer & Booster)
         let currentMessageIndex = null;
         let isSavingMessage = false;
@@ -3059,14 +3492,14 @@
                         <i class="fas fa-inbox text-3xl text-gray-500 mb-2"></i>
                         <p class="text-gray-400 text-sm sm:text-base">No booster messages configured</p>
                         <p class="text-gray-500 text-xs mt-1">Add a message to get started</p>
-                    </div>
+                            </div>
                 `;
             } else {
                 listContainer.innerHTML = messages.map((msg, index) => `
                     <div class="bg-gray-700 rounded-lg p-3 sm:p-4 flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <p class="text-white text-sm sm:text-base break-words">${escapeHtml(msg)}</p>
-                        </div>
+                            </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <button type="button" onclick="editBoosterMessage(${index})"
                                 class="p-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors">
@@ -3162,7 +3595,7 @@
                     <div class="bg-gray-700 rounded-lg p-3 sm:p-4 flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <p class="text-white text-sm sm:text-base break-words">${escapeHtml(msg)}</p>
-                        </div>
+                            </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <button type="button" onclick="editWelcomeMessage(${index})"
                                 class="p-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors">
@@ -3172,8 +3605,8 @@
                                 class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                                 <i class="fas fa-trash text-xs"></i>
                             </button>
+                            </div>
                         </div>
-                    </div>
                 `).join('');
             }
         }
@@ -3386,6 +3819,107 @@
                     // Reload component to show updated values
                     setTimeout(() => {
                         loadComponent('booster');
+                    }, 500);
+                } else {
+                    showMessage(data.error || 'Failed to save configuration', 'error');
+                }
+            } catch (err) {
+                showMessage('Failed to save configuration. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loadingIcon.classList.add('hidden');
+            }
+        });
+
+        // Handle permissions form submission
+        document.addEventListener('submit', async function (e) {
+            if (e.target.id !== 'permissionsConfigForm') return;
+            e.preventDefault();
+
+            const adminRolesInput = document.getElementById('admin_roles');
+            const staffRolesInput = document.getElementById('staff_roles');
+            const supporterRolesInput = document.getElementById('supporter_roles');
+            const memberRolesInput = document.getElementById('member_roles');
+
+            // Parse role arrays with error handling
+            let adminRoles = [];
+            if (adminRolesInput?.value) {
+                try {
+                    const parsed = JSON.parse(adminRolesInput.value);
+                    adminRoles = Array.isArray(parsed) ? parsed : [];
+                } catch (err) {
+                    adminRoles = [];
+                }
+            }
+
+            let staffRoles = [];
+            if (staffRolesInput?.value) {
+                try {
+                    const parsed = JSON.parse(staffRolesInput.value);
+                    staffRoles = Array.isArray(parsed) ? parsed : [];
+                } catch (err) {
+                    staffRoles = [];
+                }
+            }
+
+            let supporterRoles = [];
+            if (supporterRolesInput?.value) {
+                try {
+                    const parsed = JSON.parse(supporterRolesInput.value);
+                    supporterRoles = Array.isArray(parsed) ? parsed : [];
+                } catch (err) {
+                    supporterRoles = [];
+                }
+            }
+
+            let memberRoles = [];
+            if (memberRolesInput?.value) {
+                try {
+                    const parsed = JSON.parse(memberRolesInput.value);
+                    memberRoles = Array.isArray(parsed) ? parsed : [];
+                } catch (err) {
+                    memberRoles = [];
+                }
+            }
+
+            const formData = {
+                admin_roles: adminRoles,
+                staff_roles: staffRoles,
+                supporter_roles: supporterRoles,
+                member_roles: memberRoles
+            };
+
+            // Show loading state
+            const submitBtn = document.getElementById('savePermissionsConfigBtn');
+            const loadingIcon = document.getElementById('savePermissionsConfigLoading');
+            submitBtn.disabled = true;
+            loadingIcon.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        component_name: 'permissions',
+                        settings: formData
+                    })
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('Permissions configuration saved successfully!', 'success');
+                    // Reload component to show updated values
+                    setTimeout(() => {
+                        loadComponent('permissions');
                     }, 500);
                 } else {
                     showMessage(data.error || 'Failed to save configuration', 'error');
