@@ -5,7 +5,7 @@ let webhookServer = null;
 let client = null;
 let startTime = null;
 
-// Handle status/health check endpoint
+// Handle health check endpoint
 async function handleStatusRequest(req, res) {
     try {
         const headers = {
@@ -81,8 +81,8 @@ function formatUptime(seconds) {
 
 async function handleWebhookRequest(req, res) {
     try {
-        // Handle status endpoint (GET /status or /health)
-        if (req.method === 'GET' && (req.url === '/status' || req.url === '/health' || req.url === '/')) {
+        // Handle health check endpoint (GET /health)
+        if (req.method === 'GET' && (req.url === '/health' || req.url === '/')) {
             await handleStatusRequest(req, res);
             return;
         }
@@ -160,7 +160,7 @@ function startWebhookServer(discordClient) {
             webhookServer.listen(port, () => {
                 logger.log(`🌐 Webhook server started on port ${port}`);
                 logger.log(`📡 Listening for messages at ${COMMUNICATION.WEBHOOK_URL}`);
-                logger.log(`❤️ Health check available at http://localhost:${port}/status or /health`);
+                logger.log(`❤️ Health check available at http://localhost:${port}/health`);
                 logger.log(`🔐 Secret key required: Include 'x-secret-key' header (same as webhook secret key)`);
             });
 
