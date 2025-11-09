@@ -867,27 +867,6 @@ async function getServerSettings(serverId, componentName = null) {
 
         const data = result || [];
 
-        // Update last_accessed timestamp when settings are VIEWED/accessed
-        if (data && data.length > 0) {
-            const now = new Date();
-            const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-
-            const hasRecentAccess = data.some(item => {
-                if (!item.last_accessed) return false;
-                const lastAccessTime = new Date(item.last_accessed);
-                return lastAccessTime > thirtyMinutesAgo;
-            });
-
-            if (!hasRecentAccess) {
-                const nowISO = now.toISOString();
-                await sql`
-                    UPDATE server_settings
-                    SET last_accessed = ${nowISO}
-                    WHERE server_id = ${serverId}
-                `;
-            }
-        }
-
         return componentName ? (data[0] || null) : (data || []);
     } catch (error) {
         console.error('Error getting server settings:', error);
@@ -952,100 +931,8 @@ async function getCategoriesForServer(serverId) {
     }
 }
 
-// Get servers that need syncing based on last_accessed (30 minute cooldown)
-// Returns servers that either:
-// 1. Have no server_settings entries (no last_accessed) - first setup
-// 2. Have last_accessed older than 30 minutes
-async function getServersNeedingSync(botId) {
-    try {
-        await initializeDatabase();
-
-        const servers = await getServersForBot(botId);
-        if (!servers || servers.length === 0) {
-            return [];
-        }
-
-        const serverIds = servers.map(s => s.id);
-        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-
-        // Use pg Client for array operations
-        const client = new Client({ connectionString: databaseUrl });
-        try {
-            await client.connect();
-            
-            // Get servers that have settings with old last_accessed
-            const result1 = await client.query(
-                'SELECT DISTINCT server_id FROM server_settings WHERE server_id = ANY($1::uuid[]) AND last_accessed IS NOT NULL AND last_accessed < $2',
-                [serverIds, thirtyMinutesAgo]
-            );
-            const serversWithOldAccess = new Set((result1.rows || []).map(s => s.server_id));
-            
-            // Get servers that have settings (to find servers without any settings)
-            const result2 = await client.query(
-                'SELECT DISTINCT server_id FROM server_settings WHERE server_id = ANY($1::uuid[])',
-                [serverIds]
-            );
-            const serversWithSettings = new Set((result2.rows || []).map(s => s.server_id));
-            
-            // Servers without any settings need sync (first setup)
-            const serversWithoutSettings = serverIds.filter(id => !serversWithSettings.has(id));
-            
-            // Combine: servers without settings + servers with old last_accessed
-            const uniqueServerIds = [...new Set([...serversWithoutSettings, ...Array.from(serversWithOldAccess)])];
-            
-            return uniqueServerIds;
-        } finally {
-            await client.end();
-        }
-    } catch (error) {
-        console.error('Error getting servers needing sync:', error);
-        return [];
-    }
-}
-
-// Mark servers as synced by updating last_accessed timestamp
-async function markServersAsSynced(serverIds) {
-    try {
-        await initializeDatabase();
-
-        if (!serverIds || serverIds.length === 0) {
-            return;
-        }
-
-        const now = new Date().toISOString();
-
-        // Use pg Client for array operations
-        const client = new Client({ connectionString: databaseUrl });
-        try {
-            await client.connect();
-            await client.query(
-                'UPDATE server_settings SET last_accessed = $1 WHERE server_id = ANY($2::uuid[])',
-                [now, serverIds]
-            );
-        } finally {
-            await client.end();
-        }
-    } catch (error) {
-        console.error('Error marking servers as synced:', error);
-        throw error;
-    }
-}
-
-// Clear last_accessed for a server after syncing
-async function clearLastAccessed(serverId) {
-    try {
-        await initializeDatabase();
-
-        await sql`
-            UPDATE server_settings
-            SET last_accessed = NULL
-            WHERE server_id = ${serverId}
-        `;
-    } catch (error) {
-        console.error('Error clearing last_accessed:', error);
-        throw error;
-    }
-}
+// Note: getServersNeedingSync, markServersAsSynced, and clearLastAccessed functions
+// have been removed as we now use event-based syncs only (no periodic syncs)
 
 export default {
     getAllBots,
@@ -1071,8 +958,5 @@ export default {
     getServerSettings,
     upsertServerSettings,
     getChannelsForServer,
-    getCategoriesForServer,
-    getServersNeedingSync,
-    markServersAsSynced,
-    clearLastAccessed
+    getCategoriesForServer
 };

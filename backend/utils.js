@@ -38,13 +38,13 @@ export function separateChannelsAndCategories(guildChannels) {
         return false;
     };
 
-    // Helper function to check if a channel is text, news, voice, or stage
+    // Helper function to check if a channel is text or news only
     const isTextOrNewsType = (type) => {
         if (typeof type === 'number') {
-            return type === 0 || type === 5 || type === 2 || type === 13; // GUILD_TEXT, GUILD_NEWS, GUILD_VOICE, GUILD_STAGE_VOICE
+            return type === 0 || type === 5; // GUILD_TEXT, GUILD_NEWS
         }
         if (typeof type === 'string') {
-            return type === 'GUILD_TEXT' || type === 'GUILD_NEWS' || type === 'GUILD_VOICE' || type === 'GUILD_STAGE_VOICE';
+            return type === 'GUILD_TEXT' || type === 'GUILD_NEWS';
         }
         return false;
     };
@@ -65,8 +65,8 @@ export function separateChannelsAndCategories(guildChannels) {
         return isCategoryType(ch.type);
     });
 
-    // Include GUILD_TEXT, GUILD_NEWS, GUILD_VOICE, and GUILD_STAGE_VOICE for channels table
-    // Exclude all other types (forum, etc.)
+    // Include only GUILD_TEXT and GUILD_NEWS for channels table
+    // Exclude all other types (voice, stage, forum, etc.)
     const channels = allChannels.filter(ch => {
         return isTextOrNewsType(ch.type);
     });

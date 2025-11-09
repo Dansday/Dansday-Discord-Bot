@@ -449,10 +449,9 @@ The system uses Neon PostgreSQL with the following main tables:
    - Test health endpoint: `curl -H "x-secret-key: YOUR_KEY" http://localhost:PORT/status`
 
 5. **Sync issues**: 
-   - Sync runs on bot startup automatically
-   - Sync also triggers when configs are accessed or updated
-   - 30-minute cooldown between syncs per server
-   - Check `last_accessed` timestamp in `server_settings` table if sync seems delayed
+   - Sync runs on first bot startup only (when no servers exist in database)
+   - After first startup, sync only runs on Discord events (guild joins, channel changes, role changes, etc.)
+   - No periodic syncs - database is only accessed when Discord events occur
 
 ### Control Panel Issues
 1. **Can't login**: 

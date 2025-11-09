@@ -6,7 +6,6 @@ import { separateChannelsAndCategories, mapCategoriesForSync, mapChannelsForSync
 let client = null;
 let botId = null;
 let connectedOfficialBotId = null;
-let syncCheckInterval = null;
 let loggerInitialized = false;
 
 // Find bot in database by ID
@@ -87,7 +86,7 @@ async function syncGuildData(guild) {
     }
 }
 
-// Sync all guilds the bot is in
+// Sync all guilds the bot is in (uses same syncGuildData function as events)
 async function syncAllGuilds() {
     try {
         if (!client || !botId) {
@@ -98,8 +97,11 @@ async function syncAllGuilds() {
         const guilds = client.guilds.cache;
         logger.log(`🔄 Selfbot sync started: ${guilds.size} server(s)`);
 
+        // Sync each guild individually using the same function as event listeners
+        // This ensures consistency and uses the same code path
         let completed = 0;
         for (const [guildId, guild] of guilds) {
+            // Use the same syncGuildData function that event listeners use
             await syncGuildData(guild);
             completed++;
         }
@@ -110,32 +112,6 @@ async function syncAllGuilds() {
     }
 }
 
-// Mark all servers as synced (update last_accessed) to prevent immediate re-sync after bot start
-// For connected selfbots, mark the official bot's servers instead
-async function markAllServersAsSynced() {
-    if (!botId) return;
-
-    try {
-        // For connected selfbots, mark the official bot's servers as synced
-        // since that's where last_accessed is tracked
-        let botIdToMark = botId;
-        if (connectedOfficialBotId) {
-            botIdToMark = connectedOfficialBotId;
-        }
-
-        const servers = await db.getServersForBot(botIdToMark);
-        if (!servers || servers.length === 0) return;
-
-        const serverIds = servers.map(s => s.id);
-
-        // Mark all servers as synced using database function
-        await db.markServersAsSynced(serverIds);
-
-        logger.log(`✅ Marked ${serverIds.length} server(s) as synced (30-minute cooldown active)`);
-    } catch (error) {
-        logger.log(`⚠️  Error marking servers as synced: ${error.message}`);
-    }
-}
 
 // Update bot name and icon from Discord
 async function updateBotInfo() {
@@ -190,17 +166,20 @@ async function init(discordClient, botIdFromEnv) {
     }
 
     // Since sync.init() is called from within ready handler, client is already ready
-    // Sync immediately after a short delay to ensure all components are initialized
+    // Only sync on first startup (if no servers exist in database)
     setTimeout(async () => {
         if (botId) {
-            logger.log('🔄 Starting initial guild data sync...');
-            // Always sync on first bot start (regardless of last_accessed)
-            await syncAllGuilds();
-            logger.log('✅ Initial sync complete');
+            // Check if this is the first startup by checking if any servers exist
+            const existingServers = await db.getServersForBot(botId);
+            const isFirstStartup = !existingServers || existingServers.length === 0;
 
-            // Mark all servers as synced to prevent immediate re-sync if config is visited right after bot start
-            // This only marks servers that have settings - new servers without settings will be synced every 5 minutes
-            await markAllServersAsSynced();
+            if (isFirstStartup) {
+                logger.log('🔄 Starting initial guild data sync (first startup)...');
+                await syncAllGuilds();
+                logger.log('✅ Initial sync complete');
+            } else {
+                logger.log('⏭️  Skipping initial sync (not first startup). Sync will run on Discord events only.');
+            }
         }
     }, 2000);
 
@@ -239,85 +218,11 @@ async function init(discordClient, botIdFromEnv) {
         }
     });
 
-    // Check for servers needing sync (based on last_accessed with 30-minute cooldown)
-    // This runs every 5 minutes to check for servers that need syncing
-    // For connected selfbots, check the official bot's servers' last_accessed instead
-    syncCheckInterval = setInterval(async () => {
-        if (!botId || !client) return;
-
-        try {
-            // For connected selfbots, check the official bot's servers' last_accessed
-            // The config is stored on the official bot's servers, so we need to check those
-            let botIdToCheck = botId;
-            if (connectedOfficialBotId) {
-                botIdToCheck = connectedOfficialBotId;
-            }
-
-            const officialServerIdsNeedingSync = await db.getServersNeedingSync(botIdToCheck);
-
-            if (officialServerIdsNeedingSync.length === 0) {
-                // No servers need syncing based on official bot's last_accessed
-                return;
-            }
-
-            // Get official bot's servers that need syncing
-            const officialServers = await db.getServersForBot(botIdToCheck);
-            const officialServersToSync = officialServers.filter(s => 
-                officialServerIdsNeedingSync.includes(s.id)
-            );
-
-            if (officialServersToSync.length === 0) {
-                return;
-            }
-
-            // Map official bot's servers to selfbot's servers by Discord server ID
-            const selfbotServers = await db.getServersForBot(botId);
-            const discordServerIdsToSync = new Set(
-                officialServersToSync.map(os => os.discord_server_id)
-            );
-
-            // Find matching selfbot servers by Discord server ID
-            const selfbotServersToSync = selfbotServers.filter(ss => 
-                discordServerIdsToSync.has(ss.discord_server_id)
-            );
-
-            if (selfbotServersToSync.length > 0) {
-                logger.log(`🔄 Found ${selfbotServersToSync.length} server(s) needing sync (based on official bot's last_accessed)`);
-
-                for (const server of selfbotServersToSync) {
-                    try {
-                        const guild = client.guilds.cache.get(server.discord_server_id);
-                        if (guild) {
-                            await syncGuildData(guild);
-
-                            // Find the corresponding official bot server and clear its last_accessed
-                            const officialServer = officialServersToSync.find(
-                                os => os.discord_server_id === server.discord_server_id
-                            );
-                            if (officialServer) {
-                                // Clear last_accessed after syncing to prevent repeated syncs
-                                // This allows the sync to trigger again when settings are next accessed/updated
-                                await db.clearLastAccessed(officialServer.id);
-                            }
-                        }
-                    } catch (error) {
-                        logger.log(`⚠️  Error syncing server ${server.name}: ${error.message}`);
-                    }
-                }
-            }
-        } catch (error) {
-            logger.log(`⚠️  Error checking servers needing sync: ${error.message}`);
-        }
-    }, 5 * 60 * 1000); // Check every 5 minutes
-
     logger.log('🔄 Selfbot sync component initialized');
 }
 
 function stop() {
-    if (syncCheckInterval) {
-        clearInterval(syncCheckInterval);
-        syncCheckInterval = null;
-    }
+    // No intervals to clear - sync is now event-based only
 }
 
 export default {
