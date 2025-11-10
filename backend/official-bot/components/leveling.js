@@ -197,11 +197,16 @@ async function handleMessageCreate(message) {
 
         await db.ensureMemberLevel(dbMember.id);
 
+        const xpGained = getExperienceForMessage();
         const stats = await db.updateMemberLevelStats(dbMember.id, {
             chatIncrement: 1,
-            experienceIncrement: getExperienceForMessage(),
+            experienceIncrement: xpGained,
             lastMessageAt: message.createdAt || new Date()
         });
+
+        const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || message.author.username;
+        const currentLevel = determineLevel(stats.experience || 0);
+        await logger.log(`💬 Chat XP: ${memberName} (${message.author.id}) gained +${xpGained} XP from chat | Total: ${stats.experience || 0} XP | Level: ${currentLevel}`, message.guild.id);
 
         await handleLevelEvaluation(server, dbMember, stats, message.guild.id);
         recentMessages.set(cooldownKey, now);
@@ -245,16 +250,18 @@ async function startVoiceSession(state, resumed = false) {
             if (elapsedMinutes > 0) {
                 const afkStatus = await db.getAFKStatus(server.id, dbMember.discord_member_id);
                 const isAFK = !!afkStatus;
+                const xpGained = getExperienceForVoiceMinutes(elapsedMinutes, isAFK);
                 const stats = await db.updateMemberLevelStats(dbMember.id, {
                     voiceMinutesIncrement: elapsedMinutes,
-                    experienceIncrement: getExperienceForVoiceMinutes(elapsedMinutes, isAFK)
+                    experienceIncrement: xpGained
                 });
+                
+                const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || guildMember.displayName || guildMember.user.username;
+                const currentLevel = determineLevel(stats.experience || 0);
+                const xpType = isAFK ? "AFK Voice" : "Voice";
+                await logger.log(`🎤 ${xpType} XP: ${memberName} (${guildMember.id}) gained +${xpGained} XP from ${elapsedMinutes} minute(s) | Total: ${stats.experience || 0} XP | Level: ${currentLevel}`, state.guild.id);
+                
                 await handleLevelEvaluation(server, dbMember, stats, state.guild.id);
-                if (isAFK) {
-                    await logger.log(`⏸️ Resumed voice tracking for ${guildMember.id}: awarded ${elapsedMinutes} minutes (AFK - reduced XP), continuing to track`, state.guild.id);
-                } else {
-                    await logger.log(`📈 Resumed voice tracking for ${guildMember.id}: awarded ${elapsedMinutes} minutes, continuing to track`, state.guild.id);
-                }
             }
 
             await db.updateMemberLevelStats(dbMember.id, {
@@ -335,11 +342,17 @@ async function endVoiceSession(state) {
             if (remainingMinutes > 0) {
                 const afkStatus = await db.getAFKStatus(server.id, memberId);
                 const isAFK = !!afkStatus;
+                const xpGained = getExperienceForVoiceMinutes(remainingMinutes, isAFK);
                 const stats = await db.updateMemberLevelStats(dbMember.id, {
                     voiceMinutesIncrement: remainingMinutes,
-                    experienceIncrement: getExperienceForVoiceMinutes(remainingMinutes, isAFK),
+                    experienceIncrement: xpGained,
                     voiceSessionStartedAt: null
                 });
+
+                const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || memberId;
+                const currentLevel = determineLevel(stats.experience || 0);
+                const xpType = isAFK ? "AFK Voice" : "Voice";
+                await logger.log(`🎤 ${xpType} XP: ${memberName} (${memberId}) gained +${xpGained} XP from ${remainingMinutes} minute(s) [session end] | Total: ${stats.experience || 0} XP | Level: ${currentLevel}`, guild.id);
 
                 await handleLevelEvaluation(server, dbMember, stats, guild.id);
             } else {
@@ -389,10 +402,16 @@ async function handleVoiceTick(sessionKey) {
         if (session.trackedMinutes >= voiceMinimumMinutes) {
             const afkStatus = await db.getAFKStatus(server.id, session.discordMemberId);
             const isAFK = !!afkStatus;
+            const xpGained = getExperienceForVoiceMinutes(1, isAFK);
             const stats = await db.updateMemberLevelStats(dbMember.id, {
                 voiceMinutesIncrement: 1,
-                experienceIncrement: getExperienceForVoiceMinutes(1, isAFK)
+                experienceIncrement: xpGained
             });
+
+            const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || session.discordMemberId;
+            const currentLevel = determineLevel(stats.experience || 0);
+            const xpType = isAFK ? "AFK Voice" : "Voice";
+            await logger.log(`🎤 ${xpType} XP: ${memberName} (${session.discordMemberId}) gained +${xpGained} XP from 1 minute | Total: ${stats.experience || 0} XP | Level: ${currentLevel}`, session.guildId);
 
             const serverInfo = { id: session.serverId, name: session.serverName };
             await handleLevelEvaluation(serverInfo, dbMember, stats, session.guildId);

@@ -20,30 +20,6 @@ function formatNumber(value) {
     return value.toLocaleString();
 }
 
-function formatLeaderboardRow(entry, index, sortType = 'overall') {
-    const position = index + 1;
-    const name = entry.server_display_name || entry.display_name || entry.username || entry.discord_member_id || `Member ${position}`;
-    const xp = entry.experience || 0;
-    const calculatedLevel = determineLevel(xp);
-    
-    let medal = "";
-    if (position === 1) medal = "🥇 ";
-    else if (position === 2) medal = "🥈 ";
-    else if (position === 3) medal = "🥉 ";
-    
-    switch (sortType) {
-        case 'xp':
-            return `${medal}**${name}** — ${formatNumber(xp)} XP • LVL ${calculatedLevel}`;
-        case 'voice':
-            return `${medal}**${name}** — ${formatNumber(entry.voice_minutes || 0)} min • ${formatNumber(xp)} XP`;
-        case 'chat':
-            return `${medal}**${name}** — ${formatNumber(entry.chat_count || 0)} messages • ${formatNumber(xp)} XP`;
-        case 'overall':
-        default:
-            return `${medal}**${name}** — LVL ${calculatedLevel} • ${formatNumber(xp)} XP`;
-    }
-}
-
 async function getServerForInteraction(interaction) {
     const botConfig = getBotConfig();
     if (!botConfig || !botConfig.id) {
@@ -54,11 +30,11 @@ async function getServerForInteraction(interaction) {
 
 async function buildLevelingEmbeds(server, memberLevelData, sortType = 'overall', guildId = null) {
     const embedConfig = await getEmbedConfig(guildId || server.discord_server_id);
-    
+
     const memberDisplayName = memberLevelData?.server_display_name || memberLevelData?.display_name || memberLevelData?.username || 'Unknown';
     const currentXP = memberLevelData?.experience ?? 0;
     const calculatedLevel = determineLevel(currentXP);
-    
+
     const currentLevel = calculatedLevel;
     const nextLevel = currentLevel + 1;
     const currentLevelRequirement = getLevelRequirement(currentLevel);
@@ -92,7 +68,7 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'overall'
         .setTimestamp();
 
     const leaderboard = await db.getServerLeaderboard(server.id, 3, sortType);
-    
+
     let leaderboardTitle;
     switch (sortType) {
         case 'xp':
@@ -117,7 +93,6 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'overall'
         .setTimestamp();
 
     if (leaderboard && leaderboard.length > 0) {
-        // Show top 3 with avatars
         for (let i = 0; i < Math.min(3, leaderboard.length); i++) {
             const entry = leaderboard[i];
             const position = i + 1;
@@ -125,10 +100,10 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'overall'
             const xp = entry.experience || 0;
             const calculatedLevel = determineLevel(xp);
             const avatar = entry.avatar || null;
-            
+
             let medal = "";
             let value = "";
-            
+
             if (position === 1) {
                 medal = "🥇";
                 if (avatar) leaderboardEmbed.setThumbnail(avatar);
@@ -137,7 +112,7 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'overall'
             } else if (position === 3) {
                 medal = "🥉";
             }
-            
+
             switch (sortType) {
                 case 'xp':
                     value = `${medal} **${name}**\n${formatNumber(xp)} XP • Level ${calculatedLevel}`;
@@ -153,7 +128,7 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'overall'
                     value = `${medal} **${name}**\nLevel ${calculatedLevel} • ${formatNumber(xp)} XP`;
                     break;
             }
-            
+
             leaderboardEmbed.addFields({
                 name: `#${position}`,
                 value: value,
@@ -210,7 +185,6 @@ export async function handleLevelingButton(interaction) {
             return;
         }
 
-        // Ensure member exists in database
         const guildMember = interaction.member || await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
         if (!guildMember) {
             await interaction.reply({
@@ -220,7 +194,6 @@ export async function handleLevelingButton(interaction) {
             return;
         }
 
-        // Upsert member to ensure they exist in database
         const dbMember = await db.upsertMember(server.id, guildMember);
         if (!dbMember) {
             await interaction.reply({
@@ -230,13 +203,12 @@ export async function handleLevelingButton(interaction) {
             return;
         }
 
-        // Ensure member level exists
         await db.ensureMemberLevel(dbMember.id);
 
         await db.recalculateServerMemberRanks(server.id);
 
         const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
-        
+
         if (memberLevelData && memberLevelData.id) {
             const calculatedLevel = determineLevel(memberLevelData.experience ?? 0);
             const storedLevel = memberLevelData.level ?? 1;
@@ -294,9 +266,8 @@ export async function handleLeaderboardButton(interaction) {
             return;
         }
 
-        // Extract sort type from customId (e.g., "leaderboard_xp" -> "xp")
         const sortType = interaction.customId.replace('leaderboard_', '');
-        
+
         const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id);
         const buttons = createLeaderboardButtons(sortType);
@@ -314,4 +285,3 @@ export async function handleLeaderboardButton(interaction) {
         }).catch(() => null);
     }
 }
-
