@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS bots (
 CREATE TABLE IF NOT EXISTS servers (
     id INT PRIMARY KEY AUTO_INCREMENT,
     bot_id INT NOT NULL,
-    discord_server_id VARCHAR(255) NOT NULL,
+    discord_server_id VARCHAR(150) NOT NULL,
     name TEXT,
     total_members INT DEFAULT 0,
     total_channels INT DEFAULT 0,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS servers (
 CREATE TABLE IF NOT EXISTS server_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
-    discord_category_id VARCHAR(255) NOT NULL,
+    discord_category_id VARCHAR(150) NOT NULL,
     name TEXT,
     position INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS server_categories (
 CREATE TABLE IF NOT EXISTS server_channels (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
-    discord_channel_id VARCHAR(255) NOT NULL,
+    discord_channel_id VARCHAR(150) NOT NULL,
     name TEXT,
     type TEXT,
     category_id INT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS server_channels (
 CREATE TABLE IF NOT EXISTS server_roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
-    discord_role_id VARCHAR(255) NOT NULL,
+    discord_role_id VARCHAR(150) NOT NULL,
     name TEXT,
     position INT,
     color TEXT,
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS server_roles (
 CREATE TABLE IF NOT EXISTS server_members (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
-    discord_member_id VARCHAR(255) NOT NULL,
+    discord_member_id VARCHAR(150) NOT NULL,
     username TEXT,
     display_name TEXT,
     server_display_name TEXT,
@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS server_members_afk (
 CREATE TABLE IF NOT EXISTS server_settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
-    component_name VARCHAR(255) NOT NULL,
+    component_name VARCHAR(150) NOT NULL,
     settings JSON NOT NULL DEFAULT ('{}'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
