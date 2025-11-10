@@ -6,12 +6,16 @@ const recentMessages = new Map();
 const voiceSessions = new Map();
 const permissionCache = new Map();
 
-const levelThresholds = Array.isArray(LEVELING?.LEVELS)
-    ? [...LEVELING.LEVELS].sort((a, b) => (a.required_xp || 0) - (b.required_xp || 0))
-    : [{ level: 1, required_xp: 0 }];
-
 const messageCooldownMs = (LEVELING?.MESSAGE?.COOLDOWN_SECONDS || 0) * 1000;
 const voiceMinimumMinutes = Math.max(LEVELING?.VOICE?.MINIMUM_SESSION_MINUTES || 0, 0);
+
+function getRequiredExperienceForLevel(level) {
+    if (level <= 1) {
+        return 0;
+    }
+    const baseXp = 100;
+    return baseXp * Math.pow(2, level - 2);
+}
 
 function getExperienceForMessage() {
     return LEVELING?.MESSAGE?.XP || 0;
@@ -23,19 +27,13 @@ function getExperienceForVoiceMinutes(minutes) {
 }
 
 function determineLevel(experience = 0) {
-    if (!levelThresholds.length) return 1;
-    let currentLevel = levelThresholds[0].level || 1;
+    if (experience <= 0) return 1;
 
-    for (const threshold of levelThresholds) {
-        const requiredXP = threshold.required_xp || 0;
-        if (experience >= requiredXP) {
-            currentLevel = threshold.level;
-        } else {
-            break;
-        }
+    let level = 1;
+    while (experience >= getRequiredExperienceForLevel(level + 1)) {
+        level += 1;
     }
-
-    return currentLevel;
+    return level;
 }
 
 async function resolveServerAndMember(guild, memberLike) {

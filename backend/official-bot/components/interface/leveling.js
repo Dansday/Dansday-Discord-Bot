@@ -56,7 +56,7 @@ export async function handleLevelingButton(interaction) {
         const profileLines = [];
         profileLines.push(`• **Level:** ${memberLevelData?.level ?? 1}`);
         profileLines.push(`• **Experience:** ${formatNumber(memberLevelData?.experience ?? 0)} XP`);
-        profileLines.push(`• **Chats Logged:** ${formatNumber(memberLevelData?.chat_count ?? 0)}`);
+        profileLines.push(`• **Chat Count:** ${formatNumber(memberLevelData?.chat_count ?? 0)}`);
         profileLines.push(`• **Voice Minutes:** ${formatNumber(memberLevelData?.voice_minutes ?? 0)}`);
         profileLines.push(`• **Rank:** ${memberLevelData?.rank ? `#${memberLevelData.rank}` : "Unranked"}`);
 

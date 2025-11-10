@@ -30,7 +30,7 @@ export async function handleHelpButton(interaction) {
             },
             {
                 name: "📈 Leveling",
-                value: "View your leveling stats (level, XP, chat count, voice minutes, rank) and see the server leaderboard.\n**Permission:** Member+",
+                value: "View your leveling stats (level, XP, chat count, voice minutes, rank) and see the server leaderboard.\n**XP Formula:** +10 XP per eligible message (1-minute cooldown), +20 XP per voice minute (minimum 1 minute per tick).\n**Permission:** Member+",
                 inline: false
             },
             {
