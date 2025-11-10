@@ -995,19 +995,37 @@ export async function getMemberLevelByDiscordId(serverId, discordMemberId) {
     return result[0] || null;
 }
 
-export async function getServerLeaderboard(serverId, limit = 5) {
+export async function getServerLeaderboard(serverId, limit = 5, sortType = 'overall') {
     await initializeDatabase();
     if (!serverId) {
         throw new Error('serverId is required to fetch leaderboard');
     }
     const safeLimit = Math.max(1, Math.min(50, limit));
+    
+    let orderBy;
+    switch (sortType) {
+        case 'xp':
+            orderBy = 'sml.experience DESC, sml.level DESC, sml.created_at ASC';
+            break;
+        case 'voice':
+            orderBy = 'sml.voice_minutes DESC, sml.experience DESC, sml.created_at ASC';
+            break;
+        case 'chat':
+            orderBy = 'sml.chat_count DESC, sml.experience DESC, sml.created_at ASC';
+            break;
+        case 'overall':
+        default:
+            orderBy = 'sml.experience DESC, sml.level DESC, sml.created_at ASC';
+            break;
+    }
+    
     const result = await query(
         `SELECT sm.discord_member_id, sm.username, sm.display_name, sm.server_display_name, sm.avatar,
                 sml.experience, sml.level, sml.chat_count, sml.voice_minutes, sml.rank
          FROM server_member_levels sml
          INNER JOIN server_members sm ON sml.member_id = sm.id
          WHERE sm.server_id = ?
-         ORDER BY sml.experience DESC, sml.level DESC, sml.created_at ASC
+         ORDER BY ${orderBy}
          LIMIT ?`,
         [serverId, safeLimit]
     );
