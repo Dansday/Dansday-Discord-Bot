@@ -61,6 +61,29 @@ export async function handleLevelingButton(interaction) {
             return;
         }
 
+        // Ensure member exists in database
+        const guildMember = interaction.member || await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!guildMember) {
+            await interaction.reply({
+                content: "❌ Failed to fetch member information. Please try again.",
+                flags: 64
+            });
+            return;
+        }
+
+        // Upsert member to ensure they exist in database
+        const dbMember = await db.upsertMember(server.id, guildMember);
+        if (!dbMember) {
+            await interaction.reply({
+                content: "❌ Failed to create member record. Please try again.",
+                flags: 64
+            });
+            return;
+        }
+
+        // Ensure member level exists
+        await db.ensureMemberLevel(dbMember.id);
+
         const embedConfig = await getEmbedConfig(interaction.guild.id);
 
         await db.recalculateServerMemberRanks(server.id);
