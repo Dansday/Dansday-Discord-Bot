@@ -155,7 +155,6 @@ function startWebhookServer(discordClient) {
                 logger.log(`🌐 Webhook server started on port ${port}`);
                 logger.log(`📡 Listening for messages at ${COMMUNICATION.WEBHOOK_URL}`);
                 logger.log(`❤️ Health check available at http://localhost:${port}/health`);
-                logger.log(`🔐 Secret key required: Include 'x-secret-key' header (same as webhook secret key)`);
             });
 
             webhookServer.on('error', (err) => {

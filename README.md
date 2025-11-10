@@ -463,10 +463,10 @@ The system uses MySQL/MariaDB with the following main tables:
 - **panel_logs**: Login attempt logs
 - **bots**: Bot configurations (tokens, ports, status, etc.)
 - **servers**: Discord server information per bot
-- **categories**: Discord category information (type 4 channels)
-- **channels**: Discord channel information
-- **roles**: Discord role information
-- **server_settings**: Component-specific settings per server (JSONB)
+- **server_categories**: Discord category information (type 4 channels)
+- **server_channels**: Discord channel information
+- **server_roles**: Discord role information
+- **server_settings**: Component-specific settings per server (JSON)
 
 ## Troubleshooting
 

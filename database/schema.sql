@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS servers (
     FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS categories (
+CREATE TABLE IF NOT EXISTS server_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
     discord_category_id VARCHAR(255) NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS categories (
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS channels (
+CREATE TABLE IF NOT EXISTS server_channels (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
     discord_channel_id VARCHAR(255) NOT NULL,
@@ -76,10 +76,10 @@ CREATE TABLE IF NOT EXISTS channels (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY unique_server_channel (server_id, discord_channel_id),
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+    FOREIGN KEY (category_id) REFERENCES server_categories(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS roles (
+CREATE TABLE IF NOT EXISTS server_roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
     discord_role_id VARCHAR(255) NOT NULL,
@@ -109,13 +109,13 @@ CREATE INDEX idx_bots_connect_to ON bots(connect_to);
 CREATE INDEX idx_bots_panel_id ON bots(panel_id);
 CREATE INDEX idx_servers_bot_id ON servers(bot_id);
 CREATE INDEX idx_servers_discord_id ON servers(discord_server_id);
-CREATE INDEX idx_categories_server_id ON categories(server_id);
-CREATE INDEX idx_categories_discord_id ON categories(discord_category_id);
-CREATE INDEX idx_channels_server_id ON channels(server_id);
-CREATE INDEX idx_channels_discord_id ON channels(discord_channel_id);
-CREATE INDEX idx_channels_category_id ON channels(category_id);
-CREATE INDEX idx_roles_server_id ON roles(server_id);
-CREATE INDEX idx_roles_discord_id ON roles(discord_role_id);
+CREATE INDEX idx_server_categories_server_id ON server_categories(server_id);
+CREATE INDEX idx_server_categories_discord_id ON server_categories(discord_category_id);
+CREATE INDEX idx_server_channels_server_id ON server_channels(server_id);
+CREATE INDEX idx_server_channels_discord_id ON server_channels(discord_channel_id);
+CREATE INDEX idx_server_channels_category_id ON server_channels(category_id);
+CREATE INDEX idx_server_roles_server_id ON server_roles(server_id);
+CREATE INDEX idx_server_roles_discord_id ON server_roles(discord_role_id);
 CREATE INDEX idx_server_settings_server_id ON server_settings(server_id);
 CREATE INDEX idx_server_settings_component ON server_settings(server_id, component_name);
 CREATE INDEX idx_panel_logs_panel_id ON panel_logs(panel_id);

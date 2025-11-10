@@ -115,7 +115,7 @@ async function runMigration() {
         }
 
         logger.log('✅ Database schema created successfully!');
-        logger.log('📊 Tables created: panel, panel_logs, bots, servers, categories, channels, roles, server_settings');
+        logger.log('📊 Tables created: panel, panel_logs, bots, servers, server_categories, server_channels, server_roles, server_settings');
         logger.log('📈 Indexes created: all indexes');
 
     } catch (error) {
@@ -140,9 +140,9 @@ async function setupDatabase() {
         { name: 'panel_logs', required: true },
         { name: 'bots', required: true },
         { name: 'servers', required: true },
-        { name: 'categories', required: true },
-        { name: 'channels', required: true },
-        { name: 'roles', required: true },
+        { name: 'server_categories', required: true },
+        { name: 'server_channels', required: true },
+        { name: 'server_roles', required: true },
         { name: 'server_settings', required: true }
     ];
 
@@ -394,7 +394,7 @@ export async function upsertServer(botId, guild) {
 export async function upsertCategory(serverId, categoryData) {
     try {
         await query(
-            `INSERT INTO categories (
+            `INSERT INTO server_categories (
                 server_id, discord_category_id, name, position, updated_at
             ) VALUES (?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
@@ -409,7 +409,7 @@ export async function upsertCategory(serverId, categoryData) {
         );
 
         const categories = await query(
-            'SELECT * FROM categories WHERE server_id = ? AND discord_category_id = ?',
+            'SELECT * FROM server_categories WHERE server_id = ? AND discord_category_id = ?',
             [serverId, categoryData.id]
         );
         return categories[0];
@@ -448,7 +448,7 @@ export async function syncCategories(serverId, categories) {
         const discordCategoryIds = new Set(categories.map(cat => cat.id));
         
         const dbCategories = await query(
-            'SELECT id, discord_category_id FROM categories WHERE server_id = ?',
+            'SELECT id, discord_category_id FROM server_categories WHERE server_id = ?',
             [serverId]
         );
 
@@ -461,7 +461,7 @@ export async function syncCategories(serverId, categories) {
                 const idsToDelete = categoriesToDelete.map(cat => cat.id);
                 const placeholders = idsToDelete.map(() => '?').join(',');
                 await query(
-                    `DELETE FROM categories WHERE id IN (${placeholders})`,
+                    `DELETE FROM server_categories WHERE id IN (${placeholders})`,
                     idsToDelete
                 );
                 console.log(`🧹 Removed ${idsToDelete.length} deleted category(ies) from database`);
@@ -483,7 +483,7 @@ export async function upsertChannel(serverId, channelData, categoryMap = null) {
         }
 
         await query(
-            `INSERT INTO channels (
+            `INSERT INTO server_channels (
                 server_id, discord_channel_id, name, type, category_id, position, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
@@ -500,7 +500,7 @@ export async function upsertChannel(serverId, channelData, categoryMap = null) {
         );
 
         const channels = await query(
-            'SELECT * FROM channels WHERE server_id = ? AND discord_channel_id = ?',
+            'SELECT * FROM server_channels WHERE server_id = ? AND discord_channel_id = ?',
             [serverId, channelData.id]
         );
         return channels[0];
@@ -516,7 +516,7 @@ export async function syncChannels(serverId, channels, categoryMap = null) {
 
         try {
             const existingCategoryChannels = await query(
-                'SELECT id, discord_channel_id FROM channels WHERE server_id = ? AND type = ?',
+                'SELECT id, discord_channel_id FROM server_channels WHERE server_id = ? AND type = ?',
                 [serverId, '4']
             );
 
@@ -524,13 +524,13 @@ export async function syncChannels(serverId, channels, categoryMap = null) {
                 const categoryIds = existingCategoryChannels.map(ch => ch.id);
                 const placeholders = categoryIds.map(() => '?').join(',');
                 await query(
-                    `DELETE FROM channels WHERE id IN (${placeholders})`,
+                    `DELETE FROM server_channels WHERE id IN (${placeholders})`,
                     categoryIds
                 );
-                console.log(`🧹 Removed ${categoryIds.length} category(ies) from channels table`);
+                console.log(`🧹 Removed ${categoryIds.length} category(ies) from server_channels table`);
             }
         } catch (cleanupError) {
-            console.error('Error cleaning up categories from channels table:', cleanupError.message);
+            console.error('Error cleaning up categories from server_channels table:', cleanupError.message);
         }
 
         const operations = validChannels.map(channel =>
@@ -551,7 +551,7 @@ export async function syncChannels(serverId, channels, categoryMap = null) {
         const discordChannelIds = new Set(validChannels.map(ch => ch.id));
         
         const dbChannels = await query(
-            'SELECT id, discord_channel_id FROM channels WHERE server_id = ?',
+            'SELECT id, discord_channel_id FROM server_channels WHERE server_id = ?',
             [serverId]
         );
 
@@ -564,7 +564,7 @@ export async function syncChannels(serverId, channels, categoryMap = null) {
                 const idsToDelete = channelsToDelete.map(ch => ch.id);
                 const placeholders = idsToDelete.map(() => '?').join(',');
                 await query(
-                    `DELETE FROM channels WHERE id IN (${placeholders})`,
+                    `DELETE FROM server_channels WHERE id IN (${placeholders})`,
                     idsToDelete
                 );
                 console.log(`🧹 Removed ${idsToDelete.length} deleted channel(s) from database`);
@@ -580,7 +580,7 @@ export async function syncChannels(serverId, channels, categoryMap = null) {
 
 export async function getRoles(serverId) {
     const result = await query(
-        'SELECT * FROM roles WHERE server_id = ? ORDER BY position DESC',
+        'SELECT * FROM server_roles WHERE server_id = ? ORDER BY position DESC',
         [serverId]
     );
     return result;
@@ -589,7 +589,7 @@ export async function getRoles(serverId) {
 export async function upsertRole(serverId, roleData) {
     try {
         await query(
-            `INSERT INTO roles (
+            `INSERT INTO server_roles (
                 server_id, discord_role_id, name, position, color, permissions, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
@@ -606,7 +606,7 @@ export async function upsertRole(serverId, roleData) {
         );
 
         const roles = await query(
-            'SELECT * FROM roles WHERE server_id = ? AND discord_role_id = ?',
+            'SELECT * FROM server_roles WHERE server_id = ? AND discord_role_id = ?',
             [serverId, roleData.id]
         );
         return roles[0];
@@ -640,7 +640,7 @@ export async function syncRoles(serverId, roles) {
         const discordRoleIds = new Set(roles.map(role => role.id));
         
         const dbRoles = await query(
-            'SELECT id, discord_role_id FROM roles WHERE server_id = ?',
+            'SELECT id, discord_role_id FROM server_roles WHERE server_id = ?',
             [serverId]
         );
 
@@ -653,7 +653,7 @@ export async function syncRoles(serverId, roles) {
                 const idsToDelete = rolesToDelete.map(role => role.id);
                 const placeholders = idsToDelete.map(() => '?').join(',');
                 await query(
-                    `DELETE FROM roles WHERE id IN (${placeholders})`,
+                    `DELETE FROM server_roles WHERE id IN (${placeholders})`,
                     idsToDelete
                 );
                 console.log(`🧹 Removed ${idsToDelete.length} deleted role(s) from database`);
@@ -797,7 +797,7 @@ async function upsertServerSettings(serverId, componentName, settings) {
 async function getChannelsForServer(serverId) {
     await initializeDatabase();
     const result = await query(
-        'SELECT * FROM channels WHERE server_id = ? ORDER BY position ASC, name ASC',
+        'SELECT * FROM server_channels WHERE server_id = ? ORDER BY position ASC, name ASC',
         [serverId]
     );
     return result;
@@ -806,10 +806,44 @@ async function getChannelsForServer(serverId) {
 async function getCategoriesForServer(serverId) {
     await initializeDatabase();
     const result = await query(
-        'SELECT * FROM categories WHERE server_id = ? ORDER BY position ASC',
+        'SELECT * FROM server_categories WHERE server_id = ? ORDER BY position ASC',
         [serverId]
     );
     return result;
+}
+
+export async function serversNeedSync(botId) {
+    await initializeDatabase();
+    
+    const servers = await getServersForBot(botId);
+    if (!servers || servers.length === 0) {
+        return true;
+    }
+    
+    for (const server of servers) {
+        const categoriesResult = await query(
+            'SELECT COUNT(*) as count FROM server_categories WHERE server_id = ?',
+            [server.id]
+        );
+        const channelsResult = await query(
+            'SELECT COUNT(*) as count FROM server_channels WHERE server_id = ?',
+            [server.id]
+        );
+        const rolesResult = await query(
+            'SELECT COUNT(*) as count FROM server_roles WHERE server_id = ?',
+            [server.id]
+        );
+        
+        const categoriesCount = categoriesResult[0]?.count || 0;
+        const channelsCount = channelsResult[0]?.count || 0;
+        const rolesCount = rolesResult[0]?.count || 0;
+        
+        if (categoriesCount === 0 && channelsCount === 0 && rolesCount === 0) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 export default {
@@ -836,5 +870,6 @@ export default {
     getServerSettings,
     upsertServerSettings,
     getChannelsForServer,
-    getCategoriesForServer
+    getCategoriesForServer,
+    serversNeedSync
 };

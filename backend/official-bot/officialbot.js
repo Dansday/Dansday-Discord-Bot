@@ -62,7 +62,6 @@ client.on("clientReady", async () => {
 
 process.on("SIGINT", () => {
     console.log("\n🛑 Shutting down official bot...");
-    sync.stop();
     webhook.stopWebhookServer();
     client.destroy();
     process.exit(0);

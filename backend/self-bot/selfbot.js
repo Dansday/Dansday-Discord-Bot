@@ -36,7 +36,6 @@ client.on("ready", async () => {
 
 process.on("SIGINT", () => {
     console.log("\n🛑 Shutting down self-bot...");
-    sync.stop();
     client.destroy();
     process.exit(0);
 });
