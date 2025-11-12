@@ -352,7 +352,6 @@ async function startVoiceSession(state, resumed = false) {
                 const isAFK = !!afkStatus;
                 const xpGained = await getExperienceForVoiceMinutes(minutesSinceReward, isAFK, guildId);
                 const updates = {
-                    voiceMinutesTotalIncrement: minutesSinceReward,
                     experienceIncrement: xpGained,
                     voiceRewardedAt: new Date(now)
                 };
@@ -383,7 +382,6 @@ async function startVoiceSession(state, resumed = false) {
             const isAFK = !!afkStatus;
             const xpGained = await getExperienceForVoiceMinutes(1, isAFK, guildId);
             const updates = {
-                voiceMinutesTotalIncrement: 1,
                 experienceIncrement: xpGained,
                 voiceRewardedAt: new Date(now)
             };
@@ -507,7 +505,6 @@ async function handleVoiceTick(sessionKey) {
         const xpGained = await getExperienceForVoiceMinutes(1, isAFK, guildId);
         const nowDate = new Date();
         const updatePayload = {
-            voiceMinutesTotalIncrement: 1,
             experienceIncrement: xpGained,
             voiceRewardedAt: nowDate
         };

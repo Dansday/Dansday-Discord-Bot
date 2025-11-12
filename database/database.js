@@ -900,11 +900,6 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
         values.push(updates.chatIncrement);
     }
 
-    if (typeof updates.voiceMinutesTotalIncrement === 'number' && updates.voiceMinutesTotalIncrement !== 0) {
-        clauses.push('voice_minutes_total = voice_minutes_total + ?');
-        values.push(updates.voiceMinutesTotalIncrement);
-    }
-
     if (typeof updates.voiceMinutesActiveIncrement === 'number' && updates.voiceMinutesActiveIncrement !== 0) {
         clauses.push('voice_minutes_active = voice_minutes_active + ?');
         values.push(updates.voiceMinutesActiveIncrement);
@@ -913,6 +908,11 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
     if (typeof updates.voiceMinutesAfkIncrement === 'number' && updates.voiceMinutesAfkIncrement !== 0) {
         clauses.push('voice_minutes_afk = voice_minutes_afk + ?');
         values.push(updates.voiceMinutesAfkIncrement);
+    }
+
+    // Always recalculate voice_minutes_total from active + afk when either is being updated (even if increment is 0)
+    if (updates.voiceMinutesActiveIncrement !== undefined || updates.voiceMinutesAfkIncrement !== undefined) {
+        clauses.push('voice_minutes_total = voice_minutes_active + voice_minutes_afk');
     }
 
     if (typeof updates.experienceIncrement === 'number' && updates.experienceIncrement !== 0) {
