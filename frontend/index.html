@@ -169,13 +169,6 @@
                         <i class="fas fa-arrow-left"></i>
                         <span class="sm:inline">Back to Dashboard</span>
                     </button>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button id="refreshBotDetailBtn" onclick="loadBotDetail()"
-                            class="bg-gray-700 hover:bg-gray-600 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                            <i class="fas fa-sync-alt text-xs sm:text-sm"></i>
-                            <span class="sm:inline">Refresh</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </header>
@@ -1388,6 +1381,21 @@
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
 
+        function formatDateTime(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            if (Number.isNaN(date.getTime())) {
+                return 'N/A';
+            }
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
         // Format uptime
         function formatUptime(ms) {
             if (!ms || ms <= 0) return '0s';
@@ -1674,7 +1682,7 @@
                 if (isOfficial) {
                     // Official bot - clickable for member list
                     return `
-                        <div onclick="viewServerMembers('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
+                        <div onclick="viewServerOverview('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
                                     ${server.server_icon
@@ -1892,6 +1900,290 @@
             { id: 'leveling', name: 'Leveling', icon: 'fa-chart-line' }
         ];
         let currentComponent = 'main_config';
+        let currentServerView = 'overview';
+
+        // View server overview
+        async function viewServerOverview(serverId, serverName) {
+            currentServerId = serverId;
+            currentBotIdForServer = currentBotId;
+
+            document.getElementById('botDetailContainer').classList.add('hidden');
+            document.getElementById('serverConfigContainer').classList.remove('hidden');
+
+            document.getElementById('serverConfigTitle').textContent = `${serverName}`;
+
+            currentServerView = 'overview';
+            renderServerViewNav('overview');
+
+            const componentNavContainer = document.getElementById('componentNavContainer');
+            if (componentNavContainer) {
+                componentNavContainer.classList.add('hidden');
+            }
+
+            const memberViewNavContainer = document.getElementById('memberViewNavContainer');
+            if (memberViewNavContainer) {
+                memberViewNavContainer.classList.add('hidden');
+            }
+
+            await loadServerOverview(serverId);
+        }
+
+        async function loadServerOverview(serverId) {
+            const contentContainer = document.getElementById('componentContent');
+            if (!contentContainer) {
+                return;
+            }
+
+            const memberViewNavContainer = document.getElementById('memberViewNavContainer');
+            if (memberViewNavContainer) {
+                memberViewNavContainer.classList.add('hidden');
+            }
+
+            contentContainer.innerHTML = `
+                <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                    <div class="flex items-center justify-center py-8">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`/api/servers/${serverId}/overview`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                if (res.status === 404) {
+                    contentContainer.innerHTML = `
+                        <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                            <p class="text-red-400 text-sm sm:text-base">Server overview not found.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error('Failed to load server overview');
+                }
+
+                const data = await res.json();
+                renderServerOverview(data);
+            } catch (error) {
+                console.error('Error loading server overview:', error);
+                const errorMessage = escapeHtml(error?.message || 'Unknown error');
+                contentContainer.innerHTML = `
+                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                        <p class="text-red-400 text-sm sm:text-base">Failed to load server overview: ${errorMessage}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderServerOverview(data) {
+            const contentContainer = document.getElementById('componentContent');
+            if (!contentContainer) {
+                return;
+            }
+
+            const stats = (data && data.stats) ? data.stats : {};
+            const sync = (data && data.sync) ? data.sync : {};
+            const settings = Array.isArray(data?.settings) ? data.settings : [];
+
+            const rawServerName = data?.name || 'Unnamed Server';
+            const displayServerName = escapeHtml(rawServerName);
+            const discordServerId = escapeHtml(data?.discord_server_id || 'Unknown ID');
+            const boostLevel = data?.boost_level ?? 0;
+            const botIdDisplay = data?.bot_id ? escapeHtml(String(data.bot_id)) : 'N/A';
+            const serverIcon = data?.server_icon || '';
+
+            const iconHTML = serverIcon
+                ? `<img src="${serverIcon}" alt="${displayServerName}" class="w-full h-full object-cover" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">`
+                : `<i class="fas fa-server text-white text-2xl"></i>`;
+
+            const membersSynced = formatNumber(stats.members_total ?? 0);
+            const membersSnapshot = formatNumber(data?.total_members ?? stats.members_total ?? 0);
+            const boostersSynced = formatNumber(stats.members_boosters ?? 0);
+            const boostersSnapshot = formatNumber(data?.total_boosters ?? stats.members_boosters ?? 0);
+            const membersWithLevels = formatNumber(stats.members_with_levels ?? 0);
+            const membersAfk = formatNumber(stats.members_afk ?? 0);
+
+            const channelsSynced = formatNumber(stats.channels_total ?? 0);
+            const channelsSnapshot = formatNumber(data?.total_channels ?? stats.channels_total ?? 0);
+            const textChannels = formatNumber(stats.channels_text ?? 0);
+            const voiceChannels = formatNumber(stats.channels_voice ?? 0);
+            const stageChannels = formatNumber(stats.channels_stage ?? 0);
+            const categoriesTotal = formatNumber(stats.categories_total ?? 0);
+            const rolesTotal = formatNumber(stats.roles_total ?? 0);
+
+            const settingsLastUpdated = formatDateTime(sync.settings_last_updated);
+
+            const settingsHtml = settings.length > 0
+                ? `<div class="mt-3 flex flex-wrap gap-2">
+                        ${settings.map(setting => `
+                            <span class="px-2 py-1 bg-gray-800 border border-gray-600 rounded-lg text-xs sm:text-sm text-gray-200 flex items-center gap-2">
+                                <i class="fas fa-cog text-gray-400"></i>
+                                <span class="font-medium">${escapeHtml(setting.component_name)}</span>
+                                <span class="text-gray-500 text-[0.65rem] sm:text-xs">Updated ${formatDateTime(setting.updated_at)}</span>
+                            </span>
+                        `).join('')}
+                   </div>`
+                : `<p class="text-gray-400 text-sm sm:text-base mt-2">No configuration saved yet for this server.</p>`;
+
+            contentContainer.innerHTML = `
+                <div class="space-y-4 sm:space-y-6">
+                    <div class="bg-gray-700 rounded-xl border border-gray-600 p-4 sm:p-6">
+                        <div class="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                ${iconHTML}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                    <h2 class="text-xl sm:text-2xl font-bold text-white truncate">${displayServerName}</h2>
+                                    <div class="flex flex-wrap gap-2 text-xs sm:text-sm text-gray-300">
+                                        <span class="px-2 py-1 bg-gray-800 border border-gray-600 rounded-lg flex items-center gap-2">
+                                            <i class="fas fa-id-badge text-gray-400"></i>
+                                            ${discordServerId}
+                                        </span>
+                                        <span class="px-2 py-1 bg-gray-800 border border-gray-600 rounded-lg flex items-center gap-2">
+                                            <i class="fas fa-rocket text-gray-400"></i>
+                                            Boost Level ${boostLevel}
+                                        </span>
+                                        <span class="px-2 py-1 bg-gray-800 border border-gray-600 rounded-lg flex items-center gap-2">
+                                            <i class="fas fa-clock text-gray-400"></i>
+                                            Updated ${formatDateTime(data?.updated_at)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p class="text-gray-300 text-sm sm:text-base mt-2">
+                                    Managed by bot ID ${botIdDisplay} • Record created ${formatDateTime(data?.created_at)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                        <div class="bg-gray-700 rounded-xl border border-gray-600 p-4 sm:p-6">
+                            <h3 class="text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+                                <i class="fas fa-users text-red-500"></i>
+                                Member Stats
+                            </h3>
+                            <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Synced Members</dt>
+                                    <dd class="text-white text-lg font-semibold">${membersSynced}</dd>
+                                    <dd class="text-gray-500 text-xs mt-1">Latest sync: ${formatDateTime(sync.members_last_updated)}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Snapshot Members</dt>
+                                    <dd class="text-white text-lg font-semibold">${membersSnapshot}</dd>
+                                    <dd class="text-gray-500 text-xs mt-1">Stored on server record</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Boosters (Synced)</dt>
+                                    <dd class="text-white text-lg font-semibold">${boostersSynced}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Boosters (Snapshot)</dt>
+                                    <dd class="text-white text-lg font-semibold">${boostersSnapshot}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Members with Level Data</dt>
+                                    <dd class="text-white text-lg font-semibold">${membersWithLevels}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Active AFK Records</dt>
+                                    <dd class="text-white text-lg font-semibold">${membersAfk}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <div class="bg-gray-700 rounded-xl border border-gray-600 p-4 sm:p-6">
+                            <h3 class="text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+                                <i class="fas fa-hashtag text-red-500"></i>
+                                Channels & Roles
+                            </h3>
+                            <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Channels (Synced)</dt>
+                                    <dd class="text-white text-lg font-semibold">${channelsSynced}</dd>
+                                    <dd class="text-gray-500 text-xs mt-1">Latest sync: ${formatDateTime(sync.channels_last_updated)}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Channels (Snapshot)</dt>
+                                    <dd class="text-white text-lg font-semibold">${channelsSnapshot}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Text Channels</dt>
+                                    <dd class="text-white text-lg font-semibold">${textChannels}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Voice Channels</dt>
+                                    <dd class="text-white text-lg font-semibold">${voiceChannels}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Stage Channels</dt>
+                                    <dd class="text-white text-lg font-semibold">${stageChannels}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Categories</dt>
+                                    <dd class="text-white text-lg font-semibold">${categoriesTotal}</dd>
+                                    <dd class="text-gray-500 text-xs mt-1">Last updated: ${formatDateTime(sync.categories_last_updated)}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-400 text-xs uppercase tracking-wide">Roles</dt>
+                                    <dd class="text-white text-lg font-semibold">${rolesTotal}</dd>
+                                    <dd class="text-gray-500 text-xs mt-1">Last updated: ${formatDateTime(sync.roles_last_updated)}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="bg-gray-700 rounded-xl border border-gray-600 p-4 sm:p-6">
+                        <h3 class="text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+                            <i class="fas fa-database text-red-500"></i>
+                            Data Sync Status
+                        </h3>
+                        <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                            <div>
+                                <dt class="text-gray-400 text-xs uppercase tracking-wide">Member Records</dt>
+                                <dd class="text-white text-sm sm:text-base">${formatDateTime(sync.members_last_updated)}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-400 text-xs uppercase tracking-wide">Level Records</dt>
+                                <dd class="text-white text-sm sm:text-base">${formatDateTime(sync.levels_last_updated)}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-400 text-xs uppercase tracking-wide">Channel Records</dt>
+                                <dd class="text-white text-sm sm:text-base">${formatDateTime(sync.channels_last_updated)}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-400 text-xs uppercase tracking-wide">Role Records</dt>
+                                <dd class="text-white text-sm sm:text-base">${formatDateTime(sync.roles_last_updated)}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-400 text-xs uppercase tracking-wide">Category Records</dt>
+                                <dd class="text-white text-sm sm:text-base">${formatDateTime(sync.categories_last_updated)}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-400 text-xs uppercase tracking-wide">Settings</dt>
+                                <dd class="text-white text-sm sm:text-base">${settingsLastUpdated}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <div class="bg-gray-700 rounded-xl border border-gray-600 p-4 sm:p-6">
+                        <h3 class="text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+                            <i class="fas fa-sliders-h text-red-500"></i>
+                            Configured Components
+                        </h3>
+                        <p class="text-gray-300 text-sm sm:text-base mt-2">
+                            ${settings.length ? `${settings.length} component${settings.length !== 1 ? 's' : ''} configured.` : 'No components configured yet.'}
+                        </p>
+                        ${settingsHtml}
+                    </div>
+                </div>
+            `;
+        }
 
         // View server members
         async function viewServerMembers(serverId, serverName) {
@@ -1905,7 +2197,8 @@
             // Update title
             document.getElementById('serverConfigTitle').textContent = `${serverName}`;
 
-            // Render server view navigation (Members/Configuration switcher)
+            currentServerView = 'members';
+            // Render server view navigation
             renderServerViewNav('members');
 
             // Hide component navigation container in members view
@@ -2219,14 +2512,6 @@
                 return;
             }
 
-            // HTML escape function to prevent XSS and tag issues
-            const escapeHtml = (text) => {
-                if (!text) return '';
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            };
-
             const formatDate = (dateStr) => {
                 if (!dateStr) return 'N/A';
                 const date = new Date(dateStr);
@@ -2382,7 +2667,8 @@
             // Update title
             document.getElementById('serverConfigTitle').textContent = `${serverName}`;
 
-            // Render server view navigation (Members/Configuration switcher)
+            currentServerView = 'configuration';
+            // Render server view navigation
             renderServerViewNav('configuration');
 
             // Show component navigation container in configuration view
@@ -2402,12 +2688,20 @@
             loadComponent('main_config');
         }
 
-        // Render server view navigation (Members/Configuration switcher)
+        // Render server view navigation
         function renderServerViewNav(activeView) {
             const navContainer = document.getElementById('serverViewNav');
             const serverName = document.getElementById('serverConfigTitle').textContent;
             
             navContainer.innerHTML = `
+                <button onclick="viewServerOverview('${currentServerId}', '${serverName.replace(/'/g, "\\'")}')"
+                    class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${activeView === 'overview'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                    }">
+                    <i class="fas fa-server"></i>
+                    <span class="sm:inline">Overview</span>
+                </button>
                 <button onclick="viewServerMembers('${currentServerId}', '${serverName.replace(/'/g, "\\'")}')"
                     class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${activeView === 'members'
                         ? 'bg-red-600 text-white'

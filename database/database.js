@@ -1096,6 +1096,177 @@ export async function getServerMembersList(serverId) {
     }));
 }
 
+export async function getServerOverview(serverId) {
+    await initializeDatabase();
+    if (!serverId) {
+        throw new Error('serverId is required to fetch server overview');
+    }
+
+    const [serverRow] = await query(
+        `SELECT 
+            id,
+            bot_id,
+            discord_server_id,
+            name,
+            total_members,
+            total_channels,
+            total_boosters,
+            boost_level,
+            server_icon,
+            created_at,
+            updated_at
+         FROM servers
+         WHERE id = ?
+         LIMIT 1`,
+        [serverId]
+    );
+
+    if (!serverRow) {
+        throw new Error(`Server not found for id ${serverId}`);
+    }
+
+    const [
+        memberCounts,
+        leveledCount,
+        afkCount,
+        channelCounts,
+        categoriesCount,
+        rolesCount,
+        memberSyncTimes,
+        channelSyncTimes,
+        roleSyncTimes,
+        categorySyncTimes,
+        levelSyncTimes,
+        settingsRows
+    ] = await Promise.all([
+        query(
+            `SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN is_booster = 1 THEN 1 ELSE 0 END) AS boosters
+             FROM server_members
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS leveled
+             FROM server_member_levels sml
+             INNER JOIN server_members sm ON sm.id = sml.member_id
+             WHERE sm.server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS afk
+             FROM server_members_afk sma
+             INNER JOIN server_members sm ON sm.id = sma.member_id
+             WHERE sm.server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN (
+                    'guild_text', 'text', 'guild_news', 'news',
+                    'guild_forum', 'forum', 'guild_public_thread', 'public_thread',
+                    'guild_private_thread', 'private_thread', 'guild_announcement',
+                    'announcement', 'guild_news_thread', 'news_thread', 'announcement_thread'
+                ) THEN 1 ELSE 0 END) AS text_count,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN ('guild_voice', 'voice') THEN 1 ELSE 0 END) AS voice_count,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN ('guild_stage_voice', 'stage', 'stage_voice') THEN 1 ELSE 0 END) AS stage_count
+             FROM server_channels
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS count
+             FROM server_categories
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS count
+             FROM server_roles
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_members
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_channels
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_roles
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_categories
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(sml.updated_at) AS last_updated
+             FROM server_member_levels sml
+             INNER JOIN server_members sm ON sm.id = sml.member_id
+             WHERE sm.server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT component_name, updated_at
+             FROM server_settings
+             WHERE server_id = ?
+             ORDER BY component_name ASC`,
+            [serverId]
+        )
+    ]);
+
+    const settingsLastUpdated = settingsRows.reduce((latest, row) => {
+        if (!row.updated_at) {
+            return latest;
+        }
+        if (!latest) {
+            return row.updated_at;
+        }
+        return new Date(row.updated_at) > new Date(latest) ? row.updated_at : latest;
+    }, null);
+
+    return {
+        ...serverRow,
+        stats: {
+            members_total: memberCounts[0]?.total || 0,
+            members_boosters: memberCounts[0]?.boosters || 0,
+            members_with_levels: leveledCount[0]?.leveled || 0,
+            members_afk: afkCount[0]?.afk || 0,
+            channels_total: channelCounts[0]?.total || 0,
+            channels_text: channelCounts[0]?.text_count || 0,
+            channels_voice: channelCounts[0]?.voice_count || 0,
+            channels_stage: channelCounts[0]?.stage_count || 0,
+            categories_total: categoriesCount[0]?.count || 0,
+            roles_total: rolesCount[0]?.count || 0
+        },
+        sync: {
+            members_last_updated: memberSyncTimes[0]?.last_updated || null,
+            channels_last_updated: channelSyncTimes[0]?.last_updated || null,
+            roles_last_updated: roleSyncTimes[0]?.last_updated || null,
+            categories_last_updated: categorySyncTimes[0]?.last_updated || null,
+            levels_last_updated: levelSyncTimes[0]?.last_updated || null,
+            settings_last_updated: settingsLastUpdated
+        },
+        settings: settingsRows.map(row => ({
+            component_name: row.component_name,
+            updated_at: row.updated_at
+        }))
+    };
+}
+
 export async function updateCustomRoleFlags(serverId, roleStartId, roleEndId) {
     try {
         if (!roleStartId || !roleEndId) {
@@ -1537,6 +1708,7 @@ export default {
     getMemberLevelByDiscordId,
     getServerLeaderboard,
     getServerMembersList,
+    getServerOverview,
     updateCustomRoleFlags,
     memberHasCustomSupporterRole,
     getPanel,

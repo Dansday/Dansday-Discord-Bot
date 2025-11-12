@@ -833,6 +833,26 @@ export async function init() {
         }
     });
 
+    app.get('/api/servers/:id/overview', requireAuth, async (req, res) => {
+        const { id } = req.params;
+        const serverId = parseInt(id);
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'Invalid server ID' });
+        }
+
+        try {
+            const overview = await db.getServerOverview(serverId);
+            res.json(overview);
+        } catch (error) {
+            if (error.message && error.message.toLowerCase().includes('not found')) {
+                return res.status(404).json({ error: 'Server not found' });
+            }
+            logger.log(`❌ Error fetching server overview: ${error.message}`);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     app.get('/api/servers/:id/members', requireAuth, async (req, res) => {
         const { id } = req.params;
         const serverId = parseInt(id);
