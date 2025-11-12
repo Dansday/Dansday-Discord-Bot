@@ -90,7 +90,7 @@
                         <button id="addBotBtn" onclick="showAddBotModal()"
                             class="bg-red-600 hover:bg-red-700 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                             <i class="fas fa-plus text-xs sm:text-sm"></i>
-                            <span class="hidden sm:inline">Add Bot</span>
+                            <span class="sm:inline">Add Bot</span>
                         </button>
                         <button onclick="handleLogout()"
                             class="bg-gray-700 hover:bg-gray-600 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
@@ -115,8 +115,7 @@
                 <div class="flex items-center gap-2 sm:gap-3">
                     <label class="text-xs sm:text-sm text-gray-400 flex items-center gap-1 sm:gap-2 whitespace-nowrap">
                         <i class="fas fa-filter"></i>
-                        <span class="hidden sm:inline">Sort by:</span>
-                        <span class="sm:hidden">Sort:</span>
+                        <span class="sm:inline">Sort by:</span>
                     </label>
                     <select id="sortFilter"
                         class="bg-gray-800 border border-gray-600 text-white rounded-lg px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition-all flex-1 sm:flex-initial min-w-0">
@@ -174,7 +173,7 @@
                         <button id="refreshBotDetailBtn" onclick="loadBotDetail()"
                             class="bg-gray-700 hover:bg-gray-600 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                             <i class="fas fa-sync-alt text-xs sm:text-sm"></i>
-                            <span class="hidden sm:inline">Refresh</span>
+                            <span class="sm:inline">Refresh</span>
                         </button>
                     </div>
                 </div>
@@ -264,7 +263,7 @@
                     <button onclick="showBotDetail()"
                         class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm sm:text-base">
                         <i class="fas fa-arrow-left"></i>
-                        <span class="hidden sm:inline">Back to Bot</span>
+                        <span class="sm:inline">Back to Bot</span>
                     </button>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         <h1 class="text-base sm:text-lg font-semibold text-white truncate max-w-xs sm:max-w-none"
@@ -278,8 +277,22 @@
 
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-            <!-- Component Navigation -->
+            <!-- Server View Navigation (Members/Configuration switcher) -->
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-4 sm:p-6 mb-4 sm:mb-6">
+                <div class="flex flex-wrap gap-2 sm:gap-3" id="serverViewNav">
+                    <!-- Members/Configuration buttons will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Member View Navigation (All/Members/Supporter/Staff/Admin switcher) -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-4 sm:p-6 mb-4 sm:mb-6 hidden" id="memberViewNavContainer">
+                <div class="flex flex-wrap gap-2 sm:gap-3" id="memberViewNav">
+                    <!-- Member view buttons will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Component Navigation -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-4 sm:p-6 mb-4 sm:mb-6" id="componentNavContainer">
                 <div class="flex flex-wrap gap-2 sm:gap-3" id="componentNav">
                     <!-- Component buttons will be rendered here -->
                 </div>
@@ -1890,26 +1903,42 @@
             document.getElementById('serverConfigContainer').classList.remove('hidden');
 
             // Update title
-            document.getElementById('serverConfigTitle').textContent = `${serverName} - Members`;
+            document.getElementById('serverConfigTitle').textContent = `${serverName}`;
+
+            // Render server view navigation (Members/Configuration switcher)
+            renderServerViewNav('members');
+
+            // Hide component navigation container in members view
+            const componentNavContainer = document.getElementById('componentNavContainer');
+            if (componentNavContainer) {
+                componentNavContainer.classList.add('hidden');
+            }
+
+            // Reset member view state
+            currentMemberView = 'all';
+            allMembers = [];
+            memberPermissions = null;
+            currentMemberSearch = '';
+            currentMemberSort = 'rank_asc';
 
             // Load member list
             await loadServerMembers(serverId);
         }
 
+        // Member view state
+        let allMembers = [];
+        let currentMemberView = 'all';
+        let memberPermissions = null;
+
         // Load server members list
         async function loadServerMembers(serverId) {
             const contentContainer = document.getElementById('componentContent');
-            const navContainer = document.getElementById('componentNav');
-            const serverName = document.getElementById('serverConfigTitle').textContent.replace(' - Members', '');
+            const memberViewNavContainer = document.getElementById('memberViewNavContainer');
 
-            // Hide component nav, show config button
-            navContainer.innerHTML = `
-                <button onclick="viewServerConfig('${serverId}', '${serverName.replace(/'/g, "\\'")}')"
-                    class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white">
-                    <i class="fas fa-cog"></i>
-                    <span class="sm:inline">Configuration</span>
-                </button>
-            `;
+            // Show member view navigation
+            if (memberViewNavContainer) {
+                memberViewNavContainer.classList.remove('hidden');
+            }
 
             // Show loading
             contentContainer.innerHTML = `
@@ -1921,6 +1950,18 @@
             `;
 
             try {
+                // Load permissions configuration
+                const permissionsRes = await fetch(`/api/servers/${serverId}/settings?component=permissions`, {
+                    credentials: 'include'
+                });
+                if (permissionsRes.ok) {
+                    const permissionsData = await permissionsRes.json();
+                    if (permissionsData && permissionsData.settings) {
+                        memberPermissions = permissionsData.settings;
+                    }
+                }
+
+                // Load members
                 const res = await fetch(`/api/servers/${serverId}/members`, {
                     credentials: 'include'
                 });
@@ -1934,8 +1975,9 @@
                     throw new Error('Failed to load members');
                 }
 
-                const members = await res.json();
-                renderMembersList(members);
+                allMembers = await res.json();
+                renderMemberViewNav();
+                filterAndRenderMembers();
             } catch (error) {
                 console.error('Error loading members:', error);
                 contentContainer.innerHTML = `
@@ -1946,16 +1988,234 @@
             }
         }
 
+        // Render member view navigation
+        function renderMemberViewNav() {
+            const navContainer = document.getElementById('memberViewNav');
+            if (!navContainer) return;
+
+            const views = [
+                { id: 'all', name: 'All', icon: 'fa-users' },
+                { id: 'members', name: 'Members', icon: 'fa-users' },
+                { id: 'supporter', name: 'Supporter', icon: 'fa-heart' },
+                { id: 'staff', name: 'Staff', icon: 'fa-user-tie' },
+                { id: 'admin', name: 'Admin', icon: 'fa-user-shield' }
+            ];
+
+            navContainer.innerHTML = views.map(view => {
+                const isActive = currentMemberView === view.id;
+                return `
+                    <button onclick="setMemberView('${view.id}')"
+                        class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${isActive
+                            ? 'bg-red-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                        }">
+                        <i class="fas ${view.icon}"></i>
+                        <span class="sm:inline">${view.name}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Set member view filter
+        function setMemberView(view) {
+            currentMemberView = view;
+            renderMemberViewNav();
+            filterAndRenderMembers();
+        }
+
+        // Filter and render members based on view, search, and sort
+        function filterAndRenderMembers() {
+            let filtered = [...allMembers];
+
+            // Filter by view (role)
+            if (currentMemberView !== 'all' && memberPermissions) {
+                let roleIds = [];
+                if (currentMemberView === 'admin' && memberPermissions.admin_roles) {
+                    roleIds = memberPermissions.admin_roles;
+                } else if (currentMemberView === 'staff' && memberPermissions.staff_roles) {
+                    roleIds = memberPermissions.staff_roles;
+                } else if (currentMemberView === 'supporter' && memberPermissions.supporter_roles) {
+                    roleIds = memberPermissions.supporter_roles;
+                } else if (currentMemberView === 'members' && memberPermissions.member_roles) {
+                    roleIds = memberPermissions.member_roles;
+                }
+
+                if (roleIds && roleIds.length > 0) {
+                    // Convert roleIds to strings for comparison
+                    const roleIdStrings = roleIds.map(id => String(id));
+                    filtered = filtered.filter(member => {
+                        if (!member.roles || member.roles.length === 0) return false;
+                        return member.roles.some(role => roleIdStrings.includes(String(role.id)));
+                    });
+                } else if (currentMemberView !== 'all') {
+                    // No roles configured for this view, show empty
+                    filtered = [];
+                }
+            }
+
+            // Apply search filter
+            const searchInput = document.getElementById('memberSearchInput');
+            if (searchInput) {
+                currentMemberSearch = searchInput.value || '';
+            }
+            if (currentMemberSearch && currentMemberSearch.trim()) {
+                const searchTerm = currentMemberSearch.toLowerCase().trim();
+                filtered = filtered.filter(member => {
+                    const displayName = (member.server_display_name && String(member.server_display_name).trim()) 
+                        || (member.display_name && String(member.display_name).trim())
+                        || (member.username && String(member.username).trim())
+                        || '';
+                    return displayName.toLowerCase().includes(searchTerm) ||
+                           (member.discord_member_id && String(member.discord_member_id).includes(searchTerm));
+                });
+            }
+
+            // Apply sort
+            const sortSelect = document.getElementById('memberSortSelect');
+            if (sortSelect) {
+                currentMemberSort = sortSelect.value || 'rank_asc';
+            }
+            const sortValue = currentMemberSort;
+            filtered.sort((a, b) => {
+                switch (sortValue) {
+                    case 'name_asc':
+                        const nameA = ((a.server_display_name && String(a.server_display_name).trim()) 
+                            || (a.display_name && String(a.display_name).trim())
+                            || (a.username && String(a.username).trim())
+                            || '').toLowerCase();
+                        const nameB = ((b.server_display_name && String(b.server_display_name).trim()) 
+                            || (b.display_name && String(b.display_name).trim())
+                            || (b.username && String(b.username).trim())
+                            || '').toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    case 'name_desc':
+                        const nameA2 = ((a.server_display_name && String(a.server_display_name).trim()) 
+                            || (a.display_name && String(a.display_name).trim())
+                            || (a.username && String(a.username).trim())
+                            || '').toLowerCase();
+                        const nameB2 = ((b.server_display_name && String(b.server_display_name).trim()) 
+                            || (b.display_name && String(b.display_name).trim())
+                            || (b.username && String(b.username).trim())
+                            || '').toLowerCase();
+                        return nameB2.localeCompare(nameA2);
+                    case 'level_desc':
+                        return (b.level || 1) - (a.level || 1);
+                    case 'level_asc':
+                        return (a.level || 1) - (b.level || 1);
+                    case 'xp_desc':
+                        return (b.experience || 0) - (a.experience || 0);
+                    case 'xp_asc':
+                        return (a.experience || 0) - (b.experience || 0);
+                    case 'rank_asc':
+                        return (a.rank || 9999) - (b.rank || 9999);
+                    case 'rank_desc':
+                        return (b.rank || 9999) - (a.rank || 9999);
+                    default:
+                        return 0;
+                }
+            });
+
+            renderMembersList(filtered);
+        }
+
         // Render members list
         function renderMembersList(members) {
             const contentContainer = document.getElementById('componentContent');
-            
-            if (!members || members.length === 0) {
+            if (!contentContainer) {
+                return;
+            }
+
+            const safeMembers = Array.isArray(members) ? members : [];
+
+            let searchHadFocus = false;
+            let searchSelectionStart = null;
+            let searchSelectionEnd = null;
+
+            const existingSearchInput = document.getElementById('memberSearchInput');
+            if (existingSearchInput) {
+                searchHadFocus = document.activeElement === existingSearchInput;
+                searchSelectionStart = existingSearchInput.selectionStart;
+                searchSelectionEnd = existingSearchInput.selectionEnd;
+            }
+
+            let listContainer = document.getElementById('membersListContainer');
+            let countLabel = document.getElementById('membersCountValue');
+
+            if (!listContainer) {
                 contentContainer.innerHTML = `
-                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                        <p class="text-gray-300 text-sm sm:text-base">No members found.</p>
+                    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <div class="flex-1 relative">
+                            <input type="text" id="memberSearchInput" placeholder="Search members by name or ID..."
+                                class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base pr-10">
+                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs sm:text-sm text-gray-400 flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                                <i class="fas fa-filter"></i>
+                                <span class="sm:inline">Sort by:</span>
+                            </label>
+                            <select id="memberSortSelect"
+                                class="bg-gray-800 border border-gray-600 text-white rounded-lg px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition-all flex-1 sm:flex-initial min-w-0">
+                                <option value="rank_asc">Rank (Low to High)</option>
+                                <option value="rank_desc">Rank (High to Low)</option>
+                                <option value="level_desc">Level (High to Low)</option>
+                                <option value="level_asc">Level (Low to High)</option>
+                                <option value="xp_desc">XP (High to Low)</option>
+                                <option value="xp_asc">XP (Low to High)</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                            </select>
+                        </div>
                     </div>
+                    <div class="mb-4 sm:mb-6">
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                            <i class="fas fa-users text-red-500"></i>
+                            Members (<span id="membersCountValue">${formatNumber(safeMembers.length)}</span>)
+                        </h2>
+                        <p class="text-gray-400 text-sm sm:text-base">
+                            View all server members with their leveling stats, roles, and status.
+                        </p>
+                    </div>
+                    <div id="membersListContainer" class="space-y-3"></div>
                 `;
+
+                listContainer = document.getElementById('membersListContainer');
+                countLabel = document.getElementById('membersCountValue');
+
+                const searchInput = document.getElementById('memberSearchInput');
+                if (searchInput) {
+                    searchInput.value = currentMemberSearch || '';
+                    searchInput.addEventListener('input', (e) => {
+                        currentMemberSearch = e.target.value;
+                        filterAndRenderMembers();
+                    });
+                }
+
+                const sortSelect = document.getElementById('memberSortSelect');
+                if (sortSelect) {
+                    sortSelect.value = currentMemberSort || 'rank_asc';
+                    sortSelect.addEventListener('change', (e) => {
+                        currentMemberSort = e.target.value;
+                        filterAndRenderMembers();
+                    });
+                }
+            } else {
+                if (countLabel) {
+                    countLabel.textContent = formatNumber(safeMembers.length);
+                }
+
+                const searchInput = document.getElementById('memberSearchInput');
+                if (searchInput && searchInput.value !== (currentMemberSearch || '')) {
+                    searchInput.value = currentMemberSearch || '';
+                }
+
+                const sortSelect = document.getElementById('memberSortSelect');
+                if (sortSelect && sortSelect.value !== (currentMemberSort || 'rank_asc')) {
+                    sortSelect.value = currentMemberSort || 'rank_asc';
+                }
+            }
+
+            if (!listContainer) {
                 return;
             }
 
@@ -1998,7 +2258,7 @@
                 return '#99AAB5';
             };
 
-            const membersHTML = members.map(member => {
+            const membersHTML = safeMembers.map(member => {
                 // Handle display name: use server_display_name if it exists and is not empty, otherwise use display_name, then username
                 let displayName = 'Unknown';
                 if (member.server_display_name && String(member.server_display_name).trim()) {
@@ -2015,8 +2275,6 @@
                 const voiceActive = member.voice_minutes_active || 0;
                 const voiceAfk = member.voice_minutes_afk || 0;
                 const rank = member.rank ? `#${member.rank}` : 'N/A';
-                const isBooster = member.is_booster || false;
-                const boosterSince = formatDate(member.booster_since);
                 const memberSince = formatDate(member.member_since);
                 const isAfk = member.is_afk || false;
                 const roles = member.roles || [];
@@ -2028,7 +2286,6 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-2">
                                     <h4 class="font-semibold text-white text-sm sm:text-base truncate">${escapeHtml(displayName)}</h4>
-                                    ${isBooster ? '<i class="fas fa-gift text-pink-500" title="Server Booster"></i>' : ''}
                                     ${isAfk ? '<span class="px-2 py-0.5 bg-yellow-900 text-yellow-200 text-xs rounded">AFK</span>' : ''}
                                 </div>
                                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
@@ -2060,12 +2317,6 @@
                                         <span class="text-gray-400">Member Since:</span>
                                         <span class="text-white font-medium ml-1">${memberSince}</span>
                                     </div>
-                                    ${isBooster ? `
-                                    <div>
-                                        <span class="text-gray-400">Booster Since:</span>
-                                        <span class="text-white font-medium ml-1">${boosterSince}</span>
-                                    </div>
-                                    ` : ''}
                                 </div>
                                 ${roles.length > 0 ? `
                                 <div class="mt-3 flex flex-wrap gap-1.5">
@@ -2085,20 +2336,38 @@
                 `;
             }).join('');
 
-            contentContainer.innerHTML = `
-                <div class="mb-4 sm:mb-6">
-                    <h2 class="text-xl sm:text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                        <i class="fas fa-users text-red-500"></i>
-                        Members (${formatNumber(members.length)})
-                    </h2>
-                    <p class="text-gray-400 text-sm sm:text-base">
-                        View all server members with their leveling stats, roles, and status.
-                    </p>
-                </div>
-                <div class="space-y-3">
-                    ${membersHTML}
-                </div>
-            `;
+            if (safeMembers.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                        <p class="text-gray-300 text-sm sm:text-base">No members found.</p>
+                    </div>
+                `;
+            } else {
+                listContainer.innerHTML = membersHTML;
+            }
+
+            const updatedCountLabel = document.getElementById('membersCountValue');
+            if (updatedCountLabel) {
+                updatedCountLabel.textContent = formatNumber(safeMembers.length);
+            }
+
+            if (searchHadFocus) {
+                const searchInput = document.getElementById('memberSearchInput');
+                if (searchInput) {
+                    searchInput.focus();
+                    const start = searchSelectionStart !== null && searchSelectionStart !== undefined
+                        ? searchSelectionStart
+                        : searchInput.value.length;
+                    const end = searchSelectionEnd !== null && searchSelectionEnd !== undefined
+                        ? searchSelectionEnd
+                        : searchInput.value.length;
+                    try {
+                        searchInput.setSelectionRange(start, end);
+                    } catch (_) {
+                        // ignore selection errors
+                    }
+                }
+            }
         }
 
         // View server configuration
@@ -2111,11 +2380,51 @@
             document.getElementById('serverConfigContainer').classList.remove('hidden');
 
             // Update title
-            document.getElementById('serverConfigTitle').textContent = `${serverName} - Configuration`;
+            document.getElementById('serverConfigTitle').textContent = `${serverName}`;
+
+            // Render server view navigation (Members/Configuration switcher)
+            renderServerViewNav('configuration');
+
+            // Show component navigation container in configuration view
+            const componentNavContainer = document.getElementById('componentNavContainer');
+            if (componentNavContainer) {
+                componentNavContainer.classList.remove('hidden');
+            }
+
+            // Hide member view navigation container in configuration view
+            const memberViewNavContainer = document.getElementById('memberViewNavContainer');
+            if (memberViewNavContainer) {
+                memberViewNavContainer.classList.add('hidden');
+            }
 
             // Load component navigation and content
             renderComponentNav();
             loadComponent('main_config');
+        }
+
+        // Render server view navigation (Members/Configuration switcher)
+        function renderServerViewNav(activeView) {
+            const navContainer = document.getElementById('serverViewNav');
+            const serverName = document.getElementById('serverConfigTitle').textContent;
+            
+            navContainer.innerHTML = `
+                <button onclick="viewServerMembers('${currentServerId}', '${serverName.replace(/'/g, "\\'")}')"
+                    class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${activeView === 'members'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                    }">
+                    <i class="fas fa-users"></i>
+                    <span class="sm:inline">Members</span>
+                </button>
+                <button onclick="viewServerConfig('${currentServerId}', '${serverName.replace(/'/g, "\\'")}')"
+                    class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium ${activeView === 'configuration'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                    }">
+                    <i class="fas fa-cog"></i>
+                    <span class="sm:inline">Configuration</span>
+                </button>
+            `;
         }
 
         // Show bot detail (from server config)
@@ -2130,6 +2439,14 @@
         // Render component navigation
         function renderComponentNav() {
             const navContainer = document.getElementById('componentNav');
+            const componentNavContainer = document.getElementById('componentNavContainer');
+            
+            // Show component navigation container only in configuration view
+            if (componentNavContainer) {
+                componentNavContainer.classList.remove('hidden');
+            }
+            
+            // Render component buttons
             navContainer.innerHTML = components.map(comp => {
                 const isActive = comp.id === currentComponent;
                 return `
@@ -2570,8 +2887,7 @@
                             <button type="button" onclick="openWelcomeMessageModal()"
                                 class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1.5">
                                 <i class="fas fa-plus"></i>
-                                <span class="hidden sm:inline">Add Message</span>
-                                <span class="sm:hidden">Add</span>
+                                <span class="sm:inline">Add Message</span>
                             </button>
                         </div>
                         <div id="welcomer_messages_list" class="space-y-2">
@@ -2679,8 +2995,7 @@
                             <button type="button" onclick="openBoosterMessageModal()"
                                 class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1.5">
                                 <i class="fas fa-plus"></i>
-                                <span class="hidden sm:inline">Add Message</span>
-                                <span class="sm:hidden">Add</span>
+                                <span class="sm:inline">Add Message</span>
                             </button>
                         </div>
                         <div id="booster_messages_list" class="space-y-2">
