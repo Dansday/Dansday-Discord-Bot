@@ -30,7 +30,6 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
         return null;
     }
 
-    // Get guildId from server
     const botConfig = getBotConfig();
     let guildId = null;
     if (botConfig && botConfig.id) {

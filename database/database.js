@@ -1175,11 +1175,11 @@ export async function getServerOverview(serverId) {
             `SELECT 
                 COUNT(*) AS total,
                 SUM(CASE WHEN LOWER(COALESCE(type, '')) IN (
-                    'guild_text', 'text', 'guild_news', 'news',
-                    'guild_forum', 'forum', 'guild_public_thread', 'public_thread',
-                    'guild_private_thread', 'private_thread', 'guild_announcement',
-                    'announcement', 'guild_news_thread', 'news_thread', 'announcement_thread'
+                    'guild_text', 'text'
                 ) THEN 1 ELSE 0 END) AS text_count,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN (
+                    'guild_news', 'news', 'guild_announcement', 'announcement'
+                ) THEN 1 ELSE 0 END) AS announcement_count,
                 SUM(CASE WHEN LOWER(COALESCE(type, '')) IN ('guild_voice', 'voice') THEN 1 ELSE 0 END) AS voice_count,
                 SUM(CASE WHEN LOWER(COALESCE(type, '')) IN ('guild_stage_voice', 'stage', 'stage_voice') THEN 1 ELSE 0 END) AS stage_count
              FROM server_channels
@@ -1257,6 +1257,7 @@ export async function getServerOverview(serverId) {
             members_afk: afkCount[0]?.afk || 0,
             channels_total: channelCounts[0]?.total || 0,
             channels_text: channelCounts[0]?.text_count || 0,
+            channels_announcement: channelCounts[0]?.announcement_count || 0,
             channels_voice: channelCounts[0]?.voice_count || 0,
             channels_stage: channelCounts[0]?.stage_count || 0,
             categories_total: categoriesCount[0]?.count || 0,

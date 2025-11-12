@@ -121,8 +121,6 @@ async function reconcileMemberExperience(memberId, guildId = null) {
         return null;
     }
 
-    // guildId will be passed from calling functions when available
-
     const expectedExperience = await calculateExperienceFromTotals({
         chatTotal: levelData.chat_total ?? 0,
         voiceMinutesActive: levelData.voice_minutes_active ?? 0,
@@ -377,7 +375,6 @@ async function startVoiceSession(state, resumed = false) {
         
         let catchupAwarded = false;
         if (resumeCatchupAllowed && lastRewardedAtMs !== null) {
-            // Calculate catch-up XP for time while bot was offline
             const minutesSinceReward = Math.max(0, Math.floor((now - lastRewardedAtMs) / 60000));
             if (minutesSinceReward > 0) {
                 const afkStatus = await db.getAFKStatus(server.id, dbMember.discord_member_id);
@@ -410,9 +407,6 @@ async function startVoiceSession(state, resumed = false) {
             }
         }
         
-        // Award XP immediately on join if cooldown has passed (or first time)
-        // This prevents abuse by rejoining voice repeatedly
-        // Skip if catch-up already awarded (cooldown will prevent anyway)
         if (!catchupAwarded && (!lastRewardedAtMs || (now - lastRewardedAtMs) >= voiceCooldownMs)) {
             const afkStatus = await db.getAFKStatus(server.id, dbMember.discord_member_id);
             const isAFK = !!afkStatus;
@@ -444,7 +438,6 @@ async function startVoiceSession(state, resumed = false) {
 
             await handleLevelEvaluation(server, dbMember, stats, state.guild.id);
         } else if (!lastRewardedAtMs) {
-            // First time join but cooldown not passed, just set timestamp for tracking
             await db.updateMemberLevelStats(dbMember.id, { voiceRewardedAt: new Date(now) });
             lastRewardedAtMs = now;
         }
@@ -534,7 +527,6 @@ async function handleVoiceTick(sessionKey) {
         const now = Date.now();
         const lastRewardedAt = session.lastRewardedAt || 0;
 
-        // Check if cooldown has passed
         if ((now - lastRewardedAt) < voiceCooldownMs) {
             return;
         }

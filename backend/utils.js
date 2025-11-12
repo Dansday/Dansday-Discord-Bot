@@ -8,15 +8,14 @@ export function separateChannelsAndCategories(guildChannels) {
     const channelsArray = Array.from(guildChannels.values());
 
     const isThreadType = (type) => {
-
         if (typeof type === 'number') {
-            return type === 11 || type === 12 || type === 13;
+            return type === 10 || type === 11 || type === 12;
         }
 
         if (typeof type === 'string') {
-            return type === 'GUILD_PUBLIC_THREAD' ||
-                type === 'GUILD_PRIVATE_THREAD' ||
-                type === 'GUILD_NEWS_THREAD';
+            return type === 'GUILD_NEWS_THREAD' ||
+                type === 'GUILD_PUBLIC_THREAD' ||
+                type === 'GUILD_PRIVATE_THREAD';
         }
         return false;
     };
@@ -41,6 +40,26 @@ export function separateChannelsAndCategories(guildChannels) {
         return false;
     };
 
+    const isVoiceType = (type) => {
+        if (typeof type === 'number') {
+            return type === 2;
+        }
+        if (typeof type === 'string') {
+            return type === 'GUILD_VOICE';
+        }
+        return false;
+    };
+
+    const isStageType = (type) => {
+        if (typeof type === 'number') {
+            return type === 13;
+        }
+        if (typeof type === 'string') {
+            return type === 'GUILD_STAGE_VOICE';
+        }
+        return false;
+    };
+
     const allChannels = channelsArray.filter(ch => {
 
         const isThreadMethod = ch.isThread ? ch.isThread() : false;
@@ -54,9 +73,8 @@ export function separateChannelsAndCategories(guildChannels) {
         return isCategoryType(ch.type);
     });
 
-
     const channels = allChannels.filter(ch => {
-        return isTextOrNewsType(ch.type);
+        return isTextOrNewsType(ch.type) || isVoiceType(ch.type) || isStageType(ch.type);
     });
 
     return { categories, channels };
@@ -78,17 +96,9 @@ export function mapChannelsForSync(channels) {
 
             const typeMap = {
                 0: 'GUILD_TEXT',
-                1: 'DM',
                 2: 'GUILD_VOICE',
-                3: 'GROUP_DM',
-                4: 'GUILD_CATEGORY',
                 5: 'GUILD_NEWS',
-                10: 'GUILD_NEWS_THREAD',
-                11: 'GUILD_PUBLIC_THREAD',
-                12: 'GUILD_PRIVATE_THREAD',
-                13: 'GUILD_STAGE_VOICE',
-                15: 'GUILD_FORUM',
-                16: 'GUILD_MEDIA'
+                13: 'GUILD_STAGE_VOICE'
             };
             typeValue = typeMap[ch.type] || String(ch.type);
         } else if (typeof ch.type === 'string') {
