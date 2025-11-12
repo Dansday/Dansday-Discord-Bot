@@ -36,21 +36,21 @@ async function handleWebhookRequest(req, res) {
 
                 if (payload.type === 'message_forward' && payload.data) {
                     try {
-                        await logger.log(`📥 Received message_forward webhook: channel ${payload.data.channel?.id} in guild ${payload.data.guild?.id}`, payload.data.guild?.id);
+                        await logger.log(`📥 Received message_forward webhook: channel ${payload.data.channel?.id} in guild ${payload.data.guild?.id}`);
 
                         const { processMessageFromSelfBot } = await import('./forwarder.js');
                         await processMessageFromSelfBot(payload.data, client);
 
-                        await logger.log(`✅ Successfully processed message_forward webhook`, payload.data.guild?.id);
+                        await logger.log(`✅ Successfully processed message_forward webhook`);
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ success: true, message: 'Message processed' }));
                     } catch (forwardErr) {
-                        await logger.log(`❌ Failed to process message: ${forwardErr.message}`, payload.data.guild?.id);
+                        await logger.log(`❌ Failed to process message: ${forwardErr.message}`);
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Failed to process message', details: forwardErr.message }));
                     }
                 } else {
-                    await logger.log(`❌ Invalid payload format: ${JSON.stringify(payload)}`, null);
+                    await logger.log(`❌ Invalid payload format: ${JSON.stringify(payload)}`);
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: 'Invalid payload format' }));
                 }

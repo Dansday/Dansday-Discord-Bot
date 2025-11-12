@@ -3,7 +3,7 @@ import { getEmbedConfig, getBotConfig } from "../../../config.js";
 import { hasPermission } from "../permissions.js";
 import db from "../../../../database/database.js";
 import logger from "../../../logger.js";
-import { getLevelRequirement, determineLevel } from "../leveling.js";
+import { getLevelRequirement, determineLevel, calculateExperienceFromTotals } from "../leveling.js";
 
 const PROGRESS_BAR_SLOTS = 10;
 
@@ -20,6 +20,71 @@ function formatNumber(value) {
     return value.toLocaleString();
 }
 
+async function refreshMemberLevelData(serverId, discordMemberId) {
+    if (!serverId || !discordMemberId) {
+        return null;
+    }
+
+    const levelData = await db.getMemberLevelByDiscordId(serverId, discordMemberId);
+    if (!levelData) {
+        return null;
+    }
+
+    const botConfig = getBotConfig();
+    let guildId = null;
+    if (botConfig && botConfig.id) {
+        const server = await db.getServersForBot(botConfig.id);
+        const foundServer = server.find(s => s.id === serverId);
+        if (foundServer) {
+            guildId = foundServer.discord_server_id;
+        }
+    }
+
+    if (!guildId) {
+        return levelData;
+    }
+
+    const recalculatedExperience = await calculateExperienceFromTotals({
+        chatTotal: levelData.chat_total ?? 0,
+        voiceMinutesActive: levelData.voice_minutes_active ?? 0,
+        voiceMinutesAfk: levelData.voice_minutes_afk ?? 0
+    }, guildId);
+
+    const currentExperience = levelData.experience ?? 0;
+    const updates = {};
+
+    if (recalculatedExperience !== currentExperience) {
+        updates.experienceIncrement = recalculatedExperience - currentExperience;
+    }
+
+    const recalculatedLevel = await determineLevel(recalculatedExperience, guildId);
+    if ((levelData.level ?? 1) !== recalculatedLevel) {
+        updates.level = recalculatedLevel;
+    }
+
+    if (Object.keys(updates).length > 0) {
+        const updatedStats = await db.updateMemberLevelStats(levelData.member_id, updates);
+        if (updatedStats) {
+            return {
+                ...levelData,
+                ...updatedStats,
+                experience: recalculatedExperience,
+                level: recalculatedLevel
+            };
+        }
+    }
+
+    if ((levelData.experience ?? 0) !== recalculatedExperience || (levelData.level ?? 1) !== recalculatedLevel) {
+        return {
+            ...levelData,
+            experience: recalculatedExperience,
+            level: recalculatedLevel
+        };
+    }
+
+    return levelData;
+}
+
 async function getServerForInteraction(interaction) {
     const botConfig = getBotConfig();
     if (!botConfig || !botConfig.id) {
@@ -29,28 +94,34 @@ async function getServerForInteraction(interaction) {
 }
 
 async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', guildId = null) {
-    const embedConfig = await getEmbedConfig(guildId || server.discord_server_id);
+    const actualGuildId = guildId || server.discord_server_id;
+    const embedConfig = await getEmbedConfig(actualGuildId);
 
     const memberDisplayName = memberLevelData?.server_display_name || memberLevelData?.display_name || memberLevelData?.username || 'Unknown';
     const currentXP = memberLevelData?.experience ?? 0;
-    const calculatedLevel = determineLevel(currentXP);
+    const calculatedLevel = await determineLevel(currentXP, actualGuildId);
 
     const currentLevel = calculatedLevel;
     const nextLevel = currentLevel + 1;
-    const currentLevelRequirement = getLevelRequirement(currentLevel);
-    const nextLevelRequirement = getLevelRequirement(nextLevel);
+    const currentLevelRequirement = await getLevelRequirement(currentLevel, actualGuildId);
+    const nextLevelRequirement = await getLevelRequirement(nextLevel, actualGuildId);
     const xpRange = nextLevelRequirement - currentLevelRequirement;
     const xpIntoLevel = Math.max(0, currentXP - currentLevelRequirement);
     const progressRatio = xpRange > 0 ? Math.max(0, Math.min(1, xpIntoLevel / xpRange)) : 0;
     const progressBar = buildProgressBar(progressRatio);
-    const xpProgressText = `${formatNumber(currentXP)} / ${formatNumber(nextLevelRequirement)} XP`;
+    const xpProgressText = `${formatNumber(Math.round(currentXP))} / ${formatNumber(Math.round(nextLevelRequirement))} XP`;
 
     const profileLines = [];
     profileLines.push(`• **Level:** ${currentLevel}`);
-    profileLines.push(`• **Experience:** ${formatNumber(currentXP)} XP`);
+    profileLines.push(`• **Experience:** ${formatNumber(Math.round(currentXP))} XP`);
     profileLines.push(`• **Progress:** ${progressBar} (${xpProgressText})`);
-    profileLines.push(`• **Chat Count:** ${formatNumber(memberLevelData?.chat_count ?? 0)}`);
-    profileLines.push(`• **Voice Minutes:** ${formatNumber(memberLevelData?.voice_minutes ?? 0)}`);
+    profileLines.push(`• **Chat Total:** ${formatNumber(memberLevelData?.chat_total ?? 0)}`);
+    const voiceTotal = memberLevelData?.voice_minutes_total ?? 0;
+    const voiceActive = memberLevelData?.voice_minutes_active ?? 0;
+    const voiceAfk = memberLevelData?.voice_minutes_afk ?? 0;
+    profileLines.push(`• **Voice Minutes (Total):** ${formatNumber(voiceTotal)}`);
+    profileLines.push(`• ├ Active: ${formatNumber(voiceActive)}`);
+    profileLines.push(`• └ AFK: ${formatNumber(voiceAfk)}`);
     profileLines.push(`• **Rank:** ${memberLevelData?.rank ? `#${memberLevelData.rank}` : "Unranked"}`);
 
     const profileEmbed = new EmbedBuilder()
@@ -97,7 +168,7 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
             const position = i + 1;
             const name = entry.server_display_name || entry.display_name || entry.username || entry.discord_member_id || `Member ${position}`;
             const xp = entry.experience || 0;
-            const calculatedLevel = determineLevel(xp);
+            const calculatedLevel = await determineLevel(xp, actualGuildId);
             const avatar = entry.avatar || null;
 
             let medal = "";
@@ -114,16 +185,19 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
 
             switch (sortType) {
                 case 'xp':
-                    value = `${medal} **${name}**\n${formatNumber(xp)} XP • Level ${calculatedLevel}`;
+                    value = `${medal} **${name}**\n${formatNumber(Math.round(xp))} XP • Level ${calculatedLevel}`;
                     break;
                 case 'voice':
-                    value = `${medal} **${name}**\n${formatNumber(entry.voice_minutes || 0)} min • ${formatNumber(xp)} XP`;
+                    const totalMinutes = entry.voice_minutes_total || 0;
+                    const activeMinutes = entry.voice_minutes_active || 0;
+                    const afkMinutes = entry.voice_minutes_afk || 0;
+                    value = `${medal} **${name}**\n${formatNumber(totalMinutes)} min (Active ${formatNumber(activeMinutes)} • AFK ${formatNumber(afkMinutes)}) • ${formatNumber(Math.round(xp))} XP`;
                     break;
                 case 'chat':
-                    value = `${medal} **${name}**\n${formatNumber(entry.chat_count || 0)} messages • ${formatNumber(xp)} XP`;
+                    value = `${medal} **${name}**\n${formatNumber(entry.chat_total || 0)} messages • ${formatNumber(Math.round(xp))} XP`;
                     break;
                 default:
-                    value = `${medal} **${name}**\n${formatNumber(xp)} XP • Level ${calculatedLevel}`;
+                    value = `${medal} **${name}**\n${formatNumber(Math.round(xp))} XP • Level ${calculatedLevel}`;
                     break;
             }
 
@@ -198,21 +272,9 @@ export async function handleLevelingButton(interaction) {
 
         await db.ensureMemberLevel(dbMember.id);
 
+        let memberLevelData = await refreshMemberLevelData(server.id, interaction.user.id);
         await db.recalculateServerMemberRanks(server.id);
-
-        const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
-
-        if (memberLevelData && memberLevelData.id) {
-            const calculatedLevel = determineLevel(memberLevelData.experience ?? 0);
-            const storedLevel = memberLevelData.level ?? 1;
-            if (calculatedLevel !== storedLevel) {
-                await db.updateMemberLevelStats(memberLevelData.id, { level: calculatedLevel });
-                const updatedData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
-                if (updatedData) {
-                    Object.assign(memberLevelData, updatedData);
-                }
-            }
-        }
+        memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
 
         const sortType = 'xp';
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id);
@@ -224,7 +286,7 @@ export async function handleLevelingButton(interaction) {
             flags: 64
         });
     } catch (error) {
-        await logger.log(`❌ Leveling interface error: ${error.message}`, interaction.guild?.id);
+        await logger.log(`❌ Leveling interface error: ${error.message}`);
         await interaction.reply({
             content: `❌ Failed to load leveling information: ${error.message}`,
             flags: 64
@@ -261,6 +323,9 @@ export async function handleLeaderboardButton(interaction) {
 
         const sortType = interaction.customId.replace('leaderboard_', '');
 
+        await refreshMemberLevelData(server.id, interaction.user.id);
+        await db.recalculateServerMemberRanks(server.id);
+
         const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id);
         const buttons = createLeaderboardButtons(sortType);
@@ -271,7 +336,7 @@ export async function handleLeaderboardButton(interaction) {
             flags: 64
         });
     } catch (error) {
-        await logger.log(`❌ Leaderboard button error: ${error.message}`, interaction.guild?.id);
+        await logger.log(`❌ Leaderboard button error: ${error.message}`);
         await interaction.update({
             content: `❌ Failed to load leaderboard: ${error.message}`,
             flags: 64

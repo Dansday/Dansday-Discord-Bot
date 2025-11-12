@@ -12,7 +12,7 @@ export async function handleButtonInteraction(interaction, client) {
     const { customId } = interaction;
     const user = interaction.user;
 
-    await logger.log(`🔘 Button clicked: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
+    await logger.log(`🔘 Button clicked: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
 
     switch (customId) {
         case 'bot_help':
@@ -169,7 +169,7 @@ function init(client) {
             try {
                 await handleButtonInteraction(interaction, client);
             } catch (error) {
-                await logger.log(`❌ Button interaction error: ${error.message}`, interaction.guild?.id);
+                await logger.log(`❌ Button interaction error: ${error.message}`);
 
                 try {
                     await interaction.reply({
@@ -177,7 +177,7 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send button error response: ${replyError.message}`, interaction.guild?.id);
+                    await logger.log(`❌ Failed to send button error response: ${replyError.message}`);
                 }
             }
         } else if (interaction.isModalSubmit()) {
@@ -197,7 +197,7 @@ function init(client) {
             try {
                 const user = interaction.user;
                 const customId = interaction.customId;
-                await logger.log(`📝 Modal submitted: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
+                await logger.log(`📝 Modal submitted: "${customId}" by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
 
                 if (interaction.customId.startsWith('send_message_modal_')) {
                     await handleSendMessageModal(interaction);
@@ -208,10 +208,10 @@ function init(client) {
                 } else if (interaction.customId === 'afk_set') {
                     await handleAFKModal(interaction);
                 } else {
-                    await logger.log(`⚠️ Unknown modal: "${customId}" by ${user.tag} (${user.id})`, interaction.guild?.id);
+                    await logger.log(`⚠️ Unknown modal: "${customId}" by ${user.tag} (${user.id})`);
                 }
             } catch (error) {
-                await logger.log(`❌ Modal submission error: ${error.message}`, interaction.guild?.id);
+                await logger.log(`❌ Modal submission error: ${error.message}`);
 
                 try {
                     await interaction.reply({
@@ -219,7 +219,7 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send modal error response: ${replyError.message}`, interaction.guild?.id);
+                    await logger.log(`❌ Failed to send modal error response: ${replyError.message}`);
                 }
             }
         } else if (interaction.isChannelSelectMenu()) {
@@ -240,15 +240,15 @@ function init(client) {
                 const user = interaction.user;
                 const customId = interaction.customId;
                 const selectedChannels = interaction.values;
-                await logger.log(`📋 Channel selected: "${customId}" → [${selectedChannels.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
+                await logger.log(`📋 Channel selected: "${customId}" → [${selectedChannels.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
 
                 if (interaction.customId === 'send_message_channel_select') {
                     await handleChannelSelection(interaction);
                 } else {
-                    await logger.log(`⚠️ Unknown channel select: "${customId}" by ${user.tag} (${user.id})`, interaction.guild?.id);
+                    await logger.log(`⚠️ Unknown channel select: "${customId}" by ${user.tag} (${user.id})`);
                 }
             } catch (error) {
-                await logger.log(`❌ Channel selection error: ${error.message}`, interaction.guild?.id);
+                await logger.log(`❌ Channel selection error: ${error.message}`);
 
                 try {
                     await interaction.reply({
@@ -256,7 +256,7 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send selection error response: ${replyError.message}`, interaction.guild?.id);
+                    await logger.log(`❌ Failed to send selection error response: ${replyError.message}`);
                 }
             }
         } else if (interaction.isRoleSelectMenu()) {
@@ -277,16 +277,16 @@ function init(client) {
                 const user = interaction.user;
                 const customId = interaction.customId;
                 const selectedRoles = interaction.values;
-                await logger.log(`👥 Role selected: "${customId}" → [${selectedRoles.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`, interaction.guild?.id);
+                await logger.log(`👥 Role selected: "${customId}" → [${selectedRoles.join(', ')}] by ${user.tag} (${user.id}) in ${interaction.guild?.name || 'DM'}`);
 
                 if (interaction.customId.startsWith('send_message_role_select_')) {
                     await handleRoleSelection(interaction);
                 } else {
-                    await logger.log(`⚠️ Unknown role select: "${customId}" by ${user.tag} (${user.id})`, interaction.guild?.id);
+                    await logger.log(`⚠️ Unknown role select: "${customId}" by ${user.tag} (${user.id})`);
                 }
             } catch (error) {
-                await logger.log(`❌ Role selection error in interface.js: ${error.message}`, interaction.guild?.id);
-                await logger.log(`❌ Role selection error stack: ${error.stack}`, interaction.guild?.id);
+                await logger.log(`❌ Role selection error in interface.js: ${error.message}`);
+                await logger.log(`❌ Role selection error stack: ${error.stack}`);
 
                 try {
                     await interaction.reply({
@@ -294,7 +294,7 @@ function init(client) {
                         flags: 64
                     });
                 } catch (replyError) {
-                    await logger.log(`❌ Failed to send role selection error response: ${replyError.message}`, interaction.guild?.id);
+                    await logger.log(`❌ Failed to send role selection error response: ${replyError.message}`);
                 }
             }
         }

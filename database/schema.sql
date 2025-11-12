@@ -114,13 +114,15 @@ CREATE TABLE IF NOT EXISTS server_members (
 CREATE TABLE IF NOT EXISTS server_member_levels (
     id INT PRIMARY KEY AUTO_INCREMENT,
     member_id INT NOT NULL,
-    chat_count INT DEFAULT 0,
-    voice_minutes INT DEFAULT 0,
+    chat_total INT DEFAULT 0,
+    voice_minutes_total INT DEFAULT 0,
+    voice_minutes_active INT DEFAULT 0,
+    voice_minutes_afk INT DEFAULT 0,
     experience INT DEFAULT 0,
     level INT DEFAULT 1,
     rank INT DEFAULT NULL,
-    last_message_at TIMESTAMP NULL,
-    voice_session_started_at TIMESTAMP NULL,
+    chat_rewarded_at TIMESTAMP NULL,
+    voice_rewarded_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY unique_member_level (member_id),
@@ -159,6 +161,14 @@ CREATE TABLE IF NOT EXISTS server_settings (
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS bot_logs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    bot_id INT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE CASCADE
+);
+
 CREATE INDEX idx_bots_type ON bots(bot_type);
 CREATE INDEX idx_bots_connect_to ON bots(connect_to);
 CREATE INDEX idx_bots_panel_id ON bots(panel_id);
@@ -180,5 +190,7 @@ CREATE INDEX idx_server_member_roles_role_id ON server_member_roles(role_id);
 CREATE INDEX idx_server_members_afk_member_id ON server_members_afk(member_id);
 CREATE INDEX idx_server_settings_server_id ON server_settings(server_id);
 CREATE INDEX idx_server_settings_component ON server_settings(server_id, component_name);
+CREATE INDEX idx_bot_logs_bot_id ON bot_logs(bot_id);
+CREATE INDEX idx_bot_logs_created_at ON bot_logs(created_at);
 CREATE INDEX idx_panel_logs_panel_id ON panel_logs(panel_id);
 CREATE INDEX idx_panel_logs_attempted_at ON panel_logs(attempted_at);

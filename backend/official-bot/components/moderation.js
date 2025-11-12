@@ -70,11 +70,11 @@ function init(client) {
 
             const memberData = await db.getMemberByDiscordId(serverData.id, user.id);
             if (!memberData) {
-                await logger.log(`⚠️ Member not found in database for ${user.id}, skipping ban log`, guild.id);
+                await logger.log(`⚠️ Member not found in database for ${user.id}, skipping ban log`);
                 return;
             }
             if (!memberData.display_name && !memberData.username) {
-                await logger.log(`⚠️ Member profile incomplete for ${user.id}, skipping ban log`, guild.id);
+                await logger.log(`⚠️ Member profile incomplete for ${user.id}, skipping ban log`);
                 return;
             }
 
@@ -136,11 +136,11 @@ function init(client) {
 
             const memberData = await db.upsertMember(serverData.id, member);
             if (!memberData) {
-                await logger.log(`⚠️ Member not found in database for ${member.user.id}, skipping kick log`, member.guild.id);
+                await logger.log(`⚠️ Member not found in database for ${member.user.id}, skipping kick log`);
                 return;
             }
             if (!memberData.display_name && !memberData.username) {
-                await logger.log(`⚠️ Member profile incomplete for ${member.user.id}, skipping kick log`, member.guild.id);
+                await logger.log(`⚠️ Member profile incomplete for ${member.user.id}, skipping kick log`);
                 return;
             }
 

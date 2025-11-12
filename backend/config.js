@@ -201,17 +201,31 @@ export const PERMISSIONS = {
     }
 };
 
-export const LEVELING = {
-    MESSAGE: {
-        XP: 10,
-        COOLDOWN_SECONDS: 15
-    },
-    VOICE: {
-        XP_PER_MINUTE: 30,
-        AFK_XP_PER_MINUTE: 5,
-        MINIMUM_SESSION_MINUTES: 1
+export async function getLevelingSettings(guildId) {
+    const officialBotServer = await getOfficialBotServer(guildId);
+    const settings = await db.getServerSettings(officialBotServer.id, 'leveling');
+
+    if (!settings || !settings.settings) {
+        throw new Error(`Leveling settings not configured for guild ${guildId}. Please configure in the panel.`);
     }
-};
+
+    const config = settings.settings;
+    return {
+        MESSAGE: {
+            XP: config.MESSAGE.XP,
+            COOLDOWN_SECONDS: config.MESSAGE.COOLDOWN_SECONDS
+        },
+        VOICE: {
+            XP_PER_MINUTE: config.VOICE.XP_PER_MINUTE,
+            AFK_XP_PER_MINUTE: config.VOICE.AFK_XP_PER_MINUTE,
+            COOLDOWN_SECONDS: config.VOICE.COOLDOWN_SECONDS
+        },
+        REQUIREMENTS: {
+            BASE_XP: config.REQUIREMENTS.BASE_XP,
+            MULTIPLIER: config.REQUIREMENTS.MULTIPLIER
+        }
+    };
+}
 
 export const COMMUNICATION = {
 
@@ -281,18 +295,6 @@ export async function getEmbedConfig(guildId) {
     };
 }
 
-export async function getLoggerChannel(guildId) {
-    requireBotConfig();
-    requireGuildId(guildId, 'getting logger channel');
-
-    const settings = await getServerSettingsForComponent(guildId, 'main_config');
-
-    if (!settings.settings.logger_channel) {
-        throw new Error(`Logger channel not configured for guild ${guildId}`);
-    }
-
-    return settings.settings.logger_channel;
-}
 
 export const WELCOMER = {
 

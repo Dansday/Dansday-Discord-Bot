@@ -56,6 +56,10 @@ console.log(`🔌 Database connection: mysql://${connectionConfig.user}@${connec
 
 let pool = null;
 
+const BOT_LOG_RETENTION_DAYS = 7;
+const BOT_LOG_PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+let lastBotLogPurgeCheck = 0;
+
 function getPool() {
     if (!pool) {
         pool = mysql.createPool({
@@ -115,7 +119,7 @@ async function runMigration() {
         }
 
         logger.log('✅ Database schema created successfully!');
-        logger.log('📊 Tables created: panel, panel_logs, bots, servers, server_categories, server_channels, server_roles, server_members, server_member_levels, server_member_roles, server_members_afk, server_settings');
+        logger.log('📊 Tables created: panel, panel_logs, bots, servers, server_categories, server_channels, server_roles, server_members, server_member_levels, server_member_roles, server_members_afk, server_settings, bot_logs');
         logger.log('📈 Indexes created: all indexes');
 
     } catch (error) {
@@ -147,7 +151,8 @@ async function setupDatabase() {
         { name: 'server_member_levels', required: true },
         { name: 'server_member_roles', required: true },
         { name: 'server_members_afk', required: true },
-        { name: 'server_settings', required: true }
+        { name: 'server_settings', required: true },
+        { name: 'bot_logs', required: true }
     ];
 
     const missingTables = [];
@@ -891,13 +896,23 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
     const values = [];
 
     if (typeof updates.chatIncrement === 'number' && updates.chatIncrement !== 0) {
-        clauses.push('chat_count = chat_count + ?');
+        clauses.push('chat_total = chat_total + ?');
         values.push(updates.chatIncrement);
     }
 
-    if (typeof updates.voiceMinutesIncrement === 'number' && updates.voiceMinutesIncrement !== 0) {
-        clauses.push('voice_minutes = voice_minutes + ?');
-        values.push(updates.voiceMinutesIncrement);
+    if (typeof updates.voiceMinutesTotalIncrement === 'number' && updates.voiceMinutesTotalIncrement !== 0) {
+        clauses.push('voice_minutes_total = voice_minutes_total + ?');
+        values.push(updates.voiceMinutesTotalIncrement);
+    }
+
+    if (typeof updates.voiceMinutesActiveIncrement === 'number' && updates.voiceMinutesActiveIncrement !== 0) {
+        clauses.push('voice_minutes_active = voice_minutes_active + ?');
+        values.push(updates.voiceMinutesActiveIncrement);
+    }
+
+    if (typeof updates.voiceMinutesAfkIncrement === 'number' && updates.voiceMinutesAfkIncrement !== 0) {
+        clauses.push('voice_minutes_afk = voice_minutes_afk + ?');
+        values.push(updates.voiceMinutesAfkIncrement);
     }
 
     if (typeof updates.experienceIncrement === 'number' && updates.experienceIncrement !== 0) {
@@ -915,17 +930,17 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
         values.push(updates.rank);
     }
 
-    if (updates.lastMessageAt) {
-        clauses.push('last_message_at = ?');
-        values.push(toMySQLDateTime(updates.lastMessageAt));
+    if (updates.chatRewardedAt) {
+        clauses.push('chat_rewarded_at = ?');
+        values.push(toMySQLDateTime(updates.chatRewardedAt));
     }
 
-    if (updates.voiceSessionStartedAt !== undefined) {
-        if (updates.voiceSessionStartedAt === null) {
-            clauses.push('voice_session_started_at = NULL');
+    if (updates.voiceRewardedAt !== undefined) {
+        if (updates.voiceRewardedAt === null) {
+            clauses.push('voice_rewarded_at = NULL');
         } else {
-            clauses.push('voice_session_started_at = ?');
-            values.push(toMySQLDateTime(updates.voiceSessionStartedAt));
+            clauses.push('voice_rewarded_at = ?');
+            values.push(toMySQLDateTime(updates.voiceRewardedAt));
         }
     }
 
@@ -1001,26 +1016,27 @@ export async function getServerLeaderboard(serverId, limit = 3, sortType = 'xp')
         throw new Error('serverId is required to fetch leaderboard');
     }
     const safeLimit = Math.max(1, Math.min(50, limit));
-    
+
     let orderBy;
     switch (sortType) {
         case 'xp':
             orderBy = 'sml.experience DESC, sml.level DESC, sml.created_at ASC';
             break;
         case 'voice':
-            orderBy = 'sml.voice_minutes DESC, sml.experience DESC, sml.created_at ASC';
+            orderBy = 'sml.voice_minutes_total DESC, sml.experience DESC, sml.created_at ASC';
             break;
         case 'chat':
-            orderBy = 'sml.chat_count DESC, sml.experience DESC, sml.created_at ASC';
+            orderBy = 'sml.chat_total DESC, sml.experience DESC, sml.created_at ASC';
             break;
         default:
             orderBy = 'sml.experience DESC, sml.level DESC, sml.created_at ASC';
             break;
     }
-    
+
     const result = await query(
         `SELECT sm.discord_member_id, sm.username, sm.display_name, sm.server_display_name, sm.avatar,
-                sml.experience, sml.level, sml.chat_count, sml.voice_minutes, sml.rank
+                sml.experience, sml.level, sml.chat_total,
+                sml.voice_minutes_total, sml.voice_minutes_active, sml.voice_minutes_afk, sml.rank
          FROM server_member_levels sml
          INNER JOIN server_members sm ON sml.member_id = sm.id
          WHERE sm.server_id = ?
@@ -1029,6 +1045,237 @@ export async function getServerLeaderboard(serverId, limit = 3, sortType = 'xp')
         [serverId, safeLimit]
     );
     return result;
+}
+
+export async function getServerMembersList(serverId) {
+    await initializeDatabase();
+    if (!serverId) {
+        throw new Error('serverId is required to fetch members list');
+    }
+
+    const result = await query(
+        `SELECT 
+            sm.id,
+            sm.discord_member_id,
+            sm.username,
+            sm.display_name,
+            sm.server_display_name,
+            sm.avatar,
+            sm.member_since,
+            sm.is_booster,
+            sm.booster_since,
+            sml.level,
+            sml.experience,
+            sml.chat_total,
+            sml.voice_minutes_active,
+            sml.voice_minutes_afk,
+            sml.rank,
+            sma.message as afk_message,
+            sma.created_at as afk_since,
+            GROUP_CONCAT(
+                DISTINCT CONCAT(sr.discord_role_id, ':', sr.name, ':', sr.color, ':', sr.position)
+                ORDER BY sr.position DESC
+                SEPARATOR ','
+            ) as roles
+         FROM server_members sm
+         LEFT JOIN server_member_levels sml ON sm.id = sml.member_id
+         LEFT JOIN server_members_afk sma ON sm.id = sma.member_id
+         LEFT JOIN server_member_roles smr ON sm.id = smr.member_id
+         LEFT JOIN server_roles sr ON smr.role_id = sr.id
+         WHERE sm.server_id = ?
+         GROUP BY sm.id, sm.discord_member_id, sm.username, sm.display_name, sm.server_display_name, 
+                  sm.avatar, sm.member_since, sm.is_booster, sm.booster_since,
+                  sml.level, sml.experience, sml.chat_total, sml.voice_minutes_active, 
+                  sml.voice_minutes_afk, sml.rank, sma.message, sma.created_at
+         ORDER BY sml.experience DESC, sml.level DESC, sm.created_at ASC`,
+        [serverId]
+    );
+
+    return result.map(member => ({
+        ...member,
+        roles: member.roles ? member.roles.split(',').map(role => {
+            const [roleId, roleName, roleColor, position] = role.split(':');
+            return { 
+                id: roleId, 
+                name: roleName, 
+                color: roleColor || null,
+                position: position ? parseInt(position, 10) : 0
+            };
+        }).sort((a, b) => (b.position || 0) - (a.position || 0)) : [],
+        is_afk: !!member.afk_message
+    }));
+}
+
+export async function getServerOverview(serverId) {
+    await initializeDatabase();
+    if (!serverId) {
+        throw new Error('serverId is required to fetch server overview');
+    }
+
+    const [serverRow] = await query(
+        `SELECT 
+            id,
+            bot_id,
+            discord_server_id,
+            name,
+            total_members,
+            total_channels,
+            total_boosters,
+            boost_level,
+            server_icon,
+            created_at,
+            updated_at
+         FROM servers
+         WHERE id = ?
+         LIMIT 1`,
+        [serverId]
+    );
+
+    if (!serverRow) {
+        throw new Error(`Server not found for id ${serverId}`);
+    }
+
+    const [
+        memberCounts,
+        leveledCount,
+        afkCount,
+        channelCounts,
+        categoriesCount,
+        rolesCount,
+        memberSyncTimes,
+        channelSyncTimes,
+        roleSyncTimes,
+        categorySyncTimes,
+        levelSyncTimes,
+        settingsRows
+    ] = await Promise.all([
+        query(
+            `SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN is_booster = 1 THEN 1 ELSE 0 END) AS boosters
+             FROM server_members
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS leveled
+             FROM server_member_levels sml
+             INNER JOIN server_members sm ON sm.id = sml.member_id
+             WHERE sm.server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS afk
+             FROM server_members_afk sma
+             INNER JOIN server_members sm ON sm.id = sma.member_id
+             WHERE sm.server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN (
+                    'guild_text', 'text'
+                ) THEN 1 ELSE 0 END) AS text_count,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN (
+                    'guild_news', 'news', 'guild_announcement', 'announcement'
+                ) THEN 1 ELSE 0 END) AS announcement_count,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN ('guild_voice', 'voice') THEN 1 ELSE 0 END) AS voice_count,
+                SUM(CASE WHEN LOWER(COALESCE(type, '')) IN ('guild_stage_voice', 'stage', 'stage_voice') THEN 1 ELSE 0 END) AS stage_count
+             FROM server_channels
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS count
+             FROM server_categories
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT COUNT(*) AS count
+             FROM server_roles
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_members
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_channels
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_roles
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(updated_at) AS last_updated
+             FROM server_categories
+             WHERE server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT MAX(sml.updated_at) AS last_updated
+             FROM server_member_levels sml
+             INNER JOIN server_members sm ON sm.id = sml.member_id
+             WHERE sm.server_id = ?`,
+            [serverId]
+        ),
+        query(
+            `SELECT component_name, updated_at
+             FROM server_settings
+             WHERE server_id = ?
+             ORDER BY component_name ASC`,
+            [serverId]
+        )
+    ]);
+
+    const settingsLastUpdated = settingsRows.reduce((latest, row) => {
+        if (!row.updated_at) {
+            return latest;
+        }
+        if (!latest) {
+            return row.updated_at;
+        }
+        return new Date(row.updated_at) > new Date(latest) ? row.updated_at : latest;
+    }, null);
+
+    return {
+        ...serverRow,
+        stats: {
+            members_total: memberCounts[0]?.total || 0,
+            members_boosters: memberCounts[0]?.boosters || 0,
+            members_with_levels: leveledCount[0]?.leveled || 0,
+            members_afk: afkCount[0]?.afk || 0,
+            channels_total: channelCounts[0]?.total || 0,
+            channels_text: channelCounts[0]?.text_count || 0,
+            channels_announcement: channelCounts[0]?.announcement_count || 0,
+            channels_voice: channelCounts[0]?.voice_count || 0,
+            channels_stage: channelCounts[0]?.stage_count || 0,
+            categories_total: categoriesCount[0]?.count || 0,
+            roles_total: rolesCount[0]?.count || 0
+        },
+        sync: {
+            members_last_updated: memberSyncTimes[0]?.last_updated || null,
+            channels_last_updated: channelSyncTimes[0]?.last_updated || null,
+            roles_last_updated: roleSyncTimes[0]?.last_updated || null,
+            categories_last_updated: categorySyncTimes[0]?.last_updated || null,
+            levels_last_updated: levelSyncTimes[0]?.last_updated || null,
+            settings_last_updated: settingsLastUpdated
+        },
+        settings: settingsRows.map(row => ({
+            component_name: row.component_name,
+            updated_at: row.updated_at
+        }))
+    };
 }
 
 export async function updateCustomRoleFlags(serverId, roleStartId, roleEndId) {
@@ -1335,6 +1582,67 @@ async function getCategoriesForServer(serverId) {
     return result;
 }
 
+export async function insertBotLog(botId, message) {
+    await initializeDatabase();
+    if (!botId || !message) {
+        throw new Error('botId and message are required to insert bot log');
+    }
+
+    try {
+        await query(
+            'INSERT INTO bot_logs (bot_id, message) VALUES (?, ?)',
+            [botId, message]
+        );
+
+        const now = Date.now();
+        if (now - lastBotLogPurgeCheck >= BOT_LOG_PURGE_INTERVAL_MS) {
+            lastBotLogPurgeCheck = now;
+            try {
+                await purgeOldBotLogs(BOT_LOG_RETENTION_DAYS);
+            } catch (purgeError) {
+                console.error('Error purging old bot logs:', purgeError);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error inserting bot log:', error);
+        throw error;
+    }
+}
+
+export async function getBotLogs(botId, limit = 100, offset = 0) {
+    await initializeDatabase();
+    if (!botId) {
+        throw new Error('botId is required to fetch bot logs');
+    }
+
+    const result = await query(
+        `SELECT bl.*, b.name as bot_name
+         FROM bot_logs bl
+         INNER JOIN bots b ON bl.bot_id = b.id
+         WHERE bl.bot_id = ?
+         ORDER BY bl.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [botId, limit, offset]
+    );
+    return result;
+}
+
+export async function purgeOldBotLogs(retentionDays = BOT_LOG_RETENTION_DAYS) {
+    await initializeDatabase();
+    const days = Number.isFinite(retentionDays) && retentionDays > 0 ? retentionDays : BOT_LOG_RETENTION_DAYS;
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const cutoffStr = cutoff.toISOString().slice(0, 19).replace('T', ' ');
+
+    const result = await query(
+        'DELETE FROM bot_logs WHERE created_at < ?',
+        [cutoffStr]
+    );
+
+    return result?.affectedRows || 0;
+}
+
 export async function getAFKStatus(serverId, discordMemberId) {
     await initializeDatabase();
     const result = await query(
@@ -1362,13 +1670,13 @@ export async function setAFKStatus(serverId, discordMemberId, afkData) {
             'SELECT id FROM server_members WHERE server_id = ? AND discord_member_id = ?',
             [serverId, discordMemberId]
         );
-        
+
         if (!memberResult || memberResult.length === 0) {
             return null;
         }
-        
+
         const memberId = memberResult[0].id;
-        
+
         await query(
             `INSERT INTO server_members_afk (
                 member_id, message
@@ -1381,7 +1689,7 @@ export async function setAFKStatus(serverId, discordMemberId, afkData) {
                 afkData.message || 'Away'
             ]
         );
-        
+
         return await getAFKStatus(serverId, discordMemberId);
     } catch (error) {
         console.error('Error setting AFK status:', error);
@@ -1471,6 +1779,8 @@ export default {
     recalculateServerMemberRanks,
     getMemberLevelByDiscordId,
     getServerLeaderboard,
+    getServerMembersList,
+    getServerOverview,
     updateCustomRoleFlags,
     memberHasCustomSupporterRole,
     getPanel,
@@ -1482,6 +1792,9 @@ export default {
     upsertServerSettings,
     getChannelsForServer,
     getCategoriesForServer,
+    insertBotLog,
+    getBotLogs,
+    purgeOldBotLogs,
     serversNeedSync,
     getAFKStatus,
     setAFKStatus,

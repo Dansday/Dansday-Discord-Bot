@@ -1,11 +1,9 @@
 import db from '../../../database/database.js';
 import logger from '../../logger.js';
-import { getLoggerChannel } from '../../config.js';
 import { separateChannelsAndCategories, mapCategoriesForSync, mapChannelsForSync } from '../../utils.js';
 
 let client = null;
 let botId = null;
-let loggerInitialized = false;
 
 async function findBotByToken(token) {
     try {
@@ -52,18 +50,6 @@ async function syncGuildData(guild) {
         }
 
         const serverId = serverData.id;
-
-        if (!loggerInitialized && client) {
-            try {
-                const loggerChannelId = await getLoggerChannel(guild.id);
-                if (loggerChannelId) {
-                    logger.init(client, loggerChannelId);
-                    loggerInitialized = true;
-                    logger.log(`✅ Logger initialized with channel from ${guild.name}`);
-                }
-            } catch (error) {
-            }
-        }
 
         const { categories, channels } = separateChannelsAndCategories(guild.channels.cache);
 
@@ -139,35 +125,6 @@ async function updateBotInfo() {
     }
 }
 
-async function initLoggerChannel() {
-    if (!client || loggerInitialized) return;
-
-    try {
-        let guilds = client.guilds.cache;
-        if (guilds.size === 0) {
-            try {
-                await client.guilds.fetch();
-                guilds = client.guilds.cache;
-            } catch (fetchError) {
-            }
-        }
-
-        for (const [, guild] of guilds) {
-            try {
-                const loggerChannelId = await getLoggerChannel(guild.id);
-                if (loggerChannelId) {
-                    logger.init(client, loggerChannelId);
-                    loggerInitialized = true;
-                    logger.log(`✅ Logger initialized with channel from ${guild.name}`, guild.id);
-                    return;
-                }
-            } catch (error) {
-            }
-        }
-    } catch (error) {
-    }
-}
-
 async function init(discordClient, botToken) {
     client = discordClient;
 
@@ -184,8 +141,6 @@ async function init(discordClient, botToken) {
     if (client.user) {
         await updateBotInfo();
     }
-
-    await initLoggerChannel();
 
 
     setTimeout(async () => {
@@ -251,7 +206,7 @@ async function init(discordClient, botToken) {
         if (channel.guild) {
             const channelType = channel.type === 4 ? 'Category' : channel.type === 0 ? 'Text Channel' : channel.type === 5 ? 'News Channel' : 'Channel';
             const channelName = channel.name || 'Unknown';
-            await logger.log(`📁 ${channelType} created: **${channelName}** (${channel.id})`, channel.guild.id);
+            await logger.log(`📁 ${channelType} created: **${channelName}** (${channel.id})`);
             await syncGuildData(channel.guild);
         }
     });
@@ -263,9 +218,9 @@ async function init(discordClient, botToken) {
             const newName = newChannel.name || 'Unknown';
 
             if (oldName !== newName) {
-                await logger.log(`✏️ ${channelType} renamed: **${oldName}** → **${newName}** (${newChannel.id})`, newChannel.guild.id);
+                await logger.log(`✏️ ${channelType} renamed: **${oldName}** → **${newName}** (${newChannel.id})`);
             } else {
-                await logger.log(`✏️ ${channelType} updated: **${newName}** (${newChannel.id})`, newChannel.guild.id);
+                await logger.log(`✏️ ${channelType} updated: **${newName}** (${newChannel.id})`);
             }
             await syncGuildData(newChannel.guild);
         }
@@ -275,7 +230,7 @@ async function init(discordClient, botToken) {
         if (channel.guild) {
             const channelType = channel.type === 4 ? 'Category' : channel.type === 0 ? 'Text Channel' : channel.type === 5 ? 'News Channel' : 'Channel';
             const channelName = channel.name || 'Unknown';
-            await logger.log(`🗑️ ${channelType} deleted: **${channelName}** (${channel.id})`, channel.guild.id);
+            await logger.log(`🗑️ ${channelType} deleted: **${channelName}** (${channel.id})`);
             await syncGuildData(channel.guild);
         }
     });
@@ -284,7 +239,7 @@ async function init(discordClient, botToken) {
         if (role.guild) {
             const roleName = role.name || 'Unknown';
             const roleColor = role.hexColor !== '#000000' ? role.hexColor : 'No color';
-            await logger.log(`🎭 Role created: **${roleName}** (${roleColor}) (${role.id})`, role.guild.id);
+            await logger.log(`🎭 Role created: **${roleName}** (${roleColor}) (${role.id})`);
             await syncGuildData(role.guild);
         }
     });
@@ -297,11 +252,11 @@ async function init(discordClient, botToken) {
             const newColor = newRole.hexColor !== '#000000' ? newRole.hexColor : 'No color';
 
             if (oldName !== newName) {
-                await logger.log(`✏️ Role renamed: **${oldName}** → **${newName}** (${newRole.id})`, newRole.guild.id);
+                await logger.log(`✏️ Role renamed: **${oldName}** → **${newName}** (${newRole.id})`);
             } else if (oldColor !== newColor) {
-                await logger.log(`✏️ Role color updated: **${newName}** (${oldColor} → ${newColor}) (${newRole.id})`, newRole.guild.id);
+                await logger.log(`✏️ Role color updated: **${newName}** (${oldColor} → ${newColor}) (${newRole.id})`);
             } else {
-                await logger.log(`✏️ Role updated: **${newName}** (${newRole.id})`, newRole.guild.id);
+                await logger.log(`✏️ Role updated: **${newName}** (${newRole.id})`);
             }
             await syncGuildData(newRole.guild);
         }
@@ -310,7 +265,7 @@ async function init(discordClient, botToken) {
     client.on('roleDelete', async (role) => {
         if (role.guild) {
             const roleName = role.name || 'Unknown';
-            await logger.log(`🗑️ Role deleted: **${roleName}** (${role.id})`, role.guild.id);
+            await logger.log(`🗑️ Role deleted: **${roleName}** (${role.id})`);
             await syncGuildData(role.guild);
         }
     });
@@ -327,7 +282,7 @@ async function init(discordClient, botToken) {
                     }
                 }
             } catch (error) {
-                await logger.log(`⚠️ Failed to upsert member ${member.id} on join: ${error.message}`, member.guild.id);
+                await logger.log(`⚠️ Failed to upsert member ${member.id} on join: ${error.message}`);
             }
             await syncGuildData(member.guild);
         }

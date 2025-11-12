@@ -26,12 +26,12 @@ export async function processMessageFromSelfBot(messageData, client) {
     try {
         forwarderConfig = await FORWARDER.getForwarderConfigBySourceChannel(sourceChannelId, sourceGuildId);
     } catch (err) {
-        await logger.log(`❌ Error finding forwarder config for source channel ${sourceChannelId}: ${err.message}`, sourceGuildId);
+        await logger.log(`❌ Error finding forwarder config for source channel ${sourceChannelId}: ${err.message}`);
         return;
     }
 
     if (!forwarderConfig) {
-        await logger.log(`⚠️ No forwarder config found for channel ${sourceChannelId} in guild ${sourceGuildId}`, sourceGuildId);
+        await logger.log(`⚠️ No forwarder config found for channel ${sourceChannelId} in guild ${sourceGuildId}`);
         return;
     }
 

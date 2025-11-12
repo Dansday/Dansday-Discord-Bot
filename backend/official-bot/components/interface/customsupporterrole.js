@@ -11,7 +11,7 @@ async function cleanupInvalidRole(role) {
     try {
         await role.guild.members.fetch();
         const memberCount = role.members.size;
-        
+
         if (memberCount === 0) {
 
             await role.delete(`Auto-cleanup: Custom role has no members`);
@@ -43,17 +43,17 @@ async function hasSupporterRole(member) {
         if (!botConfig || !botConfig.id) {
             return { has: false };
         }
-        
+
         const user = member.user || member;
         const discordMemberId = user?.id || member.id;
-        
+
         const server = await db.getServerByDiscordId(botConfig.id, member.guild.id);
         if (!server) {
             return { has: false };
         }
 
         const result = await db.memberHasCustomSupporterRole(discordMemberId, server.id);
-        
+
         if (result.has && result.role) {
             const role = member.guild.roles.cache.get(result.role.discord_role_id);
             if (role) {
@@ -142,7 +142,7 @@ function parseColor(colorInput) {
 
 async function getRolePosition(guild) {
     const constraints = await CUSTOM_SUPPORTER_ROLE.getRoleConstraints(guild.id);
-    
+
     if (!constraints.ROLE_START || !constraints.ROLE_END) {
         throw new Error('Could not find role position constraints');
     }
@@ -754,7 +754,7 @@ async function cleanupCustomRoles(client) {
             try {
 
                 const constraints = await CUSTOM_SUPPORTER_ROLE.getRoleConstraints(guild.id);
-                
+
                 if (!constraints.ROLE_START || !constraints.ROLE_END) {
                     continue;
                 }
@@ -866,7 +866,7 @@ async function scanAndValidateCustomRoles(client) {
                     }
                     throw error;
                 }
-                
+
                 if (!constraints.ROLE_START || !constraints.ROLE_END) {
                     continue;
                 }
@@ -890,7 +890,7 @@ async function scanAndValidateCustomRoles(client) {
                 for (const role of customRoles.values()) {
                     try {
                         const memberCount = role.members.size;
-                        
+
                         if (memberCount === 1) {
 
                             const member = role.members.first();

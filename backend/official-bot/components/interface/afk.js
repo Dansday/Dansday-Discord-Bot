@@ -258,7 +258,7 @@ export async function handleAFKButton(interaction) {
         await logger.log(`⏸️ AFK modal shown to ${member.id}`);
 
     } catch (error) {
-        await logger.log(`❌ Error showing AFK modal: ${error.message}`, interaction.guild?.id);
+        await logger.log(`❌ Error showing AFK modal: ${error.message}`);
         await interaction.reply({
             content: `❌ Failed to open AFK form: ${error.message}`,
             flags: 64
@@ -310,7 +310,7 @@ export async function handleAFKModal(interaction) {
         await logger.log(`✅ AFK status set for ${member.id}: "${afkMessage}"${shouldDeafen ? ' (will be deafened)' : ' (not deafened)'}`);
 
     } catch (error) {
-        await logger.log(`❌ Error setting AFK: ${error.message}`, interaction.guild?.id);
+        await logger.log(`❌ Error setting AFK: ${error.message}`);
         await interaction.editReply({
             content: `❌ **Failed to Set AFK**\n\nError: ${error.message}\n\nPlease try again later.`
         });
@@ -355,7 +355,7 @@ export async function handleRemoveAFKButton(interaction) {
         await logger.log(`✅ AFK manually removed by ${member.id}`);
 
     } catch (error) {
-        await logger.log(`❌ Error removing AFK: ${error.message}`, interaction.guild?.id);
+        await logger.log(`❌ Error removing AFK: ${error.message}`);
         await interaction.reply({
             content: `❌ **Failed to Remove AFK**\n\nError: ${error.message}\n\nPlease try again later.`,
             flags: 64
@@ -389,13 +389,13 @@ export function init(client) {
 
             const senderData = await db.getMemberByDiscordId(serverData.id, member.id);
             if (!senderData) {
-                await logger.log(`⚠️ Unable to notify mention for ${member.id}: sender not found in database`, message.guild.id);
+                await logger.log(`⚠️ Unable to notify mention for ${member.id}: sender not found in database`);
                 return;
             }
 
             const senderDisplayName = senderData.server_display_name || senderData.display_name;
             if (!senderDisplayName) {
-                await logger.log(`⚠️ Sender display name missing in database for ${member.id}, skipping AFK DM`, message.guild.id);
+                await logger.log(`⚠️ Sender display name missing in database for ${member.id}, skipping AFK DM`);
                 return;
             }
 
