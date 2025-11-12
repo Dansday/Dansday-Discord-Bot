@@ -1042,6 +1042,60 @@ export async function getServerLeaderboard(serverId, limit = 3, sortType = 'xp')
     return result;
 }
 
+export async function getServerMembersList(serverId) {
+    await initializeDatabase();
+    if (!serverId) {
+        throw new Error('serverId is required to fetch members list');
+    }
+    
+    const result = await query(
+        `SELECT 
+            sm.id,
+            sm.discord_member_id,
+            sm.username,
+            sm.display_name,
+            sm.server_display_name,
+            sm.avatar,
+            sm.member_since,
+            sm.is_booster,
+            sm.booster_since,
+            sml.level,
+            sml.experience,
+            sml.chat_total,
+            sml.voice_minutes_active,
+            sml.voice_minutes_afk,
+            sml.rank,
+            sma.message as afk_message,
+            sma.created_at as afk_since,
+            GROUP_CONCAT(
+                DISTINCT CONCAT(sr.discord_role_id, ':', sr.name, ':', sr.color)
+                ORDER BY sr.position DESC
+                SEPARATOR ','
+            ) as roles
+         FROM server_members sm
+         LEFT JOIN server_member_levels sml ON sm.id = sml.member_id
+         LEFT JOIN server_members_afk sma ON sm.id = sma.member_id
+         LEFT JOIN server_member_roles smr ON sm.id = smr.member_id
+         LEFT JOIN server_roles sr ON smr.role_id = sr.id
+         WHERE sm.server_id = ?
+         GROUP BY sm.id, sm.discord_member_id, sm.username, sm.display_name, sm.server_display_name, 
+                  sm.avatar, sm.member_since, sm.is_booster, sm.booster_since,
+                  sml.level, sml.experience, sml.chat_total, sml.voice_minutes_active, 
+                  sml.voice_minutes_afk, sml.rank, sma.message, sma.created_at
+         ORDER BY sml.experience DESC, sml.level DESC, sm.created_at ASC`,
+        [serverId]
+    );
+    
+    return result.map(member => ({
+        ...member,
+        roles: member.roles ? member.roles.split(',').map(role => {
+            const [roleId, roleName, roleColor] = role.split(':');
+            return { id: roleId, name: roleName, color: roleColor || null };
+        }) : [],
+        is_afk: !!member.afk_message
+    }));
+}
+
 export async function updateCustomRoleFlags(serverId, roleStartId, roleEndId) {
     try {
         if (!roleStartId || !roleEndId) {
@@ -1482,6 +1536,7 @@ export default {
     recalculateServerMemberRanks,
     getMemberLevelByDiscordId,
     getServerLeaderboard,
+    getServerMembersList,
     updateCustomRoleFlags,
     memberHasCustomSupporterRole,
     getPanel,

@@ -1659,9 +1659,9 @@
 
             serverListContent.innerHTML = servers.map(server => {
                 if (isOfficial) {
-                    // Official bot - clickable for configuration
+                    // Official bot - clickable for member list
                     return `
-                        <div onclick="viewServerConfig('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
+                        <div onclick="viewServerMembers('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
                                     ${server.server_icon
@@ -1879,6 +1879,227 @@
             { id: 'leveling', name: 'Leveling', icon: 'fa-chart-line' }
         ];
         let currentComponent = 'main_config';
+
+        // View server members
+        async function viewServerMembers(serverId, serverName) {
+            currentServerId = serverId;
+            currentBotIdForServer = currentBotId;
+
+            // Hide bot detail, show server members
+            document.getElementById('botDetailContainer').classList.add('hidden');
+            document.getElementById('serverConfigContainer').classList.remove('hidden');
+
+            // Update title
+            document.getElementById('serverConfigTitle').textContent = `${serverName} - Members`;
+
+            // Load member list
+            await loadServerMembers(serverId);
+        }
+
+        // Load server members list
+        async function loadServerMembers(serverId) {
+            const contentContainer = document.getElementById('componentContent');
+            const navContainer = document.getElementById('componentNav');
+            const serverName = document.getElementById('serverConfigTitle').textContent.replace(' - Members', '');
+
+            // Hide component nav, show config button
+            navContainer.innerHTML = `
+                <button onclick="viewServerConfig('${serverId}', '${serverName.replace(/'/g, "\\'")}')"
+                    class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white">
+                    <i class="fas fa-cog"></i>
+                    <span class="sm:inline">Configuration</span>
+                </button>
+            `;
+
+            // Show loading
+            contentContainer.innerHTML = `
+                <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                    <div class="flex items-center justify-center py-8">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`/api/servers/${serverId}/members`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error('Failed to load members');
+                }
+
+                const members = await res.json();
+                renderMembersList(members);
+            } catch (error) {
+                console.error('Error loading members:', error);
+                contentContainer.innerHTML = `
+                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                        <p class="text-red-400 text-sm sm:text-base">Failed to load members: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Render members list
+        function renderMembersList(members) {
+            const contentContainer = document.getElementById('componentContent');
+            
+            if (!members || members.length === 0) {
+                contentContainer.innerHTML = `
+                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                        <p class="text-gray-300 text-sm sm:text-base">No members found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // HTML escape function to prevent XSS and tag issues
+            const escapeHtml = (text) => {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            };
+
+            const formatRoleColor = (color) => {
+                if (!color || color === 'null' || color === '0' || color === null || color === undefined || color === '') {
+                    return '#99AAB5';
+                }
+
+                // If it's already a hex string (starts with #)
+                if (typeof color === 'string' && color.startsWith('#')) {
+                    return color;
+                }
+
+                // If it's a hex string without #
+                if (typeof color === 'string' && /^[0-9A-Fa-f]{6}$/.test(color)) {
+                    return `#${color}`;
+                }
+
+                // If it's a number (Discord color integer)
+                const num = typeof color === 'string' ? parseInt(color, 10) : color;
+                if (!isNaN(num) && num !== 0) {
+                    const hex = num.toString(16).padStart(6, '0');
+                    return `#${hex}`;
+                }
+
+                return '#99AAB5';
+            };
+
+            const membersHTML = members.map(member => {
+                // Handle display name: use server_display_name if it exists and is not empty, otherwise use display_name, then username
+                let displayName = 'Unknown';
+                if (member.server_display_name && String(member.server_display_name).trim()) {
+                    displayName = member.server_display_name;
+                } else if (member.display_name && String(member.display_name).trim()) {
+                    displayName = member.display_name;
+                } else if (member.username && String(member.username).trim()) {
+                    displayName = member.username;
+                }
+                const avatar = member.avatar || `https://cdn.discordapp.com/embed/avatars/${parseInt(member.discord_member_id) % 5}.png`;
+                const level = member.level || 1;
+                const experience = member.experience || 0;
+                const chatTotal = member.chat_total || 0;
+                const voiceActive = member.voice_minutes_active || 0;
+                const voiceAfk = member.voice_minutes_afk || 0;
+                const rank = member.rank ? `#${member.rank}` : 'N/A';
+                const isBooster = member.is_booster || false;
+                const boosterSince = formatDate(member.booster_since);
+                const memberSince = formatDate(member.member_since);
+                const isAfk = member.is_afk || false;
+                const roles = member.roles || [];
+
+                return `
+                    <div class="bg-gray-700 rounded-lg p-4 border border-gray-600 hover:border-gray-500 transition-all">
+                        <div class="flex items-start gap-4">
+                            <img src="${avatar}" alt="${displayName}" class="w-12 h-12 rounded-full flex-shrink-0" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate">${escapeHtml(displayName)}</h4>
+                                    ${isBooster ? '<i class="fas fa-gift text-pink-500" title="Server Booster"></i>' : ''}
+                                    ${isAfk ? '<span class="px-2 py-0.5 bg-yellow-900 text-yellow-200 text-xs rounded">AFK</span>' : ''}
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
+                                    <div>
+                                        <span class="text-gray-400">Level:</span>
+                                        <span class="text-white font-medium ml-1">${level}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400">XP:</span>
+                                        <span class="text-white font-medium ml-1">${formatNumber(experience)}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400">Rank:</span>
+                                        <span class="text-white font-medium ml-1">${rank}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400">Chat:</span>
+                                        <span class="text-white font-medium ml-1">${formatNumber(chatTotal)}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400">Voice Active:</span>
+                                        <span class="text-white font-medium ml-1">${formatNumber(voiceActive)}m</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400">Voice AFK:</span>
+                                        <span class="text-white font-medium ml-1">${formatNumber(voiceAfk)}m</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400">Member Since:</span>
+                                        <span class="text-white font-medium ml-1">${memberSince}</span>
+                                    </div>
+                                    ${isBooster ? `
+                                    <div>
+                                        <span class="text-gray-400">Booster Since:</span>
+                                        <span class="text-white font-medium ml-1">${boosterSince}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                ${roles.length > 0 ? `
+                                <div class="mt-3 flex flex-wrap gap-1.5">
+                                    ${roles.map(role => {
+                    const roleColor = formatRoleColor(role.color);
+                    return `
+                                        <span class="px-2 py-0.5 rounded text-xs font-medium" style="background-color: ${roleColor}20; color: ${roleColor}; border: 1px solid ${roleColor}40;">
+                                            ${role.name || 'Unknown Role'}
+                                        </span>
+                                    `;
+                }).join('')}
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            contentContainer.innerHTML = `
+                <div class="mb-4 sm:mb-6">
+                    <h2 class="text-xl sm:text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                        <i class="fas fa-users text-red-500"></i>
+                        Members (${formatNumber(members.length)})
+                    </h2>
+                    <p class="text-gray-400 text-sm sm:text-base">
+                        View all server members with their leveling stats, roles, and status.
+                    </p>
+                </div>
+                <div class="space-y-3">
+                    ${membersHTML}
+                </div>
+            `;
+        }
 
         // View server configuration
         function viewServerConfig(serverId, serverName) {
@@ -3727,8 +3948,8 @@
             }
 
             const forwarder = forwardersData[currentForwarderType][index];
-            const forwarderInfo = forwarder.selfbot_name && forwarder.server_name 
-                ? `${forwarder.selfbot_name} → ${forwarder.server_name}` 
+            const forwarderInfo = forwarder.selfbot_name && forwarder.server_name
+                ? `${forwarder.selfbot_name} → ${forwarder.server_name}`
                 : 'this forwarder';
 
             showDeleteModal(

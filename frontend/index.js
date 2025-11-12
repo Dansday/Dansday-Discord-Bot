@@ -833,6 +833,23 @@ export async function init() {
         }
     });
 
+    app.get('/api/servers/:id/members', requireAuth, async (req, res) => {
+        const { id } = req.params;
+        const serverId = parseInt(id);
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'Invalid server ID' });
+        }
+
+        try {
+            const members = await db.getServerMembersList(serverId);
+            res.json(members);
+        } catch (error) {
+            logger.log(`❌ Error fetching server members: ${error.message}`);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     app.get('/api/servers/:id/roles', requireAuth, async (req, res) => {
         try {
             const roles = await db.getRoles(req.params.id);
