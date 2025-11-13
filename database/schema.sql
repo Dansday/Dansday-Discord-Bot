@@ -120,6 +120,8 @@ CREATE TABLE IF NOT EXISTS server_member_levels (
     voice_minutes_afk INT DEFAULT 0,
     experience INT DEFAULT 0,
     level INT DEFAULT 1,
+    dm_notifications_enabled BOOLEAN DEFAULT TRUE,
+    is_in_voice BOOLEAN DEFAULT FALSE,
     rank INT DEFAULT NULL,
     chat_rewarded_at TIMESTAMP NULL,
     voice_rewarded_at TIMESTAMP NULL,

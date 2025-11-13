@@ -3,7 +3,7 @@ import { getEmbedConfig, getBotConfig } from "../../../config.js";
 import { hasPermission } from "../permissions.js";
 import db from "../../../../database/database.js";
 import logger from "../../../logger.js";
-import { getLevelRequirement, determineLevel, calculateExperienceFromTotals } from "../leveling.js";
+import { getLevelRequirement, determineLevel, sendLevelChangeDM } from "../leveling.js";
 
 const PROGRESS_BAR_SLOTS = 10;
 
@@ -30,13 +30,19 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
         return null;
     }
 
+    const previousLevel = levelData.level ?? 1;
+    const dmPreference = levelData.dm_notifications_enabled;
+    const notificationsEnabled = !(dmPreference === false || dmPreference === 0);
+
     const botConfig = getBotConfig();
     let guildId = null;
+    let serverName = null;
     if (botConfig && botConfig.id) {
-        const server = await db.getServersForBot(botConfig.id);
-        const foundServer = server.find(s => s.id === serverId);
+        const servers = await db.getServersForBot(botConfig.id);
+        const foundServer = servers.find(s => s.id === serverId);
         if (foundServer) {
             guildId = foundServer.discord_server_id;
+            serverName = foundServer.name || null;
         }
     }
 
@@ -44,30 +50,10 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
         return levelData;
     }
 
-    const recalculatedExperience = await calculateExperienceFromTotals({
-        chatTotal: levelData.chat_total ?? 0,
-        voiceMinutesActive: levelData.voice_minutes_active ?? 0,
-        voiceMinutesAfk: levelData.voice_minutes_afk ?? 0
-    }, guildId);
-
     const currentExperience = levelData.experience ?? 0;
+    const recalculatedLevel = await determineLevel(currentExperience, guildId);
     const updates = {};
 
-    const voiceActive = levelData.voice_minutes_active ?? 0;
-    const voiceAfk = levelData.voice_minutes_afk ?? 0;
-    const expectedVoiceTotal = voiceActive + voiceAfk;
-    const currentVoiceTotal = levelData.voice_minutes_total ?? 0;
-    
-    if (expectedVoiceTotal !== currentVoiceTotal) {
-        updates.voiceMinutesActiveIncrement = 0;
-        updates.voiceMinutesAfkIncrement = 0;
-    }
-
-    if (recalculatedExperience !== currentExperience) {
-        updates.experienceIncrement = recalculatedExperience - currentExperience;
-    }
-
-    const recalculatedLevel = await determineLevel(recalculatedExperience, guildId);
     if ((levelData.level ?? 1) !== recalculatedLevel) {
         updates.level = recalculatedLevel;
     }
@@ -75,19 +61,23 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
     if (Object.keys(updates).length > 0) {
         const updatedStats = await db.updateMemberLevelStats(levelData.member_id, updates);
         if (updatedStats) {
+            if (recalculatedLevel > previousLevel && levelData.discord_member_id && notificationsEnabled) {
+                await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+            }
             return {
                 ...levelData,
                 ...updatedStats,
-                experience: recalculatedExperience,
                 level: recalculatedLevel
             };
         }
     }
 
-    if ((levelData.experience ?? 0) !== recalculatedExperience || (levelData.level ?? 1) !== recalculatedLevel) {
+    if ((levelData.level ?? 1) !== recalculatedLevel) {
+        if (recalculatedLevel > previousLevel && levelData.discord_member_id && notificationsEnabled) {
+            await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+        }
         return {
             ...levelData,
-            experience: recalculatedExperience,
             level: recalculatedLevel
         };
     }
@@ -152,15 +142,19 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
 
     let leaderboardTitle;
     switch (sortType) {
-        case 'xp':
-            leaderboardTitle = "⭐ Top XP (Top 3)";
+        case 'voice_total':
+            leaderboardTitle = "🎤 Top Voice (Total • Top 3)";
             break;
-        case 'voice':
-            leaderboardTitle = "🎤 Top Voice (Top 3)";
+        case 'voice_active':
+            leaderboardTitle = "🎤 Top Voice (Active • Top 3)";
+            break;
+        case 'voice_afk':
+            leaderboardTitle = "🎤 Top Voice (AFK • Top 3)";
             break;
         case 'chat':
             leaderboardTitle = "💬 Top Chat (Top 3)";
             break;
+        case 'xp':
         default:
             leaderboardTitle = "⭐ Top XP (Top 3)";
             break;
@@ -182,8 +176,6 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
             const avatar = entry.avatar || null;
 
             let medal = "";
-            let value = "";
-
             if (position === 1) {
                 medal = "🥇";
                 if (avatar) leaderboardEmbed.setThumbnail(avatar);
@@ -193,27 +185,38 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
                 medal = "🥉";
             }
 
+            let value = "";
+
             switch (sortType) {
-                case 'xp':
-                    value = `${medal} **${name}**\n${formatNumber(Math.round(xp))} XP • Level ${calculatedLevel}`;
-                    break;
-                case 'voice':
+                case 'voice_total': {
                     const totalMinutes = entry.voice_minutes_total || 0;
                     const activeMinutes = entry.voice_minutes_active || 0;
                     const afkMinutes = entry.voice_minutes_afk || 0;
-                    value = `${medal} **${name}**\n${formatNumber(totalMinutes)} min (Active ${formatNumber(activeMinutes)} • AFK ${formatNumber(afkMinutes)}) • ${formatNumber(Math.round(xp))} XP`;
+                    value = `${medal} **${name}**\n${formatNumber(totalMinutes)} min total (Active ${formatNumber(activeMinutes)} • AFK ${formatNumber(afkMinutes)})`;
                     break;
+                }
+                case 'voice_active': {
+                    const activeMinutes = entry.voice_minutes_active || 0;
+                    value = `${medal} **${name}**\n${formatNumber(activeMinutes)} min active`;
+                    break;
+                }
+                case 'voice_afk': {
+                    const afkMinutes = entry.voice_minutes_afk || 0;
+                    value = `${medal} **${name}**\n${formatNumber(afkMinutes)} min AFK`;
+                    break;
+                }
                 case 'chat':
-                    value = `${medal} **${name}**\n${formatNumber(entry.chat_total || 0)} messages • ${formatNumber(Math.round(xp))} XP`;
+                    value = `${medal} **${name}**\n${formatNumber(entry.chat_total || 0)} messages`;
                     break;
+                case 'xp':
                 default:
-                    value = `${medal} **${name}**\n${formatNumber(Math.round(xp))} XP • Level ${calculatedLevel}`;
+                    value = `${medal} **${name}**\n${formatNumber(Math.round(xp))} XP`;
                     break;
             }
 
             leaderboardEmbed.addFields({
-                name: `#${position}`,
-                value: value,
+                name: '\u200b',
+                value,
                 inline: false
             });
         }
@@ -225,31 +228,44 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
 }
 
 function createLeaderboardButtons(selectedType = 'xp') {
-    const xpButton = new ButtonBuilder()
-        .setCustomId('leaderboard_xp')
-        .setLabel('⭐ Top XP')
-        .setStyle(selectedType === 'xp' ? ButtonStyle.Primary : ButtonStyle.Secondary);
+    const buttons = [
+        new ButtonBuilder()
+            .setCustomId('leaderboard_xp')
+            .setLabel('⭐ Top XP')
+            .setStyle(selectedType === 'xp' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('leaderboard_voice_total')
+            .setLabel('🎤 Voice Total')
+            .setStyle(selectedType === 'voice_total' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('leaderboard_voice_active')
+            .setLabel('🎤 Voice Active')
+            .setStyle(selectedType === 'voice_active' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('leaderboard_voice_afk')
+            .setLabel('🎤 Voice AFK')
+            .setStyle(selectedType === 'voice_afk' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('leaderboard_chat')
+            .setLabel('💬 Top Chat')
+            .setStyle(selectedType === 'chat' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+    ];
 
-    const voiceButton = new ButtonBuilder()
-        .setCustomId('leaderboard_voice')
-        .setLabel('🎤 Top Voice')
-        .setStyle(selectedType === 'voice' ? ButtonStyle.Primary : ButtonStyle.Secondary);
+    return new ActionRowBuilder().addComponents(...buttons);
+}
 
-    const chatButton = new ButtonBuilder()
-        .setCustomId('leaderboard_chat')
-        .setLabel('💬 Top Chat')
-        .setStyle(selectedType === 'chat' ? ButtonStyle.Primary : ButtonStyle.Secondary);
+function createDmToggleRow(dmEnabled = true) {
+    const toggleButton = new ButtonBuilder()
+        .setCustomId('leveling_dm_toggle')
+        .setLabel(dmEnabled ? '🔔 DM On' : '🔕 DM Off')
+        .setStyle(dmEnabled ? ButtonStyle.Success : ButtonStyle.Secondary);
 
-    return new ActionRowBuilder().addComponents(xpButton, voiceButton, chatButton);
+    return new ActionRowBuilder().addComponents(toggleButton);
 }
 
 export async function handleLevelingButton(interaction) {
     try {
         if (!(await hasPermission(interaction.member, "leveling"))) {
-            await interaction.reply({
-                content: "❌ You don't have permission to view leveling information.",
-                flags: 64
-            });
             return;
         }
 
@@ -289,10 +305,11 @@ export async function handleLevelingButton(interaction) {
         const sortType = 'xp';
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id);
         const buttons = createLeaderboardButtons(sortType);
+        const dmRow = createDmToggleRow(!(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0));
 
         await interaction.reply({
             embeds: [profileEmbed, leaderboardEmbed],
-            components: [buttons],
+            components: [buttons, dmRow],
             flags: 64
         });
     } catch (error) {
@@ -307,14 +324,6 @@ export async function handleLevelingButton(interaction) {
 export async function handleLeaderboardButton(interaction) {
     try {
         if (!(await hasPermission(interaction.member, "leveling"))) {
-            await interaction.update({
-                content: "❌ You don't have permission to view leveling information.",
-                components: [],
-                flags: 64
-            }).catch(() => interaction.reply({
-                content: "❌ You don't have permission to view leveling information.",
-                flags: 64
-            }));
             return;
         }
 
@@ -339,10 +348,11 @@ export async function handleLeaderboardButton(interaction) {
         const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id);
         const buttons = createLeaderboardButtons(sortType);
+        const dmRow = createDmToggleRow(!(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0));
 
         await interaction.update({
             embeds: [profileEmbed, leaderboardEmbed],
-            components: [buttons],
+            components: [buttons, dmRow],
             flags: 64
         });
     } catch (error) {
@@ -351,5 +361,89 @@ export async function handleLeaderboardButton(interaction) {
             content: `❌ Failed to load leaderboard: ${error.message}`,
             flags: 64
         }).catch(() => null);
+    }
+}
+
+export async function handleDmToggleButton(interaction) {
+    try {
+        if (!(await hasPermission(interaction.member, "leveling"))) {
+            return;
+        }
+
+        const server = await getServerForInteraction(interaction);
+        if (!server) {
+            await interaction.reply({
+                content: "⚠️ This server is not registered with the bot. Please run a sync first.",
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        const guildMember = interaction.member || await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!guildMember) {
+            await interaction.reply({
+                content: "❌ Failed to fetch member information. Please try again.",
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        const dbMember = await db.upsertMember(server.id, guildMember);
+        if (!dbMember) {
+            await interaction.reply({
+                content: "❌ Failed to create member record. Please try again.",
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        await db.ensureMemberLevel(dbMember.id);
+
+        let memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
+        if (!memberLevelData) {
+            await interaction.reply({
+                content: "⚠️ No leveling data found for this member.",
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        const currentlyEnabled = !(memberLevelData.dm_notifications_enabled === false || memberLevelData.dm_notifications_enabled === 0);
+        await db.setMemberLevelDMPreference(memberLevelData.member_id, !currentlyEnabled);
+
+        memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
+
+        let sortType = 'xp';
+        const leaderboardRow = interaction.message?.components?.[0];
+        if (leaderboardRow && Array.isArray(leaderboardRow.components)) {
+            for (const component of leaderboardRow.components) {
+                if (component.style === ButtonStyle.Primary && typeof component.customId === 'string' && component.customId.startsWith('leaderboard_')) {
+                    sortType = component.customId.replace('leaderboard_', '');
+                    break;
+                }
+            }
+        }
+
+        const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id);
+        const buttons = createLeaderboardButtons(sortType);
+        const dmRow = createDmToggleRow(!(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0));
+
+        await interaction.update({
+            embeds: [profileEmbed, leaderboardEmbed],
+            components: [buttons, dmRow],
+            flags: 64
+        });
+    } catch (error) {
+        await logger.log(`❌ Leveling DM toggle error: ${error.message}`);
+        if (interaction.replied || interaction.deferred) {
+            await interaction.editReply({
+                content: `❌ Failed to update DM notifications: ${error.message}`
+            }).catch(() => null);
+        } else {
+            await interaction.reply({
+                content: `❌ Failed to update DM notifications: ${error.message}`,
+                flags: 64
+            }).catch(() => null);
+        }
     }
 }

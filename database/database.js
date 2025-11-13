@@ -228,6 +228,18 @@ async function setupDatabase() {
             await query('ALTER TABLE server_members ADD COLUMN server_display_name TEXT');
             logger.log('✅ Added server_display_name column');
         }
+
+        const dmPreferenceCheck = await query(
+            `SELECT COLUMN_NAME FROM information_schema.COLUMNS 
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'server_member_levels' AND COLUMN_NAME = 'dm_notifications_enabled'`,
+            [connectionConfig.database]
+        );
+
+        if (!dmPreferenceCheck || dmPreferenceCheck.length === 0) {
+            logger.log('🔧 Adding dm_notifications_enabled column to server_member_levels table...');
+            await query('ALTER TABLE server_member_levels ADD COLUMN dm_notifications_enabled BOOLEAN DEFAULT TRUE AFTER level');
+            logger.log('✅ Added dm_notifications_enabled column');
+        }
     } catch (err) {
         logger.log(`⚠️  Error checking/adding columns: ${err.message}`);
     }
@@ -929,6 +941,11 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
         values.push(updates.rank);
     }
 
+    if (typeof updates.isInVoice === 'boolean') {
+        clauses.push('is_in_voice = ?');
+        values.push(updates.isInVoice ? 1 : 0);
+    }
+
     if (updates.chatRewardedAt) {
         clauses.push('chat_rewarded_at = ?');
         values.push(toMySQLDateTime(updates.chatRewardedAt));
@@ -956,6 +973,22 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
          SET ${clauses.join(', ')}
          WHERE member_id = ?`,
         values
+    );
+
+    return await getMemberLevel(memberId);
+}
+
+export async function setMemberLevelDMPreference(memberId, enabled = true) {
+    await initializeDatabase();
+    if (!memberId) {
+        throw new Error('memberId is required to update DM preference');
+    }
+
+    await query(
+        `UPDATE server_member_levels
+         SET dm_notifications_enabled = ?, updated_at = ?
+         WHERE member_id = ?`,
+        [enabled ? 1 : 0, toMySQLDateTime(), memberId]
     );
 
     return await getMemberLevel(memberId);
@@ -1009,6 +1042,21 @@ export async function getMemberLevelByDiscordId(serverId, discordMemberId) {
     return result[0] || null;
 }
 
+export async function getMembersWithInVoiceFlag(serverId) {
+    await initializeDatabase();
+    if (!serverId) {
+        throw new Error('serverId is required to fetch members with in-voice flag');
+    }
+    const result = await query(
+        `SELECT sml.member_id, sm.discord_member_id
+         FROM server_member_levels sml
+         INNER JOIN server_members sm ON sml.member_id = sm.id
+         WHERE sm.server_id = ? AND sml.is_in_voice = TRUE`,
+        [serverId]
+    );
+    return result;
+}
+
 export async function getServerLeaderboard(serverId, limit = 3, sortType = 'xp') {
     await initializeDatabase();
     if (!serverId) {
@@ -1018,17 +1066,21 @@ export async function getServerLeaderboard(serverId, limit = 3, sortType = 'xp')
 
     let orderBy;
     switch (sortType) {
-        case 'xp':
-            orderBy = 'sml.experience DESC, sml.level DESC, sml.created_at ASC';
+        case 'voice_total':
+            orderBy = 'sml.voice_minutes_total DESC, sml.updated_at ASC, sml.created_at ASC';
             break;
-        case 'voice':
-            orderBy = 'sml.voice_minutes_total DESC, sml.experience DESC, sml.created_at ASC';
+        case 'voice_active':
+            orderBy = 'sml.voice_minutes_active DESC, sml.updated_at ASC, sml.created_at ASC';
+            break;
+        case 'voice_afk':
+            orderBy = 'sml.voice_minutes_afk DESC, sml.updated_at ASC, sml.created_at ASC';
             break;
         case 'chat':
-            orderBy = 'sml.chat_total DESC, sml.experience DESC, sml.created_at ASC';
+            orderBy = 'sml.chat_total DESC, sml.updated_at ASC, sml.created_at ASC';
             break;
+        case 'xp':
         default:
-            orderBy = 'sml.experience DESC, sml.level DESC, sml.created_at ASC';
+            orderBy = 'sml.experience DESC, sml.updated_at ASC, sml.created_at ASC';
             break;
     }
 
@@ -1807,8 +1859,10 @@ export default {
     getMemberLevel,
     ensureMemberLevel,
     updateMemberLevelStats,
+    setMemberLevelDMPreference,
     recalculateServerMemberRanks,
     getMemberLevelByDiscordId,
+    getMembersWithInVoiceFlag,
     getServerLeaderboard,
     getServerMembersList,
     getServerOverview,
