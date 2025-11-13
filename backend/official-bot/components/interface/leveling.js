@@ -3,7 +3,7 @@ import { getEmbedConfig, getBotConfig } from "../../../config.js";
 import { hasPermission } from "../permissions.js";
 import db from "../../../../database/database.js";
 import logger from "../../../logger.js";
-import { getLevelRequirement, determineLevel, calculateExperienceFromTotals, sendLevelChangeDM } from "../leveling.js";
+import { getLevelRequirement, determineLevel, sendLevelChangeDM } from "../leveling.js";
 
 const PROGRESS_BAR_SLOTS = 10;
 
@@ -50,30 +50,10 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
         return levelData;
     }
 
-    const recalculatedExperience = await calculateExperienceFromTotals({
-        chatTotal: levelData.chat_total ?? 0,
-        voiceMinutesActive: levelData.voice_minutes_active ?? 0,
-        voiceMinutesAfk: levelData.voice_minutes_afk ?? 0
-    }, guildId);
-
     const currentExperience = levelData.experience ?? 0;
+    const recalculatedLevel = await determineLevel(currentExperience, guildId);
     const updates = {};
 
-    const voiceActive = levelData.voice_minutes_active ?? 0;
-    const voiceAfk = levelData.voice_minutes_afk ?? 0;
-    const expectedVoiceTotal = voiceActive + voiceAfk;
-    const currentVoiceTotal = levelData.voice_minutes_total ?? 0;
-    
-    if (expectedVoiceTotal !== currentVoiceTotal) {
-        updates.voiceMinutesActiveIncrement = 0;
-        updates.voiceMinutesAfkIncrement = 0;
-    }
-
-    if (recalculatedExperience !== currentExperience) {
-        updates.experienceIncrement = recalculatedExperience - currentExperience;
-    }
-
-    const recalculatedLevel = await determineLevel(recalculatedExperience, guildId);
     if ((levelData.level ?? 1) !== recalculatedLevel) {
         updates.level = recalculatedLevel;
     }
@@ -87,19 +67,17 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
             return {
                 ...levelData,
                 ...updatedStats,
-                experience: recalculatedExperience,
                 level: recalculatedLevel
             };
         }
     }
 
-    if ((levelData.experience ?? 0) !== recalculatedExperience || (levelData.level ?? 1) !== recalculatedLevel) {
+    if ((levelData.level ?? 1) !== recalculatedLevel) {
         if (recalculatedLevel > previousLevel && levelData.discord_member_id && notificationsEnabled) {
             await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
         }
         return {
             ...levelData,
-            experience: recalculatedExperience,
             level: recalculatedLevel
         };
     }
@@ -145,9 +123,6 @@ async function buildLevelingEmbeds(server, memberLevelData, sortType = 'xp', gui
     profileLines.push(`• ├ Active: ${formatNumber(voiceActive)}`);
     profileLines.push(`• └ AFK: ${formatNumber(voiceAfk)}`);
     profileLines.push(`• **Rank:** ${memberLevelData?.rank ? `#${memberLevelData.rank}` : "Unranked"}`);
-    const dmPreference = memberLevelData?.dm_notifications_enabled;
-    const notificationStatus = !(dmPreference === false || dmPreference === 0);
-    profileLines.push(`• **DM Notifications:** ${notificationStatus ? "Enabled" : "Muted"}`);
 
     const profileEmbed = new EmbedBuilder()
         .setColor(embedConfig.COLOR)

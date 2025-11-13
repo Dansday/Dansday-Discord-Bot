@@ -92,8 +92,8 @@ export async function determineLevel(experience = 0, guildId) {
     return level;
 }
 
-async function reconcileMemberExperience(memberId, guildId = null) {
-    if (!memberId) {
+async function recalculateLevelFromExperience(memberId, guildId) {
+    if (!memberId || !guildId) {
         return null;
     }
 
@@ -102,37 +102,14 @@ async function reconcileMemberExperience(memberId, guildId = null) {
         return null;
     }
 
-    const expectedExperience = await calculateExperienceFromTotals({
-        chatTotal: levelData.chat_total ?? 0,
-        voiceMinutesActive: levelData.voice_minutes_active ?? 0,
-        voiceMinutesAfk: levelData.voice_minutes_afk ?? 0
-    }, guildId);
-
     const currentExperience = levelData.experience ?? 0;
-    const updates = {};
+    const expectedLevel = await determineLevel(currentExperience, guildId);
 
-    if (expectedExperience !== currentExperience) {
-        updates.experienceIncrement = expectedExperience - currentExperience;
-    }
-
-    const expectedLevel = await determineLevel(expectedExperience, guildId);
     if ((levelData.level ?? 1) !== expectedLevel) {
-        updates.level = expectedLevel;
-    }
-
-    if (Object.keys(updates).length > 0) {
-        const updatedStats = await db.updateMemberLevelStats(memberId, updates);
+        const updatedStats = await db.updateMemberLevelStats(memberId, { level: expectedLevel });
         if (updatedStats) {
             return updatedStats;
         }
-    }
-
-    if ((levelData.experience ?? 0) !== expectedExperience || (levelData.level ?? 1) !== expectedLevel) {
-        return {
-            ...levelData,
-            experience: expectedExperience,
-            level: expectedLevel
-        };
     }
 
     return levelData;
@@ -349,22 +326,17 @@ async function handleMessageCreate(message) {
         await db.ensureMemberLevel(dbMember.id);
         const previousStats = await db.getMemberLevel(dbMember.id);
         const xpGained = await getExperienceForMessage(guildId);
-        let stats = await db.updateMemberLevelStats(dbMember.id, {
+        const stats = await db.updateMemberLevelStats(dbMember.id, {
             chatIncrement: 1,
             experienceIncrement: xpGained,
             chatRewardedAt: message.createdAt || new Date()
         });
 
-        const reconciledStats = await reconcileMemberExperience(dbMember.id, guildId);
-        if (reconciledStats) {
-            stats = reconciledStats;
-        }
-
         const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || message.author.username;
         const currentLevel = await determineLevel(stats.experience || 0, guildId);
         await logger.log(`💬 Chat XP: ${memberName} (${message.author.id}) gained +${xpGained} XP from chat | Total: ${stats.experience || 0} XP | Level: ${currentLevel}`);
 
-        stats = await handleLevelEvaluation(server, dbMember, stats, message.guild.id, {
+        await handleLevelEvaluation(server, dbMember, stats, message.guild.id, {
             previousLevel: previousStats?.level ?? null,
             previousExperience: previousStats?.experience ?? null,
             reason: "message"
@@ -389,12 +361,7 @@ async function awardVoiceXP(server, dbMember, guildMember, minutes, isAFK, guild
         updates.voiceMinutesActiveIncrement = minutes;
     }
 
-    let stats = await db.updateMemberLevelStats(dbMember.id, updates);
-    const reconciledStats = await reconcileMemberExperience(dbMember.id, guildId);
-    if (reconciledStats) {
-        stats = reconciledStats;
-    }
-
+    const stats = await db.updateMemberLevelStats(dbMember.id, updates);
     const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || guildMember.displayName || guildMember.user.username;
     const currentLevel = await determineLevel(stats.experience || 0, guildId);
     const xpType = isAFK ? "AFK Voice" : "Voice";
