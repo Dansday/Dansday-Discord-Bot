@@ -1,6 +1,8 @@
 import { getLevelingSettings, PERMISSIONS, getBotConfig } from "../../config.js";
 import db from "../../../database/database.js";
 import logger from "../../logger.js";
+import { generateLevelUpImage } from "./leveling-image.js";
+import { AttachmentBuilder } from "discord.js";
 
 const recentMessages = new Map();
 const voiceSessions = new Map();
@@ -214,22 +216,60 @@ export async function sendLevelChangeDM(guildId, discordMemberId, serverName, ne
             return false;
         }
 
-        const member = await guild.members.fetch(discordMemberId).catch(() => null);
+        const member = await guild.members.fetch(discordMemberId);
         if (!member || !member.user) {
             return false;
         }
 
-        const dmChannel = await member.user.createDM().catch(() => null);
-        if (!dmChannel) {
-            return false;
-        }
+        const dmChannel = await member.user.createDM();
 
-        const targetServerName = serverName || guild.name || "your server";
+        const targetServerName = serverName;
         await dmChannel.send(`🎉 **Congratulations!** You've reached **Level ${newLevel}** in **${targetServerName}**!\n\nKeep up the great work! 🚀`);
         await logger.log(`⭐ Sent level change DM (${contextLabel}) to ${discordMemberId} for level ${newLevel} in ${targetServerName}`);
         return true;
     } catch (error) {
         await logger.log(`⚠️ Failed to send level change DM (${contextLabel}) to ${discordMemberId}: ${error.message}`);
+        return false;
+    }
+}
+
+export async function sendLevelUpNotification(guildId, discordMemberId, serverName, newLevel, contextLabel = "level-change") {
+    if (!clientInstance || !guildId || !discordMemberId || !newLevel) {
+        return false;
+    }
+
+    try {
+        const guild = clientInstance.guilds.cache.get(guildId);
+        if (!guild) {
+            return false;
+        }
+
+        const member = await guild.members.fetch(discordMemberId);
+        if (!member || !member.user) {
+            return false;
+        }
+
+        // Get leveling settings to check for channel
+        const settings = await getLevelingSettings(guildId);
+        const levelUpChannelId = settings.LEVEL_UP_CHANNEL_ID;
+
+        if (!levelUpChannelId) {
+            return false;
+        }
+
+        const channel = await guild.channels.fetch(levelUpChannelId);
+        if (!channel) {
+            return false;
+        }
+
+        // Generate level up image
+        const imageBuffer = await generateLevelUpImage(member, newLevel, guildId);
+        const attachment = new AttachmentBuilder(imageBuffer, { name: 'levelup.png' });
+        await channel.send({ files: [attachment] });
+        await logger.log(`⭐ Sent level up notification (${contextLabel}) to channel ${levelUpChannelId} for ${discordMemberId} level ${newLevel} in ${serverName}`);
+        return true;
+    } catch (error) {
+        await logger.log(`⚠️ Failed to send level up notification (${contextLabel}) to ${discordMemberId}: ${error.message}`);
         return false;
     }
 }
@@ -287,6 +327,13 @@ async function handleLevelEvaluation(server, dbMember, currentStats, guildId, co
 
     if (expectedLevel > baselineLevel) {
         const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || dbMember.discord_member_id || "Unknown member";
+        
+        // Send level up notification to channel (if configured)
+        if (dbMember.discord_member_id) {
+            await sendLevelUpNotification(guildId, dbMember.discord_member_id, server.name, expectedLevel, `level-eval:${reason}`);
+        }
+        
+        // Also send DM if enabled (for backward compatibility)
         if (!notificationsEnabled) {
             await logger.log(`🔕 Level up detected (${reason}) for ${memberName} but DM notifications are disabled`);
         } else if (dbMember.discord_member_id) {

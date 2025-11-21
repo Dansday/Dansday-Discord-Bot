@@ -223,7 +223,8 @@ export async function getLevelingSettings(guildId) {
         REQUIREMENTS: {
             BASE_XP: config.REQUIREMENTS.BASE_XP,
             MULTIPLIER: config.REQUIREMENTS.MULTIPLIER
-        }
+        },
+        LEVEL_UP_CHANNEL_ID: config.LEVEL_UP_CHANNEL_ID
     };
 }
 

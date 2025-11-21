@@ -3895,6 +3895,8 @@
                     config = settings;
                 }
             }
+            const channelIds = config.LEVEL_UP_CHANNEL_ID ? [config.LEVEL_UP_CHANNEL_ID] : [];
+            const channelNames = await loadChannelNames(channelIds);
             const messageXP = config.MESSAGE?.XP;
             const messageCooldown = config.MESSAGE?.COOLDOWN_SECONDS;
             const voiceXPPerMin = config.VOICE?.XP_PER_MINUTE;
@@ -4017,6 +4019,26 @@
                                 <select id="voice_cooldown" name="voice_cooldown" class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm sm:text-base">
                                     ${voiceCooldownOptions}
                                 </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Level Up Channel -->
+                    <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-white mb-4">
+                            <i class="fas fa-hashtag mr-2"></i>Level Up Channel
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                                    Level Up Notification Channel
+                                </label>
+                                <p class="text-xs text-gray-400 mb-2">Channel where level up images will be posted when members level up</p>
+                                <button type="button" onclick="openChannelSelector('leveling_channel')"
+                                    class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-600 rounded-lg text-white hover:bg-gray-750 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base flex items-center justify-between">
+                                    <span id="leveling_channel_display" class="text-gray-300">${config.LEVEL_UP_CHANNEL_ID && channelNames[config.LEVEL_UP_CHANNEL_ID] ? '#' + channelNames[config.LEVEL_UP_CHANNEL_ID] : config.LEVEL_UP_CHANNEL_ID ? 'Channel ' + config.LEVEL_UP_CHANNEL_ID : 'Select channel...'}</span>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                                <input type="hidden" id="leveling_channel" name="leveling_channel" value="${config.LEVEL_UP_CHANNEL_ID ?? ''}">
                             </div>
                         </div>
                     </div>
@@ -4979,6 +5001,16 @@
                         targetDisplayEl.textContent = `#${channelNames[channelId]}`;
                     } else {
                         targetDisplayEl.textContent = channelName.startsWith('#') ? channelName : `#${channelName}`;
+                    }
+                }
+            } else if (currentChannelField === 'leveling_channel') {
+                const displayEl = document.getElementById('leveling_channel_display');
+                if (displayEl) {
+                    const channelNames = await loadChannelNames([channelId]);
+                    if (channelNames[channelId]) {
+                        displayEl.textContent = `#${channelNames[channelId]}`;
+                    } else {
+                        displayEl.textContent = channelName.startsWith('#') ? channelName : `#${channelName}`;
                     }
                 }
             }
@@ -6018,7 +6050,8 @@
                 REQUIREMENTS: {
                     BASE_XP: parseInt(document.getElementById('base_xp').value),
                     MULTIPLIER: parseFloat(document.getElementById('multiplier').value)
-                }
+                },
+                LEVEL_UP_CHANNEL_ID: document.getElementById('leveling_channel').value
             };
             const submitBtn = document.getElementById('saveLevelingConfigBtn');
             const loadingIcon = document.getElementById('saveLevelingConfigLoading');

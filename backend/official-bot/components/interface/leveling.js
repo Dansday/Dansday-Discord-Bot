@@ -3,7 +3,7 @@ import { getEmbedConfig, getBotConfig } from "../../../config.js";
 import { hasPermission, getPermissionDeniedMessage } from "../permissions.js";
 import db from "../../../../database/database.js";
 import logger from "../../../logger.js";
-import { getLevelRequirement, determineLevel, sendLevelChangeDM } from "../leveling.js";
+import { getLevelRequirement, determineLevel, sendLevelChangeDM, sendLevelUpNotification } from "../leveling.js";
 
 const PROGRESS_BAR_SLOTS = 10;
 
@@ -58,29 +58,35 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
         updates.level = recalculatedLevel;
     }
 
-    if (Object.keys(updates).length > 0) {
-        const updatedStats = await db.updateMemberLevelStats(levelData.member_id, updates);
-        if (updatedStats) {
-            if (recalculatedLevel > previousLevel && levelData.discord_member_id && notificationsEnabled) {
-                await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+        if (Object.keys(updates).length > 0) {
+            const updatedStats = await db.updateMemberLevelStats(levelData.member_id, updates);
+            if (updatedStats) {
+                if (recalculatedLevel > previousLevel && levelData.discord_member_id) {
+                    await sendLevelUpNotification(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+                    if (notificationsEnabled) {
+                        await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+                    }
+                }
+                return {
+                    ...levelData,
+                    ...updatedStats,
+                    level: recalculatedLevel
+                };
+            }
+        }
+
+        if ((levelData.level ?? 1) !== recalculatedLevel) {
+            if (recalculatedLevel > previousLevel && levelData.discord_member_id) {
+                await sendLevelUpNotification(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+                if (notificationsEnabled) {
+                    await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+                }
             }
             return {
                 ...levelData,
-                ...updatedStats,
                 level: recalculatedLevel
             };
         }
-    }
-
-    if ((levelData.level ?? 1) !== recalculatedLevel) {
-        if (recalculatedLevel > previousLevel && levelData.discord_member_id && notificationsEnabled) {
-            await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
-        }
-        return {
-            ...levelData,
-            level: recalculatedLevel
-        };
-    }
 
     return levelData;
 }
