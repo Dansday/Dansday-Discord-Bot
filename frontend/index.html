@@ -3300,27 +3300,27 @@
                         </button>
                         <input type="hidden" id="testing_channel" name="testing_channel" value="${config.testing_channel || ''}">
                     </div>
-                    <!-- Default Embed Color -->
+                    <!-- Default Color -->
                     <div>
                         <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-palette mr-2"></i>Default Embed Color
+                            <i class="fas fa-palette mr-2"></i>Default Color
                         </label>
-                        <p class="text-xs text-gray-400 mb-2">Default color for all bot embeds. Use hex format (e.g., #FF0000 for red)</p>
+                        <p class="text-xs text-gray-400 mb-2">Default color for bot messages and embeds. Use hex format (e.g., #FF0000 for red)</p>
                         <div class="flex items-center gap-3">
-                            <input type="color" id="embed_color" name="embed_color" value="${config.embed_color || '#FF0000'}"
+                            <input type="color" id="color" name="color" value="${config.color || ''}"
                                 class="w-16 h-10 sm:w-20 sm:h-12 rounded-lg cursor-pointer border border-gray-600 bg-gray-700">
-                            <input type="text" id="embed_color_text" name="embed_color_text" value="${config.embed_color || '#FF0000'}"
+                            <input type="text" id="color_text" name="color_text" value="${config.color || ''}"
                                 class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base"
                                 placeholder="#FF5733" pattern="^#[0-9A-Fa-f]{6}$">
                         </div>
                     </div>
-                    <!-- Default Embed Footer -->
+                    <!-- Default Footer -->
                     <div>
                         <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-align-left mr-2"></i>Default Embed Footer
+                            <i class="fas fa-align-left mr-2"></i>Default Footer
                         </label>
-                        <p class="text-xs text-gray-400 mb-2">Footer text displayed at the bottom of all bot embeds. Use placeholders below for dynamic content</p>
-                        <input type="text" id="embed_footer" name="embed_footer" value="${(config.embed_footer || '').replace(/"/g, '&quot;')}"
+                        <p class="text-xs text-gray-400 mb-2">Footer text displayed at the bottom of all bot messages and embeds. Use placeholders below for dynamic content</p>
+                        <input type="text" id="footer" name="footer" value="${config.footer ? config.footer.replace(/"/g, '&quot;') : ''}"
                             class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm sm:text-base"
                             placeholder="Enter footer text...">
                         <div class="mt-2 bg-blue-900 border border-blue-700 rounded-lg p-3">
@@ -5690,19 +5690,19 @@
             }
         }
         function setupColorPickerSync() {
-            const colorPicker = document.getElementById('embed_color');
-            const colorText = document.getElementById('embed_color_text');
+            const colorPicker = document.getElementById('color');
+            const colorText = document.getElementById('color_text');
             if (!colorPicker || !colorText) return;
             const newColorPicker = colorPicker.cloneNode(true);
             const newColorText = colorText.cloneNode(true);
             colorPicker.parentNode.replaceChild(newColorPicker, colorPicker);
             colorText.parentNode.replaceChild(newColorText, colorText);
-            document.getElementById('embed_color').addEventListener('input', function () {
-                document.getElementById('embed_color_text').value = this.value;
+            document.getElementById('color').addEventListener('input', function () {
+                document.getElementById('color_text').value = this.value;
             });
-            document.getElementById('embed_color_text').addEventListener('input', function () {
+            document.getElementById('color_text').addEventListener('input', function () {
                 if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
-                    document.getElementById('embed_color').value = this.value;
+                    document.getElementById('color').value = this.value;
                 }
             });
         }
@@ -5712,8 +5712,8 @@
             const formData = {
                 testing_channel: document.getElementById('testing_channel').value || null,
                 production_channel: document.getElementById('production_channel').value || null,
-                embed_color: document.getElementById('embed_color').value,
-                embed_footer: document.getElementById('embed_footer').value || null
+                color: document.getElementById('color').value,
+                footer: document.getElementById('footer').value
             };
             const submitBtn = document.getElementById('saveMainConfigBtn');
             const loadingIcon = document.getElementById('saveMainConfigLoading');
@@ -6099,10 +6099,10 @@
                 });
                 const configData = configRes.ok ? await configRes.json() : null;
                 const embedConfig = configData?.settings || configData || {};
-                const defaultColor = embedConfig.embed_color || '#FF0000';
-                const defaultFooter = embedConfig.embed_footer || '';
+                const defaultColor = embedConfig.color;
+                const defaultFooter = embedConfig.footer;
                 embedDefaultColor = defaultColor;
-                embedDefaultFooter = defaultFooter || '';
+                embedDefaultFooter = defaultFooter;
 
                 contentContainer.innerHTML = `
                     <div class="mb-4 sm:mb-6">
@@ -6500,7 +6500,7 @@
 
                 const titleField = document.getElementById('embed_title');
                 const descField = document.getElementById('embed_description');
-                const footerField = document.getElementById('embed_footer');
+                const footerField = document.getElementById('footer');
 
                 if (titleField) {
                     titleField.addEventListener('input', () => {
@@ -6526,7 +6526,7 @@
                         updateTotalEmbedCounter();
                         updateEmbedPreview();
                     });
-                    updateCharacterCounter('embed_footer', 'embed_footer_counter', 2048);
+                    updateCharacterCounter('footer', 'footer_counter', 2048);
                 }
 
 
@@ -6674,14 +6674,14 @@
             const imageUrlInput = document.getElementById('embed_image')?.value || '';
             const uploadedImageUrl = document.getElementById('embed_uploaded_image_url')?.value || '';
             const imageUrl = uploadedImageUrl || imageUrlInput;
-            const colorInput = document.getElementById('embed_color')?.value || '';
-            const footerInput = document.getElementById('embed_footer')?.value || '';
+            const colorInput = document.getElementById('embed_color')?.value;
+            const footerInput = document.getElementById('embed_footer')?.value;
 
 
-            const defaultColor = embedDefaultColor || '#FF0000';
+            const defaultColor = embedDefaultColor;
             let embedColor = defaultColor;
 
-            if (colorInput.trim()) {
+            if (colorInput && colorInput.trim()) {
                 const trimmed = colorInput.trim();
                 if (trimmed.startsWith('#')) {
                     if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
@@ -6703,7 +6703,7 @@
             }
 
 
-            const hasContent = title.trim() || description.trim() || imageUrl.trim() || footerInput.trim();
+            const hasContent = title.trim() || description.trim() || imageUrl.trim() || (footerInput && footerInput.trim());
 
             if (!hasContent) {
                 preview.innerHTML = '<p class="text-gray-400 text-sm">Preview will appear here as you type...</p>';
@@ -6711,7 +6711,7 @@
             }
 
             const borderColor = embedColor;
-            const footerText = footerInput || embedDefaultFooter || '';
+            const footerText = footerInput || embedDefaultFooter;
 
 
             const displayTitle = title.length > 256 ? title.substring(0, 253) + '...' : title;
@@ -6768,7 +6768,7 @@
 
 
                 if (uploadedImageUrl) {
-                    uploadedImagePath = uploadedImageUrl.replace(/^.*\/uploads\/embed-images
+                    uploadedImagePath = uploadedImageUrl.replace(/^.*\/uploads\/embed-images\//, '');
                 }
 
 
@@ -6784,7 +6784,7 @@
 
                 const title = document.getElementById('embed_title').value;
                 const description = document.getElementById('embed_description').value || '';
-                const footer = document.getElementById('embed_footer').value || '';
+                const footer = document.getElementById('embed_footer').value;
                 const totalSize = title.length + description.length + footer.length;
 
                 if (totalSize > 6000) {
@@ -6801,8 +6801,8 @@
                     description: description || null,
                     image_url: imageUrl,
                     uploaded_image_path: uploadedImagePath,
-                    color: document.getElementById('embed_color').value || null,
-                    footer: footer || null
+                    color: document.getElementById('embed_color').value,
+                    footer: footer
                 };
 
                 const res = await fetch(`/api/servers/${currentServerId}/send-embed`, {
