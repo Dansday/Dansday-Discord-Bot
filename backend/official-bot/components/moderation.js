@@ -169,7 +169,15 @@ function init(client) {
             }
 
             const reason = kickEntry.reason || "No reason provided";
-            const memberSince = memberData.member_since ? new Date(memberData.member_since) : null;
+            let memberSince = null;
+            if (memberData.member_since) {
+                if (memberData.member_since instanceof Date) {
+                    memberSince = memberData.member_since;
+                } else {
+                    const dateStr = String(memberData.member_since).replace(' ', 'T') + 'Z';
+                    memberSince = new Date(dateStr);
+                }
+            }
             const memberSinceTimestamp = memberSince ? Math.floor(memberSince.getTime() / 1000) : null;
 
             await sendModerationLog(client, {

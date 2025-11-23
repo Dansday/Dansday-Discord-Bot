@@ -21,7 +21,10 @@ function toMySQLDateTimeUTC(date) {
 
 function parseMySQLDateTimeUTC(mysqlDateTimeString) {
     if (!mysqlDateTimeString) return null;
-    if (mysqlDateTimeString instanceof Date) return mysqlDateTimeString;
+    if (mysqlDateTimeString instanceof Date) {
+        const dateStr = mysqlDateTimeString.toISOString().slice(0, 19).replace('T', ' ') + 'Z';
+        return new Date(dateStr);
+    }
     const dateStr = String(mysqlDateTimeString).replace(' ', 'T') + 'Z';
     return new Date(dateStr);
 }
@@ -85,7 +88,8 @@ function getPool() {
             ...connectionConfig,
             waitForConnections: true,
             connectionLimit: 10,
-            queueLimit: 0
+            queueLimit: 0,
+            dateStrings: true
         });
     }
     return pool;
@@ -255,7 +259,14 @@ export async function getBot(botId) {
     await initializeDatabase();
     return await retryOnConnectionError(async () => {
         const result = await query('SELECT * FROM bots WHERE id = ? LIMIT 1', [botId]);
-        return result[0] || null;
+        if (!result[0]) return null;
+
+        const bot = result[0];
+        if (bot.uptime_started_at) {
+            bot.uptime_started_at = parseMySQLDateTimeUTC(bot.uptime_started_at);
+        }
+
+        return bot;
     });
 }
 
@@ -740,7 +751,20 @@ export async function getMemberByDiscordId(serverId, discordMemberId) {
         'SELECT * FROM server_members WHERE server_id = ? AND discord_member_id = ? LIMIT 1',
         [serverId, discordMemberId]
     );
-    return result[0] || null;
+    if (!result[0]) return null;
+
+    const member = result[0];
+    if (member.profile_created_at) {
+        member.profile_created_at = parseMySQLDateTimeUTC(member.profile_created_at);
+    }
+    if (member.member_since) {
+        member.member_since = parseMySQLDateTimeUTC(member.member_since);
+    }
+    if (member.booster_since) {
+        member.booster_since = parseMySQLDateTimeUTC(member.booster_since);
+    }
+
+    return member;
 }
 
 export async function syncMemberRoles(memberId, discordRoleIds, serverId) {
@@ -851,7 +875,17 @@ export async function getMemberLevel(memberId) {
         'SELECT * FROM server_member_levels WHERE member_id = ? LIMIT 1',
         [memberId]
     );
-    return result[0] || null;
+    if (!result[0]) return null;
+
+    const levelData = result[0];
+    if (levelData.voice_rewarded_at) {
+        levelData.voice_rewarded_at = parseMySQLDateTimeUTC(levelData.voice_rewarded_at);
+    }
+    if (levelData.chat_rewarded_at) {
+        levelData.chat_rewarded_at = parseMySQLDateTimeUTC(levelData.chat_rewarded_at);
+    }
+
+    return levelData;
 }
 
 export async function ensureMemberLevel(memberId) {
@@ -1742,8 +1776,8 @@ export async function getAFKStatus(serverId, discordMemberId) {
         if (afkData.created_at instanceof Date) {
             timestamp = afkData.created_at.getTime();
         } else {
-            const dateStr = String(afkData.created_at);
-            timestamp = new Date(dateStr).getTime();
+            const parsedDate = parseMySQLDateTimeUTC(afkData.created_at);
+            timestamp = parsedDate ? parsedDate.getTime() : Date.now();
         }
     } else {
         timestamp = Date.now();
@@ -1876,7 +1910,9 @@ export async function createGiveaway(giveawayData) {
         [insertedId]
     );
 
-    if (giveaway[0] && giveaway[0].allowed_roles) {
+    if (!giveaway[0]) return null;
+
+    if (giveaway[0].allowed_roles) {
         try {
             giveaway[0].allowed_roles = typeof giveaway[0].allowed_roles === 'string'
                 ? JSON.parse(giveaway[0].allowed_roles)
@@ -1884,6 +1920,10 @@ export async function createGiveaway(giveawayData) {
         } catch (e) {
             giveaway[0].allowed_roles = [];
         }
+    }
+
+    if (giveaway[0].ends_at) {
+        giveaway[0].ends_at = parseMySQLDateTimeUTC(giveaway[0].ends_at);
     }
 
     return giveaway[0];
@@ -1933,7 +1973,9 @@ export async function getGiveawayById(giveawayId) {
         [giveawayId]
     );
 
-    if (result[0] && result[0].allowed_roles) {
+    if (!result[0]) return null;
+
+    if (result[0].allowed_roles) {
         try {
             result[0].allowed_roles = typeof result[0].allowed_roles === 'string'
                 ? JSON.parse(result[0].allowed_roles)
@@ -1943,7 +1985,11 @@ export async function getGiveawayById(giveawayId) {
         }
     }
 
-    return result[0] || null;
+    if (result[0].ends_at) {
+        result[0].ends_at = parseMySQLDateTimeUTC(result[0].ends_at);
+    }
+
+    return result[0];
 }
 
 export async function getActiveGiveawayByMember(serverId, memberId) {
@@ -1953,7 +1999,9 @@ export async function getActiveGiveawayByMember(serverId, memberId) {
         [serverId, memberId, 'active']
     );
 
-    if (result[0] && result[0].allowed_roles) {
+    if (!result[0]) return null;
+
+    if (result[0].allowed_roles) {
         try {
             result[0].allowed_roles = typeof result[0].allowed_roles === 'string'
                 ? JSON.parse(result[0].allowed_roles)
@@ -1963,7 +2011,11 @@ export async function getActiveGiveawayByMember(serverId, memberId) {
         }
     }
 
-    return result[0] || null;
+    if (result[0].ends_at) {
+        result[0].ends_at = parseMySQLDateTimeUTC(result[0].ends_at);
+    }
+
+    return result[0];
 }
 
 export async function addGiveawayEntry(giveawayId, memberId, increment = true) {

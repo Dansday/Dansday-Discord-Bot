@@ -643,7 +643,13 @@ export async function init() {
                 }
 
                 if (botData.status === 'running' && botData.uptime_started_at) {
-                    const startTime = new Date(botData.uptime_started_at);
+                    let startTime;
+                    if (botData.uptime_started_at instanceof Date) {
+                        startTime = botData.uptime_started_at;
+                    } else {
+                        const dateStr = String(botData.uptime_started_at).replace(' ', 'T') + 'Z';
+                        startTime = new Date(dateStr);
+                    }
                     const now = new Date();
                     const uptimeMs = now - startTime;
                     botData.uptime_ms = uptimeMs;
@@ -709,7 +715,13 @@ export async function init() {
             }
 
             if (botData.status === 'running' && botData.uptime_started_at) {
-                const startTime = new Date(botData.uptime_started_at);
+                let startTime;
+                if (botData.uptime_started_at instanceof Date) {
+                    startTime = botData.uptime_started_at;
+                } else {
+                    const dateStr = String(botData.uptime_started_at).replace(' ', 'T') + 'Z';
+                    startTime = new Date(dateStr);
+                }
                 const now = new Date();
                 const uptimeMs = now - startTime;
                 botData.uptime_ms = uptimeMs;

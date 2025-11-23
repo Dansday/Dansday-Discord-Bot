@@ -12,7 +12,7 @@ const defaultLang = 'en';
 function loadTranslations() {
     const localesDir = join(__dirname, 'locales');
 
-    const languages = ['en', 'id', 'es', 'fr', 'de', 'pt', 'ru', 'ja', 'zh', 'ko', 'ar', 'hi', 'tr', 'pl', 'nl', 'it'];
+    const languages = ['en', 'id'];
 
     for (const lang of languages) {
         try {
@@ -40,12 +40,6 @@ function loadTranslations() {
 
 loadTranslations();
 
-/**
- * Get user's preferred language from database
- * @param {string} guildId - Discord guild ID
- * @param {string} userId - Discord user ID
- * @returns {Promise<string>} Language code (default: 'en')
- */
 export async function getUserLanguage(guildId, userId) {
     try {
         if (!guildId || !userId) {
@@ -72,13 +66,6 @@ export async function getUserLanguage(guildId, userId) {
     }
 }
 
-/**
- * Translate a key to the specified language
- * @param {string} key - Translation key (supports nested keys like "leveling.profile.title")
- * @param {string} lang - Language code (default: 'en')
- * @param {object} params - Parameters to replace in the translation (e.g., {member: "John", level: 5})
- * @returns {string} Translated text or key if not found
- */
 export function t(key, lang = defaultLang, params = {}) {
     if (!key) return '';
 
@@ -112,41 +99,28 @@ export function t(key, lang = defaultLang, params = {}) {
         }
     }
 
-    if (typeof value === 'string' && Object.keys(params).length > 0) {
-        return value.replace(/\{(\w+)\}/g, (match, paramKey) => {
-            return params[paramKey] !== undefined ? String(params[paramKey]) : match;
-        });
+    if (typeof value === 'string') {
+        value = value.replace(/\\n/g, '\n');
+
+        if (Object.keys(params).length > 0) {
+            value = value.replace(/\{(\w+)\}/g, (match, paramKey) => {
+                return params[paramKey] !== undefined ? String(params[paramKey]) : match;
+            });
+        }
     }
 
     return value || key;
 }
 
-/**
- * Translate a key for a specific user (uses their language preference)
- * @param {string} key - Translation key
- * @param {string} guildId - Discord guild ID
- * @param {string} userId - Discord user ID
- * @param {object} params - Parameters to replace in the translation
- * @returns {Promise<string>} Translated text
- */
 export async function translate(key, guildId, userId, params = {}) {
     const lang = await getUserLanguage(guildId, userId);
     return t(key, lang, params);
 }
 
-/**
- * Get all available languages
- * @returns {string[]} Array of language codes
- */
 export function getAvailableLanguages() {
     return Array.from(translations.keys());
 }
 
-/**
- * Check if a language is available
- * @param {string} lang - Language code
- * @returns {boolean} True if language is available
- */
 export function isLanguageAvailable(lang) {
     return translations.has(lang);
 }

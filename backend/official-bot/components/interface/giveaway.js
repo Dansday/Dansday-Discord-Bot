@@ -75,7 +75,16 @@ export async function handleGiveawayButton(interaction) {
                 .addFields([
                     {
                         name: endsLabel,
-                        value: `<t:${Math.floor((new Date(activeGiveaway.ends_at.replace(' ', 'T') + 'Z')).getTime() / 1000)}:R>`,
+                        value: (() => {
+                            let endsAtDate;
+                            if (activeGiveaway.ends_at instanceof Date) {
+                                endsAtDate = activeGiveaway.ends_at;
+                            } else {
+                                const dateStr = String(activeGiveaway.ends_at).replace(' ', 'T') + 'Z';
+                                endsAtDate = new Date(dateStr);
+                            }
+                            return `<t:${Math.floor(endsAtDate.getTime() / 1000)}:R>`;
+                        })(),
                         inline: true
                     }
                 ])
@@ -586,7 +595,13 @@ export async function handleGiveawayEnterButton(interaction) {
             return;
         }
 
-        const endsAt = new Date(giveaway.ends_at.replace(' ', 'T') + 'Z');
+        let endsAt;
+        if (giveaway.ends_at instanceof Date) {
+            endsAt = giveaway.ends_at;
+        } else {
+            const dateStr = String(giveaway.ends_at).replace(' ', 'T') + 'Z';
+            endsAt = new Date(dateStr);
+        }
         const now = new Date();
         if (endsAt <= now) {
             await interaction.editReply({

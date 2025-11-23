@@ -470,7 +470,15 @@ async function startVoiceSession(state, resumed = false) {
         await db.ensureMemberLevel(dbMember.id);
         const levelData = await db.getMemberLevel(dbMember.id);
         const wasMarkedInVoice = !!(levelData?.is_in_voice);
-        const lastRewardedAtMs = levelData?.voice_rewarded_at ? new Date(levelData.voice_rewarded_at).getTime() : null;
+        let lastRewardedAtMs = null;
+        if (levelData?.voice_rewarded_at) {
+            if (levelData.voice_rewarded_at instanceof Date) {
+                lastRewardedAtMs = levelData.voice_rewarded_at.getTime();
+            } else {
+                const dateStr = String(levelData.voice_rewarded_at).replace(' ', 'T') + 'Z';
+                lastRewardedAtMs = new Date(dateStr).getTime();
+            }
+        }
 
         const sessionKey = `${state.guild.id}:${guildMember.id}`;
         const existingSession = voiceSessions.get(sessionKey);
