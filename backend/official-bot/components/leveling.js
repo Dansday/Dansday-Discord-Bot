@@ -2,7 +2,6 @@ import { getLevelingSettings, PERMISSIONS, getBotConfig, getEmbedConfig } from "
 import db from "../../../database/database.js";
 import logger from "../../logger.js";
 import { EmbedBuilder } from "discord.js";
-import { getNowInTimezone, parseMySQLDateTime } from "../../utils.js";
 
 const recentMessages = new Map();
 const voiceSessions = new Map();
@@ -413,7 +412,7 @@ async function handleMessageCreate(message) {
         const stats = await db.updateMemberLevelStats(dbMember.id, {
             chatIncrement: 1,
             experienceIncrement: xpGained,
-            chatRewardedAt: message.createdAt ? new Date(message.createdAt) : getNowInTimezone()
+            chatRewardedAt: message.createdAt ? new Date(message.createdAt) : new Date()
         });
 
         const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || message.author.username;
@@ -436,7 +435,7 @@ async function awardVoiceXP(server, dbMember, guildMember, minutes, isAFK, guild
     const xpGained = await getExperienceForVoiceMinutes(minutes, isAFK, guildId);
     const updates = {
         experienceIncrement: xpGained,
-        voiceRewardedAt: getNowInTimezone(),
+        voiceRewardedAt: new Date(),
         isInVoice: true
     };
     if (isAFK) {
@@ -471,7 +470,7 @@ async function startVoiceSession(state, resumed = false) {
         await db.ensureMemberLevel(dbMember.id);
         const levelData = await db.getMemberLevel(dbMember.id);
         const wasMarkedInVoice = !!(levelData?.is_in_voice);
-        const lastRewardedAtMs = levelData?.voice_rewarded_at ? parseMySQLDateTime(levelData.voice_rewarded_at)?.getTime() : null;
+        const lastRewardedAtMs = levelData?.voice_rewarded_at ? new Date(levelData.voice_rewarded_at).getTime() : null;
 
         const sessionKey = `${state.guild.id}:${guildMember.id}`;
         const existingSession = voiceSessions.get(sessionKey);
@@ -479,14 +478,14 @@ async function startVoiceSession(state, resumed = false) {
             clearInterval(existingSession.interval);
         }
 
-        const now = getNowInTimezone().getTime();
+        const now = Date.now();
         const guildId = state.guild.id;
         const voiceCooldownMs = await getVoiceCooldownMs(guildId);
 
         if (lastRewardedAtMs === null) {
             await db.updateMemberLevelStats(dbMember.id, {
                 isInVoice: true,
-                voiceRewardedAt: getNowInTimezone()
+                voiceRewardedAt: new Date()
             });
         } else {
             await db.updateMemberLevelStats(dbMember.id, { isInVoice: true });
@@ -582,7 +581,7 @@ async function handleVoiceTick(sessionKey) {
 
         const guildId = session.guildId;
         const voiceCooldownMs = await getVoiceCooldownMs(guildId);
-        const now = getNowInTimezone().getTime();
+        const now = Date.now();
         const lastRewardedAt = session.lastRewardedAt || 0;
 
         if ((now - lastRewardedAt) < voiceCooldownMs) return;

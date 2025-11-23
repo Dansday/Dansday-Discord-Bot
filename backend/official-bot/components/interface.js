@@ -2,7 +2,6 @@ import { getEmbedConfig, getServerForCurrentBot } from "../../config.js";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import logger from "../../logger.js";
 import { hasPermission, getPermissionDeniedMessage } from './permissions.js';
-import { getNowInTimezone } from "../../utils.js";
 import { handleCustomSupporterRoleButton, handleCustomSupporterRoleModal, handleEditCustomSupporterRole, handleDeleteCustomSupporterRole } from './interface/customsupporterrole.js';
 import { handleFeedbackButton, handleFeedbackModal } from './interface/feedback.js';
 import { handleAFKButton, handleAFKModal, handleRemoveAFKButton } from './interface/afk.js';
@@ -237,7 +236,7 @@ export async function createInterfaceEmbed(client, guildId) {
         footer: {
             text: embedConfig.FOOTER
         },
-        timestamp: getNowInTimezone().toISOString()
+        timestamp: new Date().toISOString()
     };
 
     return interfaceEmbed;

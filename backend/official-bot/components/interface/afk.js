@@ -3,7 +3,6 @@ import { getEmbedConfig, getBotConfig } from '../../../config.js';
 import logger from '../../../logger.js';
 import { hasPermission, getPermissionDeniedMessage } from '../permissions.js';
 import db from '../../../../database/database.js';
-import { getNowInTimezone } from '../../../utils.js';
 import { translate } from '../../../i18n.js';
 
 function stripAfkPrefix(name) {
@@ -152,18 +151,18 @@ export async function removeAFK(member, reason = '') {
 
         await db.removeAFKStatus(serverData.id, userId);
 
-        const duration = Math.floor((getNowInTimezone().getTime() - afkData.timestamp) / 1000);
-        const minutes = Math.floor(duration / 60);
-        const hours = Math.floor(minutes / 60);
+            const duration = Math.floor((Date.now() - afkData.timestamp) / 1000);
+            const minutes = Math.floor(duration / 60);
+            const hours = Math.floor(minutes / 60);
 
-        let durationText = '';
-        if (hours > 0) {
-            durationText = `${hours}h ${minutes % 60}m`;
-        } else if (minutes > 0) {
-            durationText = `${minutes}m`;
-        } else {
-            durationText = `${duration}s`;
-        }
+            let durationText = '';
+            if (hours > 0) {
+                durationText = `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                durationText = `${minutes}m`;
+            } else {
+                durationText = `${duration}s`;
+            }
 
         await logger.log(`✅ Removed AFK status for ${member.id} - Was AFK for ${durationText}${reason ? ` - ${reason}` : ''}`);
 
@@ -199,7 +198,7 @@ export async function handleAFKButton(interaction) {
 
             const buttonRow = new ActionRowBuilder().addComponents(removeButton);
 
-            const duration = Math.floor((getNowInTimezone().getTime() - afkData.timestamp) / 1000);
+            const duration = Math.floor((Date.now() - afkData.timestamp) / 1000);
             const minutes = Math.floor(duration / 60);
             const hours = Math.floor(minutes / 60);
 
@@ -457,7 +456,7 @@ export function init(client) {
                     if (mentionedAFKData) {
                         try {
 
-                            const duration = Math.floor((getNowInTimezone().getTime() - mentionedAFKData.timestamp) / 1000);
+                            const duration = Math.floor((Date.now() - mentionedAFKData.timestamp) / 1000);
                             const minutes = Math.floor(duration / 60);
                             const hours = Math.floor(minutes / 60);
 

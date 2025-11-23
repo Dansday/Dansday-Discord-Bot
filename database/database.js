@@ -4,9 +4,27 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 import logger from '../backend/logger.js';
-import { toMySQLDateTime, getNowInTimezone, parseMySQLDateTime } from '../backend/utils.js';
 
 dotenv.config();
+
+function toMySQLDateTimeUTC(date) {
+    if (!date) date = new Date();
+    if (typeof date === 'string') date = new Date(date);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+function parseMySQLDateTimeUTC(mysqlDateTimeString) {
+    if (!mysqlDateTimeString) return null;
+    if (mysqlDateTimeString instanceof Date) return mysqlDateTimeString;
+    const dateStr = String(mysqlDateTimeString).replace(' ', 'T') + 'Z';
+    return new Date(dateStr);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -282,13 +300,13 @@ export async function updateBot(botId, botData) {
     try {
         const updateData = {
             ...botData,
-            updated_at: toMySQLDateTime()
+            updated_at: toMySQLDateTimeUTC()
         };
 
         if (botData.status === 'running' && !botData.uptime_started_at) {
-            updateData.uptime_started_at = toMySQLDateTime();
+            updateData.uptime_started_at = toMySQLDateTimeUTC();
         } else if (botData.uptime_started_at) {
-            updateData.uptime_started_at = toMySQLDateTime(botData.uptime_started_at);
+            updateData.uptime_started_at = toMySQLDateTimeUTC(botData.uptime_started_at);
         }
 
         if (botData.status === 'stopped') {
@@ -382,7 +400,7 @@ export async function upsertServer(botId, guild) {
             [
                 botId, guild.id, guild.name, guild.memberCount || 0,
                 guild.channels?.cache?.size || 0, guild.premiumSubscriptionCount || 0,
-                boostLevel, iconUrl, toMySQLDateTime()
+                boostLevel, iconUrl, toMySQLDateTimeUTC()
             ]
         );
 
@@ -410,7 +428,7 @@ export async function upsertCategory(serverId, categoryData) {
             [
                 serverId, categoryData.id, categoryData.name,
                 categoryData.position !== undefined ? categoryData.position : null,
-                toMySQLDateTime()
+                toMySQLDateTimeUTC()
             ]
         );
 
@@ -501,7 +519,7 @@ export async function upsertChannel(serverId, channelData, categoryMap = null) {
             [
                 serverId, channelData.id, channelData.name, channelData.type,
                 categoryId, channelData.position !== undefined ? channelData.position : null,
-                toMySQLDateTime()
+                toMySQLDateTimeUTC()
             ]
         );
 
@@ -607,7 +625,7 @@ export async function upsertRole(serverId, roleData) {
             [
                 serverId, roleData.id, roleData.name, roleData.position,
                 roleData.hexColor, roleData.permissions?.bitfield?.toString() || null,
-                toMySQLDateTime()
+                toMySQLDateTimeUTC()
             ]
         );
 
@@ -680,10 +698,10 @@ export async function upsertMember(serverId, memberData) {
         const username = user?.username || null;
         const displayName = user?.globalName || user?.displayName || null;
         const serverDisplayName = memberData.nickname || null;
-        const profileCreatedAt = user?.createdAt ? toMySQLDateTime(user.createdAt) : null;
-        const memberSince = memberData.joinedAt ? toMySQLDateTime(memberData.joinedAt) : null;
+        const profileCreatedAt = user?.createdAt ? toMySQLDateTimeUTC(user.createdAt) : null;
+        const memberSince = memberData.joinedAt ? toMySQLDateTimeUTC(memberData.joinedAt) : null;
         const isBooster = memberData.premiumSince !== null && memberData.premiumSince !== undefined;
-        const boosterSince = memberData.premiumSince ? toMySQLDateTime(memberData.premiumSince) : null;
+        const boosterSince = memberData.premiumSince ? toMySQLDateTimeUTC(memberData.premiumSince) : null;
 
         await query(
             `INSERT INTO server_members (
@@ -701,7 +719,7 @@ export async function upsertMember(serverId, memberData) {
                 updated_at = VALUES(updated_at)`,
             [
                 serverId, user?.id || memberData.id, username, displayName, serverDisplayName,
-                avatarUrl, profileCreatedAt, memberSince, isBooster, boosterSince, toMySQLDateTime()
+                avatarUrl, profileCreatedAt, memberSince, isBooster, boosterSince, toMySQLDateTimeUTC()
             ]
         );
 
@@ -897,7 +915,7 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
 
     if (updates.chatRewardedAt) {
         clauses.push('chat_rewarded_at = ?');
-        values.push(toMySQLDateTime(updates.chatRewardedAt));
+        values.push(toMySQLDateTimeUTC(updates.chatRewardedAt));
     }
 
     if (updates.voiceRewardedAt !== undefined) {
@@ -905,7 +923,7 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
             clauses.push('voice_rewarded_at = NULL');
         } else {
             clauses.push('voice_rewarded_at = ?');
-            values.push(toMySQLDateTime(updates.voiceRewardedAt));
+            values.push(toMySQLDateTimeUTC(updates.voiceRewardedAt));
         }
     }
 
@@ -914,7 +932,7 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
     }
 
     clauses.push('updated_at = ?');
-    values.push(toMySQLDateTime());
+    values.push(toMySQLDateTimeUTC());
     values.push(memberId);
 
     await query(
@@ -965,7 +983,7 @@ export async function setMemberLevelDMPreference(memberId, enabled = true) {
         `UPDATE server_member_levels
          SET dm_notifications_enabled = ?, updated_at = ?
          WHERE member_id = ?`,
-        [enabled ? 1 : 0, toMySQLDateTime(), memberId]
+        [enabled ? 1 : 0, toMySQLDateTimeUTC(), memberId]
     );
 
     return await getMemberLevel(memberId);
@@ -1297,8 +1315,8 @@ export async function getServerOverview(serverId) {
         if (!latest) {
             return row.updated_at;
         }
-        const rowDate = parseMySQLDateTime(row.updated_at);
-        const latestDate = parseMySQLDateTime(latest);
+        const rowDate = parseMySQLDateTimeUTC(row.updated_at);
+        const latestDate = parseMySQLDateTimeUTC(latest);
         return rowDate && latestDate && rowDate > latestDate ? row.updated_at : latest;
     }, null);
 
@@ -1524,7 +1542,7 @@ async function createPanel(passwordHash) {
 async function updatePanelPassword(panelId, passwordHash) {
     await query(
         'UPDATE panel SET password_hash = ?, updated_at = ? WHERE id = ?',
-        [passwordHash, toMySQLDateTime(), panelId]
+        [passwordHash, toMySQLDateTimeUTC(), panelId]
     );
     const panels = await query('SELECT * FROM panel WHERE id = ?', [panelId]);
     return panels[0];
@@ -1542,7 +1560,7 @@ async function createPanelLog(logData) {
                 logData.ip_address,
                 logData.user_agent || null,
                 logData.success || false,
-                logData.attempted_at ? toMySQLDateTime(logData.attempted_at) : toMySQLDateTime()
+                logData.attempted_at ? toMySQLDateTimeUTC(logData.attempted_at) : toMySQLDateTimeUTC()
             ]
         );
         const logs = await query('SELECT * FROM panel_logs WHERE id = ?', [result.insertId]);
@@ -1605,7 +1623,7 @@ async function getServerSettings(serverId, componentName = null) {
 async function upsertServerSettings(serverId, componentName, settings) {
     try {
         await initializeDatabase();
-        const now = toMySQLDateTime();
+        const now = toMySQLDateTimeUTC();
 
         await query(
             `INSERT INTO server_settings (server_id, component_name, settings, updated_at)
@@ -1719,9 +1737,20 @@ export async function getAFKStatus(serverId, discordMemberId) {
         return null;
     }
     const afkData = result[0];
+    let timestamp;
+    if (afkData.created_at) {
+        if (afkData.created_at instanceof Date) {
+            timestamp = afkData.created_at.getTime();
+        } else {
+            const dateStr = String(afkData.created_at);
+            timestamp = new Date(dateStr).getTime();
+        }
+    } else {
+        timestamp = Date.now();
+    }
     return {
         message: afkData.message || 'Away',
-        timestamp: parseMySQLDateTime(afkData.created_at)?.getTime() || getNowInTimezone().getTime(),
+        timestamp: timestamp,
         serverDisplayName: afkData.server_display_name
     };
 }
@@ -1818,9 +1847,8 @@ export async function serversNeedSync(botId) {
 export async function createGiveaway(giveawayData) {
     await initializeDatabase();
 
-    const nowInTimezone = getNowInTimezone();
-    const endsAtInTimezone = new Date(nowInTimezone.getTime() + giveawayData.duration_minutes * 60 * 1000);
-    const endsAt = toMySQLDateTime(endsAtInTimezone);
+    const now = new Date();
+    const endsAt = toMySQLDateTimeUTC(new Date(now.getTime() + giveawayData.duration_minutes * 60 * 1000));
 
     const result = await query(
         `INSERT INTO server_giveaways (
@@ -1877,11 +1905,11 @@ export async function getEndedGiveaways() {
         ['active', false]
     );
 
-    const nowInTimezone = getNowInTimezone();
+    const now = new Date();
 
     const endedGiveaways = result.filter(row => {
-        const endsAt = parseMySQLDateTime(row.ends_at);
-        return endsAt && endsAt <= nowInTimezone;
+        const endsAt = parseMySQLDateTimeUTC(row.ends_at);
+        return endsAt && endsAt <= now;
     });
 
     return endedGiveaways.map(row => {
@@ -1940,7 +1968,7 @@ export async function getActiveGiveawayByMember(serverId, memberId) {
 
 export async function addGiveawayEntry(giveawayId, memberId, increment = true) {
     await initializeDatabase();
-    const now = toMySQLDateTime();
+    const now = toMySQLDateTimeUTC();
 
     if (increment) {
         await query(
