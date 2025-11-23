@@ -178,7 +178,22 @@ export function getNowInTimezone() {
 export function parseMySQLDateTime(mysqlDateTimeString, timezone = TIMEZONE) {
     if (!mysqlDateTimeString) return null;
 
-    const match = mysqlDateTimeString.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+    let dateString = mysqlDateTimeString;
+    if (typeof mysqlDateTimeString !== 'string') {
+        if (mysqlDateTimeString instanceof Date) {
+            const year = mysqlDateTimeString.getFullYear();
+            const month = String(mysqlDateTimeString.getMonth() + 1).padStart(2, '0');
+            const day = String(mysqlDateTimeString.getDate()).padStart(2, '0');
+            const hours = String(mysqlDateTimeString.getHours()).padStart(2, '0');
+            const minutes = String(mysqlDateTimeString.getMinutes()).padStart(2, '0');
+            const seconds = String(mysqlDateTimeString.getSeconds()).padStart(2, '0');
+            dateString = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        } else {
+            dateString = String(mysqlDateTimeString);
+        }
+    }
+
+    const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
     if (!match) {
         return new Date(mysqlDateTimeString);
     }
