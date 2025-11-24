@@ -178,7 +178,7 @@ export async function handleAFKButton(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'afk'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'afk');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'afk', interaction.user.id);
             await interaction.reply({
                 content: errorMessage,
                 flags: 64
@@ -196,7 +196,12 @@ export async function handleAFKButton(interaction) {
                 .setLabel(removeButtonLabel)
                 .setStyle(ButtonStyle.Primary);
 
-            const buttonRow = new ActionRowBuilder().addComponents(removeButton);
+            const menuButton = new ButtonBuilder()
+                .setCustomId('bot_menu')
+                .setLabel('📋 Menu')
+                .setStyle(ButtonStyle.Secondary);
+
+            const buttonRow = new ActionRowBuilder().addComponents(removeButton, menuButton);
 
             const duration = Math.floor((Date.now() - afkData.timestamp) / 1000);
             const minutes = Math.floor(duration / 60);
@@ -228,10 +233,9 @@ export async function handleAFKButton(interaction) {
                 .setTimestamp()
                 .setFooter({ text: embedConfig.FOOTER });
 
-            await interaction.reply({
+            await interaction.update({
                 embeds: [embed],
-                components: [buttonRow],
-                flags: 64
+                components: [buttonRow]
             });
             await logger.log(`⏸️ AFK status shown to ${member.id}`);
             return;
@@ -286,7 +290,7 @@ export async function handleAFKModal(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'afk'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'afk');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'afk', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);
@@ -346,7 +350,7 @@ export async function handleRemoveAFKButton(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'afk'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'afk');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'afk', interaction.user.id);
             await interaction.update({
                 content: errorMessage,
                 components: [],

@@ -12,7 +12,7 @@ export async function handleGiveawayButton(interaction) {
         const user = interaction.user;
 
         if (!(await hasPermission(member, 'giveaway'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway', interaction.user.id);
             await interaction.reply({
                 content: errorMessage,
                 flags: 64
@@ -330,7 +330,7 @@ export async function handleGiveawayModal(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'giveaway'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);
@@ -694,7 +694,7 @@ export async function handleGiveawayCancel(interaction) {
         const user = interaction.user;
 
         if (!(await hasPermission(member, 'giveaway'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);
@@ -811,7 +811,7 @@ export async function handleGiveawayFinish(interaction) {
         const user = interaction.user;
 
         if (!(await hasPermission(member, 'giveaway'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'giveaway', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);

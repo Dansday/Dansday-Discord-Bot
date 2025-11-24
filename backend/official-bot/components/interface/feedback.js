@@ -9,7 +9,7 @@ export async function handleFeedbackButton(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'feedback'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'feedback');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'feedback', interaction.user.id);
             await interaction.reply({
                 content: errorMessage,
                 flags: 64
@@ -57,7 +57,7 @@ export async function handleFeedbackModal(interaction) {
         const user = interaction.user;
 
         if (!(await hasPermission(member, 'feedback'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'feedback');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'feedback', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);

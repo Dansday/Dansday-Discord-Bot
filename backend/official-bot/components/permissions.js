@@ -1,4 +1,5 @@
 import { PERMISSIONS } from "../../config.js";
+import { translate } from "../../i18n.js";
 
 async function getGuildPermissions(guildId) {
     try {
@@ -57,7 +58,7 @@ export async function hasPermission(member, action) {
         return isSupporterMember || isStaffMember || isAdminMember;
     }
 
-    if (action === 'feedback' || action === 'afk' || action === 'leveling' || action === 'giveaway') {
+    if (action === 'feedback' || action === 'afk' || action === 'leveling' || action === 'giveaway' || action === 'settings') {
         return isMemberRole || isSupporterMember || isStaffMember || isAdminMember;
     }
 
@@ -107,7 +108,7 @@ export async function getRequiredRolesForAction(guild, action) {
             return roleNames.length > 0 ? roleNames : ['Supporter, Staff, or Admin'];
         }
 
-        if (action === 'feedback' || action === 'afk' || action === 'leveling' || action === 'giveaway' || action === 'menu') {
+        if (action === 'feedback' || action === 'afk' || action === 'leveling' || action === 'giveaway' || action === 'settings' || action === 'menu') {
             if (perms.MEMBER_ROLES && perms.MEMBER_ROLES.length > 0) {
                 perms.MEMBER_ROLES.forEach(roleId => {
                     const role = guild.roles.cache.get(roleId);
@@ -141,7 +142,7 @@ export async function getRequiredRolesForAction(guild, action) {
     }
 }
 
-export async function getPermissionDeniedMessage(guild, action) {
+export async function getPermissionDeniedMessage(guild, action, userId = null) {
     const requiredRoles = await getRequiredRolesForAction(guild, action);
     const roleList = requiredRoles.length > 0 
         ? requiredRoles.map(role => `**${role}**`).join(', ')
@@ -154,10 +155,15 @@ export async function getPermissionDeniedMessage(guild, action) {
         'afk': 'AFK',
         'leveling': 'Leveling',
         'giveaway': 'Giveaway',
+        'settings': 'Settings',
         'menu': 'Menu'
     };
 
     const actionName = actionNames[action] || action;
 
-    return `❌ **Permission Denied**\n\nYou need one of the following roles to use **${actionName}**:\n${roleList}\n\nPlease contact a server administrator if you believe this is an error.`;
+    const title = await translate('permissions.denied.title', guild.id, userId);
+    const description = await translate('permissions.denied.description', guild.id, userId, { action: actionName, roles: roleList });
+    const footer = await translate('permissions.denied.footer', guild.id, userId);
+
+    return `${title}\n\n${description}\n\n${footer}`;
 }

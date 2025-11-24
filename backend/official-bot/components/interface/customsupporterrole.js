@@ -167,7 +167,7 @@ export async function handleCustomSupporterRoleButton(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'custom_supporter_role'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role', interaction.user.id);
             await interaction.reply({
                 content: errorMessage,
                 flags: 64
@@ -190,7 +190,12 @@ export async function handleCustomSupporterRoleButton(interaction) {
                 .setLabel(deleteLabel)
                 .setStyle(ButtonStyle.Danger);
 
-            const buttonRow = new ActionRowBuilder().addComponents(editButton, deleteButton);
+            const menuButton = new ButtonBuilder()
+                .setCustomId('bot_menu')
+                .setLabel('📋 Menu')
+                .setStyle(ButtonStyle.Secondary);
+
+            const buttonRow = new ActionRowBuilder().addComponents(editButton, deleteButton, menuButton);
 
             const embedConfig = await getEmbedConfig(interaction.guild.id);
             const title = await translate('customSupporterRole.existing.title', interaction.guild.id, interaction.user.id);
@@ -207,10 +212,9 @@ export async function handleCustomSupporterRoleButton(interaction) {
                 })
                 .setTimestamp();
 
-            await interaction.reply({
+            await interaction.update({
                 embeds: [embed],
-                components: [buttonRow],
-                flags: 64
+                components: [buttonRow]
             });
             await logger.log(`💎 Supporter role options shown to ${member.user.tag} (${member.user.id})`);
             return;
@@ -275,7 +279,7 @@ export async function handleEditCustomSupporterRole(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'custom_supporter_role'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role', interaction.user.id);
             await interaction.update({
                 content: errorMessage,
                 components: [],
@@ -368,7 +372,7 @@ export async function handleDeleteCustomSupporterRole(interaction) {
         const member = interaction.member;
 
         if (!(await hasPermission(member, 'custom_supporter_role'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);
@@ -404,8 +408,16 @@ export async function handleDeleteCustomSupporterRole(interaction) {
             .setTimestamp()
             .setFooter({ text: embedConfig.FOOTER });
 
+        const menuButton = new ButtonBuilder()
+            .setCustomId('bot_menu')
+            .setLabel('📋 Menu')
+            .setStyle(ButtonStyle.Secondary);
+
+        const buttonRow = new ActionRowBuilder().addComponents(menuButton);
+
         await interaction.editReply({
-            embeds: [successEmbed]
+            embeds: [successEmbed],
+            components: [buttonRow]
         });
 
         await logger.log(`🗑️ Deleted custom supporter role "${roleName}" (${roleId}) for ${member.user.tag} (${member.user.id})`);
@@ -427,7 +439,7 @@ export async function handleCustomSupporterRoleModal(interaction) {
         const guild = interaction.guild;
 
         if (!(await hasPermission(member, 'custom_supporter_role'))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'custom_supporter_role', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage
             }).catch(() => null);

@@ -312,7 +312,7 @@ async function createDmToggleRow(dmEnabled = true, guildId = null, userId = null
 export async function handleLevelingButton(interaction) {
     try {
         if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling', interaction.user.id);
             await interaction.reply({
                 content: errorMessage,
                 flags: 64
@@ -378,7 +378,7 @@ export async function handleLevelingButton(interaction) {
 export async function handleLeaderboardButton(interaction) {
     try {
         if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling', interaction.user.id);
             await interaction.update({
                 content: errorMessage,
                 components: [],
@@ -432,7 +432,7 @@ export async function handleLeaderboardButton(interaction) {
 export async function handleDmToggleButton(interaction) {
     try {
         if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling');
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling', interaction.user.id);
             await interaction.update({
                 content: errorMessage,
                 components: [],

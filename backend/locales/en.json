@@ -13,12 +13,16 @@
       "selectionError": "❌ **Selection Error**: An error occurred while processing your selection.\\n\\nPlease try again or contact an administrator."
     }
   },
+  "permissions": {
+    "denied": {
+      "title": "❌ **Permission Denied**",
+      "description": "You need one of the following roles to use **{action}**:\\n{roles}",
+      "footer": "Please contact a server administrator if you believe this is an error."
+    }
+  },
   "settings": {
     "title": "⚙️ Settings",
     "description": "Configure your bot preferences",
-    "buttons": {
-      "settings": "⚙️ Settings"
-    },
     "language": {
       "title": "🌐 Language Settings",
       "description": "Select your preferred language:",

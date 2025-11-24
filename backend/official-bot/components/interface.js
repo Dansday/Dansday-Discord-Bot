@@ -30,7 +30,7 @@ async function handleMenuButton(interaction) {
     }
 
     if (!(await hasPermission(member, 'leveling'))) {
-        const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'menu');
+        const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'menu', interaction.user.id);
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({
                 content: errorMessage,
@@ -118,7 +118,7 @@ async function handleMenuButton(interaction) {
 
     const settingsButton = new ButtonBuilder()
         .setCustomId('bot_settings')
-        .setLabel(await translate('common.buttons.settings', interaction.guild.id, interaction.user.id))
+        .setLabel(await translate('settings.title', interaction.guild.id, interaction.user.id))
         .setStyle(ButtonStyle.Secondary);
 
     rows.push(new ActionRowBuilder().addComponents(settingsButton));

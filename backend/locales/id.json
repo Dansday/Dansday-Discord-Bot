@@ -2,26 +2,30 @@
   "menu": {
     "title": "📋 Menu GO BLOX Bot",
     "description": "Pilih fitur dari tombol di bawah:",
-    "noAccess": "❌ Anda tidak memiliki akses ke fitur apa pun."
+    "noAccess": "❌ Kamu tidak memiliki akses ke fitur apa pun."
   },
   "common": {
     "errors": {
       "memberNotFound": "❌ Gagal mengambil informasi anggota.",
       "unknownButton": "❌ Interaksi tombol tidak dikenal.",
-      "buttonError": "❌ **Error Tombol**: Terjadi kesalahan saat memproses klik tombol Anda.\\n\\nSilakan coba lagi atau hubungi administrator.",
-      "modalError": "❌ **Error Formulir**: Terjadi kesalahan saat memproses pengiriman formulir Anda.\\n\\nSilakan coba lagi atau hubungi administrator.",
-      "selectionError": "❌ **Error Pilihan**: Terjadi kesalahan saat memproses pilihan Anda.\\n\\nSilakan coba lagi atau hubungi administrator."
+      "buttonError": "❌ **Error Tombol**: Terjadi kesalahan saat memproses klik tombol kamu.\\n\\nSilakan coba lagi atau hubungi administrator.",
+      "modalError": "❌ **Error Formulir**: Terjadi kesalahan saat memproses pengiriman formulir kamu.\\n\\nSilakan coba lagi atau hubungi administrator.",
+      "selectionError": "❌ **Error Pilihan**: Terjadi kesalahan saat memproses pilihan kamu.\\n\\nSilakan coba lagi atau hubungi administrator."
+    }
+  },
+  "permissions": {
+    "denied": {
+      "title": "❌ **Izin Ditolak**",
+      "description": "Kamu memerlukan salah satu role berikut untuk menggunakan **{action}**:\\n{roles}",
+      "footer": "Silakan hubungi administrator server jika kamu merasa ini adalah kesalahan."
     }
   },
   "settings": {
     "title": "⚙️ Pengaturan",
-    "description": "Konfigurasi preferensi bot Anda",
-    "buttons": {
-      "settings": "⚙️ Pengaturan"
-    },
+    "description": "Konfigurasi preferensi bot kamu",
     "language": {
       "title": "🌐 Pengaturan Bahasa",
-      "description": "Pilih bahasa pilihan Anda:",
+      "description": "Pilih bahasa pilihan kamu:",
       "current": "Bahasa Saat Ini",
       "select": "Pilih Bahasa",
       "updated": "✅ Bahasa berhasil diperbarui!",
@@ -30,9 +34,9 @@
   },
   "leveling": {
     "profile": {
-      "title": "📈 Statistik Leveling Anda",
+      "title": "📈 Statistik Leveling Kamu",
       "description": "Statistik untuk **{member}**",
-      "yourProgress": "Kemajuan Anda",
+      "yourProgress": "Kemajuan Kamu",
       "level": "Level",
       "experience": "Pengalaman",
       "progress": "Kemajuan",
@@ -81,22 +85,22 @@
   "afk": {
     "title": "⏸️ Atur Status AFK",
     "current": {
-      "title": "⏸️ Anda saat ini sedang AFK",
+      "title": "⏸️ Kamu saat ini sedang AFK",
       "description": "**Status:** {message}\\n**Durasi:** {duration}",
       "howToRemove": "💡 Cara menghapus",
-      "howToRemoveValue": "• Klik tombol di bawah untuk menghapus AFK\\n• Kirim pesan apa saja (otomatis menghapus AFK dan unmute)\\n• Penghapusan AFK akan otomatis unmute Anda jika bot memute Anda"
+      "howToRemoveValue": "• Klik tombol di bawah untuk menghapus AFK\\n• Kirim pesan apa saja (otomatis menghapus AFK dan unmute)\\n• Penghapusan AFK akan otomatis unmute kamu jika bot memute kamu"
     },
     "set": {
       "title": "✅ Status AFK Diatur!",
-      "description": "Anda sekarang ditandai sebagai AFK: **{message}**{voiceInfo}",
+      "description": "Kamu sekarang ditandai sebagai AFK: **{message}**{voiceInfo}",
       "howToRemove": "💡 Cara menghapus",
-      "howToRemoveValue": "• Kirim pesan apa saja (otomatis menghapus AFK dan unmute)\\n• Klik tombol AFK dan hapus (akan unmute jika bot memute Anda)\\n• Menghapus AFK akan otomatis unmute Anda jika Anda dimute oleh bot",
-      "voiceMutedDeafened": "\\n\\nAnda akan dimute dan dideafen di voice.",
-      "voiceMutedOnly": "\\n\\nAnda akan dimute di voice (tidak dideafen)."
+      "howToRemoveValue": "• Kirim pesan apa saja (otomatis menghapus AFK dan unmute)\\n• Klik tombol AFK dan hapus (akan unmute jika bot memute kamu)\\n• Menghapus AFK akan otomatis unmute kamu jika kamu dimute oleh bot",
+      "voiceMutedDeafened": "\\n\\nKamu akan dimute dan dideafen di voice.",
+      "voiceMutedOnly": "\\n\\nKamu akan dimute di voice (tidak dideafen)."
     },
     "removed": {
       "title": "✅ Status AFK Dihapus!",
-      "description": "Selamat datang kembali! Status AFK Anda telah dihapus."
+      "description": "Selamat datang kembali! Status AFK kamu telah dihapus."
     },
     "modal": {
       "messageLabel": "Pesan AFK (Opsional)",
@@ -108,14 +112,14 @@
       "remove": "🔄 Hapus AFK"
     },
     "errors": {
-      "notAFK": "❌ Anda saat ini tidak sedang AFK.",
+      "notAFK": "❌ Kamu saat ini tidak sedang AFK.",
       "failed": "❌ Gagal membuka formulir AFK: {error}",
       "setFailed": "❌ **Gagal Mengatur AFK**\\n\\nError: {error}\\n\\nSilakan coba lagi nanti.",
       "removeFailed": "❌ **Gagal Menghapus AFK**\\n\\nError: {error}\\n\\nSilakan coba lagi nanti."
     },
     "messages": {
-      "welcomeBack": "✅ Selamat datang kembali, {member}! Status AFK Anda telah dihapus.",
-      "dmMentioned": "📬 Anda disebutkan oleh {sender} di **{server}** (#{channel})\\n\\n**Pesan:** {message}"
+      "welcomeBack": "✅ Selamat datang kembali, {member}! Status AFK kamu telah dihapus.",
+      "dmMentioned": "📬 Kamu disebutkan oleh {sender} di **{server}** (#{channel})\\n\\n**Pesan:** {message}"
     }
   },
   "giveaway": {
@@ -128,7 +132,7 @@
     },
     "active": {
       "title": "🎉 Giveaway Aktif Ditemukan",
-      "description": "Anda sudah memiliki giveaway aktif:\\n\\n**{title}**\\n**Hadiah:** {prize}\\n\\nApa yang ingin Anda lakukan?",
+      "description": "Kamu sudah memiliki giveaway aktif:\\n\\n**{title}**\\n**Hadiah:** {prize}\\n\\nApa yang ingin kamu lakukan?",
       "ends": "⏰ Berakhir"
     },
     "modal": {
@@ -145,15 +149,15 @@
     },
     "created": {
       "title": "✅ Giveaway Dibuat!",
-      "description": "Giveaway Anda telah dibuat dan diposting di {channel}!"
+      "description": "Giveaway kamu telah dibuat dan diposting di {channel}!"
     },
     "entered": {
       "title": "✅ Berhasil Ikuti Giveaway!",
-      "description": "Anda telah berhasil mengikuti giveaway! Semoga beruntung! 🍀"
+      "description": "Kamu telah berhasil mengikuti giveaway! Semoga beruntung! 🍀"
     },
     "cancelled": {
       "title": "✅ Giveaway Dibatalkan",
-      "description": "Giveaway Anda **\"{title}\"** telah dibatalkan."
+      "description": "Giveaway kamu **\"{title}\"** telah dibatalkan."
     },
     "buttons": {
       "finish": "🏁 Selesaikan Giveaway",
@@ -161,7 +165,7 @@
     },
     "errors": {
       "memberNotFound": "❌ Gagal mengambil informasi anggota.",
-      "activeExists": "❌ Anda sudah memiliki giveaway aktif. Silakan batalkan atau selesaikan terlebih dahulu.",
+      "activeExists": "❌ Kamu sudah memiliki giveaway aktif. Silakan batalkan atau selesaikan terlebih dahulu.",
       "invalidTitle": "❌ **Giveaway Tidak Valid**\\n\\nJudul tidak boleh kosong.",
       "invalidPrize": "❌ **Giveaway Tidak Valid**\\n\\nHadiah tidak boleh kosong.",
       "invalidDuration": "❌ **Giveaway Tidak Valid**\\n\\nDurasi harus berupa angka positif (dalam menit).",
@@ -174,13 +178,13 @@
       "invalidId": "❌ ID giveaway tidak valid.",
       "notFound": "❌ Giveaway tidak ditemukan atau sudah berakhir.",
       "ended": "❌ Giveaway ini sudah berakhir.",
-      "roleRestriction": "❌ **Pembatasan Role**\\n\\nGiveaway ini dibatasi untuk role berikut:\\n{roles}\\n\\nAnda memerlukan semua role ini untuk mengikuti.",
+      "roleRestriction": "❌ **Pembatasan Role**\\n\\nGiveaway ini dibatasi untuk role berikut:\\n{roles}\\n\\nKamu memerlukan semua role ini untuk mengikuti.",
       "memberNotFoundDB": "❌ Anggota tidak ditemukan di database. Silakan coba lagi nanti.",
-      "cannotEnterOwn": "❌ Anda tidak dapat mengikuti giveaway Anda sendiri!",
-      "alreadyEntered": "❌ Anda sudah mengikuti giveaway ini!",
-      "cancelOwnOnly": "❌ Anda hanya dapat membatalkan giveaway Anda sendiri.",
+      "cannotEnterOwn": "❌ Kamu tidak dapat mengikuti giveaway kamu sendiri!",
+      "alreadyEntered": "❌ Kamu sudah mengikuti giveaway ini!",
+      "cancelOwnOnly": "❌ Kamu hanya dapat membatalkan giveaway kamu sendiri.",
       "cancelNotActive": "❌ Giveaway ini tidak aktif.",
-      "finishOwnOnly": "❌ Anda hanya dapat menyelesaikan giveaway Anda sendiri.",
+      "finishOwnOnly": "❌ Kamu hanya dapat menyelesaikan giveaway kamu sendiri.",
       "finishNotActive": "❌ Giveaway ini tidak aktif.",
       "finishChannelError": "❌ Gagal mendapatkan saluran giveaway.",
       "finishChannelNotConfigured": "❌ Saluran giveaway tidak dikonfigurasi.",
@@ -191,13 +195,13 @@
   "feedback": {
     "modal": {
       "title": "💬 Kirim Feedback",
-      "label": "Feedback Anda",
-      "placeholder": "Silakan bagikan feedback, saran, atau kekhawatiran Anda...",
+      "label": "Feedback Kamu",
+      "placeholder": "Silakan bagikan feedback, saran, atau kekhawatiran kamu...",
       "maxLength": 2000
     },
     "submitted": {
       "title": "✅ Feedback Terkirim!",
-      "description": "Terima kasih atas feedback Anda! Pengiriman Anda telah diterima."
+      "description": "Terima kasih atas feedback kamu! Pengiriman kamu telah diterima."
     },
     "errors": {
       "invalid": "❌ **Feedback Tidak Valid**\\n\\nPesan feedback tidak boleh kosong.",
@@ -213,7 +217,7 @@
       "title": "💎 Buat Role Supporter Kustom",
       "editTitle": "💎 Edit Role Supporter Kustom",
       "nameLabel": "Nama Role",
-      "namePlaceholder": "Masukkan nama role kustom Anda...",
+      "namePlaceholder": "Masukkan nama role kustom kamu...",
       "colorLabel": "Warna Role (Hex/Desimal/Nama)",
       "colorPlaceholder": "#FF5733 atau 16729395 atau merah (opsional)",
       "iconLabel": "Ikon Role (Emoji atau URL Gambar)",
@@ -221,13 +225,13 @@
     },
     "existing": {
       "title": "💎 Role Supporter Kustom",
-      "description": "Anda sudah memiliki role kustom: **{roleName}**\\n\\nPilih aksi:",
+      "description": "Kamu sudah memiliki role kustom: **{roleName}**\\n\\nPilih aksi:",
       "currentRole": "📋 Role Saat Ini"
     },
     "created": {
       "title": "✅ Role Supporter Kustom Dibuat!",
-      "description": "Role kustom Anda **{roleName}** telah dibuat dan ditetapkan kepada Anda!{iconWarning}",
-      "iconWarningBoost": "\\n\\n⚠️ **Ikon Kustom Tidak Tersedia:** Server ini memerlukan Level 2 Server Boost untuk menggunakan ikon role kustom (gambar). Anda dapat menggunakan emoji sebagai gantinya!",
+      "description": "Role kustom kamu **{roleName}** telah dibuat dan ditetapkan kepada kamu!{iconWarning}",
+      "iconWarningBoost": "\\n\\n⚠️ **Ikon Kustom Tidak Tersedia:** Server ini memerlukan Level 2 Server Boost untuk menggunakan ikon role kustom (gambar). Kamu dapat menggunakan emoji sebagai gantinya!",
       "iconWarningGeneric": "\\n\\n⚠️ **Catatan:** Ikon tidak dapat diatur, tetapi role berhasil dibuat.",
       "roleDetails": "🎨 Detail Role",
       "roleDetailsValue": "**Nama:** {name}\\n**Warna:** {color}\\n**Ikon:** {icon}",
@@ -239,8 +243,8 @@
     },
     "updated": {
       "title": "✅ Role Supporter Kustom Diperbarui!",
-      "description": "Role kustom Anda **{roleName}** telah diperbarui!{iconWarning}",
-      "iconWarningBoost": "\\n\\n⚠️ **Ikon Kustom Tidak Tersedia:** Server ini memerlukan Level 2 Server Boost untuk menggunakan ikon role kustom (gambar). Anda dapat menggunakan emoji sebagai gantinya!",
+      "description": "Role kustom kamu **{roleName}** telah diperbarui!{iconWarning}",
+      "iconWarningBoost": "\\n\\n⚠️ **Ikon Kustom Tidak Tersedia:** Server ini memerlukan Level 2 Server Boost untuk menggunakan ikon role kustom (gambar). Kamu dapat menggunakan emoji sebagai gantinya!",
       "iconWarningGeneric": "\\n\\n⚠️ **Catatan:** Ikon tidak dapat diatur, tetapi role berhasil diperbarui.",
       "roleDetails": "🎨 Detail Role",
       "roleDetailsValue": "**Nama:** {name}\\n**Warna:** {color}\\n**Ikon:** {icon}",
@@ -253,18 +257,18 @@
     },
     "deleted": {
       "title": "✅ Role Supporter Kustom Dihapus",
-      "description": "Role kustom Anda **{roleName}** telah dihapus."
+      "description": "Role kustom kamu **{roleName}** telah dihapus."
     },
     "buttons": {
       "edit": "✏️ Edit Role",
       "delete": "🗑️ Hapus Role"
     },
     "errors": {
-      "noRole": "❌ Anda tidak memiliki role kustom untuk diedit.",
-      "noRoleDelete": "❌ Anda tidak memiliki role kustom untuk dihapus.",
+      "noRole": "❌ Kamu tidak memiliki role kustom untuk diedit.",
+      "noRoleDelete": "❌ Kamu tidak memiliki role kustom untuk dihapus.",
       "invalidName": "❌ **Nama Role Tidak Valid**\\n\\nNama role harus antara 1 dan 100 karakter.",
-      "boostRequired": "❌ **Ikon Kustom Tidak Tersedia**\\n\\nServer ini memerlukan **Level 2 Server Boost** untuk menggunakan ikon role kustom (gambar).\\n\\n💡 **Tip:** Anda dapat menggunakan **emoji** sebagai gantinya (seperti 🔥, ⭐, atau emoji kustom apa pun) yang tidak memerlukan server boost.",
-      "boostRequiredCreate": "❌ **Server Boost Diperlukan**\\n\\nServer ini memerlukan **Level 2 Server Boost** untuk membuat role supporter kustom dengan fitur tertentu.\\n\\n💡 **Yang dapat Anda lakukan:**\\n- Minta administrator server untuk boost server ke Level 2\\n- Atau hubungi staf server untuk bantuan\\n\\n**Detail error:** {error}",
+      "boostRequired": "❌ **Ikon Kustom Tidak Tersedia**\\n\\nServer ini memerlukan **Level 2 Server Boost** untuk menggunakan ikon role kustom (gambar).\\n\\n💡 **Tip:** Kamu dapat menggunakan **emoji** sebagai gantinya (seperti 🔥, ⭐, atau emoji kustom apa pun) yang tidak memerlukan server boost.",
+      "boostRequiredCreate": "❌ **Server Boost Diperlukan**\\n\\nServer ini memerlukan **Level 2 Server Boost** untuk membuat role supporter kustom dengan fitur tertentu.\\n\\n💡 **Yang dapat kamu lakukan:**\\n- Minta administrator server untuk boost server ke Level 2\\n- Atau hubungi staf server untuk bantuan\\n\\n**Detail error:** {error}",
       "createFailed": "❌ **Gagal Membuat Role**\\n\\nError: {error}\\n\\nPastikan:\\n- Bot memiliki izin untuk membuat role\\n- Bot memiliki izin untuk mengelola role\\n- Batasan posisi role valid",
       "updateFailed": "❌ **Gagal Memperbarui Role**\\n\\nError: {error}\\n\\nPastikan:\\n- Bot memiliki izin untuk mengelola role\\n- Batasan role valid",
       "deleteFailed": "❌ Gagal menghapus role: {error}",

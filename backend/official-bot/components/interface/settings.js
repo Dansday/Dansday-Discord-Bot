@@ -26,8 +26,8 @@ const languageNames = {
 
 export async function handleSettingsButton(interaction) {
     try {
-        if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling');
+        if (!(await hasPermission(interaction.member, "settings"))) {
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'settings', interaction.user.id);
             await interaction.reply({
                 content: errorMessage,
                 flags: 64
@@ -104,8 +104,8 @@ export async function handleSettingsButton(interaction) {
 
 export async function handleLanguageButton(interaction) {
     try {
-        if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling');
+        if (!(await hasPermission(interaction.member, "settings"))) {
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'settings', interaction.user.id);
             await interaction.update({
                 content: errorMessage,
                 components: [],
@@ -164,7 +164,7 @@ export async function handleLanguageButton(interaction) {
 
         const backButton = new ButtonBuilder()
             .setCustomId('bot_settings')
-            .setLabel(await translate('settings.buttons.settings', interaction.guild.id, interaction.user.id))
+            .setLabel(await translate('settings.title', interaction.guild.id, interaction.user.id))
             .setStyle(ButtonStyle.Secondary);
 
         const backRow = new ActionRowBuilder()
@@ -189,8 +189,8 @@ export async function handleLanguageSelect(interaction) {
     try {
         await interaction.deferUpdate();
 
-        if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling');
+        if (!(await hasPermission(interaction.member, "settings"))) {
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'settings', interaction.user.id);
             await interaction.editReply({
                 content: errorMessage,
                 components: [],
@@ -259,7 +259,7 @@ export async function handleLanguageSelect(interaction) {
 
             const backButton = new ButtonBuilder()
                 .setCustomId('bot_settings')
-                .setLabel(await translate('settings.buttons.settings', interaction.guild.id, interaction.user.id))
+                .setLabel(await translate('settings.title', interaction.guild.id, interaction.user.id))
                 .setStyle(ButtonStyle.Secondary);
 
             const backRow = new ActionRowBuilder()
