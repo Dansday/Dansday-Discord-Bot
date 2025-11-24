@@ -76,22 +76,37 @@ export async function handleSettingsButton(interaction) {
             .setFooter({ text: embedConfig.FOOTER })
             .setTimestamp();
 
+        const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
+        const dmEnabled = !(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0);
+
         const languageButton = new ButtonBuilder()
             .setCustomId('settings_language')
             .setLabel(await translate('settings.language.select', interaction.guild.id, interaction.user.id))
             .setStyle(ButtonStyle.Primary);
+
+        const dmNotificationLabel = dmEnabled 
+            ? await translate('settings.notifications.levelUpOn', interaction.guild.id, interaction.user.id)
+            : await translate('settings.notifications.levelUpOff', interaction.guild.id, interaction.user.id);
+        
+        const dmNotificationButton = new ButtonBuilder()
+            .setCustomId('settings_dm_toggle')
+            .setLabel(dmNotificationLabel)
+            .setStyle(dmEnabled ? ButtonStyle.Success : ButtonStyle.Secondary);
 
         const backButton = new ButtonBuilder()
             .setCustomId('bot_menu')
             .setLabel('📋 Menu')
             .setStyle(ButtonStyle.Secondary);
 
-        const buttonRow = new ActionRowBuilder()
-            .addComponents(languageButton, backButton);
+        const buttonRow1 = new ActionRowBuilder()
+            .addComponents(languageButton, dmNotificationButton);
+        
+        const buttonRow2 = new ActionRowBuilder()
+            .addComponents(backButton);
 
         await interaction.update({
             embeds: [settingsEmbed],
-            components: [buttonRow]
+            components: [buttonRow1, buttonRow2]
         });
     } catch (error) {
         await logger.log(`❌ Settings button error: ${error.message}`);
@@ -294,6 +309,129 @@ export async function handleLanguageSelect(interaction) {
         } catch (err) {
             await logger.log(`❌ Failed to send language select error: ${err.message}`);
         }
+    }
+}
+
+export async function handleDMToggleButton(interaction) {
+    try {
+        if (!(await hasPermission(interaction.member, "settings"))) {
+            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'settings', interaction.user.id);
+            await interaction.update({
+                content: errorMessage,
+                components: [],
+                embeds: [],
+                flags: 64
+            }).catch(() => interaction.reply({
+                content: errorMessage,
+                flags: 64
+            }).catch(() => null));
+            return;
+        }
+
+        const server = await getServerForInteraction(interaction);
+        if (!server) {
+            const errorMsg = await translate('leveling.errors.notRegistered', interaction.guild.id, interaction.user.id);
+            await interaction.update({
+                content: errorMsg,
+                components: [],
+                embeds: [],
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        const guildMember = interaction.member || await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!guildMember) {
+            const errorMsg = await translate('common.errors.memberNotFound', interaction.guild.id, interaction.user.id);
+            await interaction.update({
+                content: errorMsg,
+                components: [],
+                embeds: [],
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        const dbMember = await db.upsertMember(server.id, guildMember);
+        if (!dbMember) {
+            const errorMsg = await translate('leveling.errors.createRecordFailed', interaction.guild.id, interaction.user.id);
+            await interaction.update({
+                content: errorMsg,
+                components: [],
+                embeds: [],
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        await db.ensureMemberLevel(dbMember.id);
+
+        let memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
+        if (!memberLevelData) {
+            const errorMsg = await translate('leveling.errors.noData', interaction.guild.id, interaction.user.id);
+            await interaction.update({
+                content: errorMsg,
+                components: [],
+                embeds: [],
+                flags: 64
+            }).catch(() => null);
+            return;
+        }
+
+        const currentlyEnabled = !(memberLevelData.dm_notifications_enabled === false || memberLevelData.dm_notifications_enabled === 0);
+        await db.setMemberLevelDMPreference(memberLevelData.member_id, !currentlyEnabled);
+
+        memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
+        const dmEnabled = !(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0);
+
+        const embedConfig = await getEmbedConfig(interaction.guild.id);
+        const settingsTitle = await translate('settings.title', interaction.guild.id, interaction.user.id);
+        const settingsDesc = await translate('settings.description', interaction.guild.id, interaction.user.id);
+
+        const settingsEmbed = new EmbedBuilder()
+            .setColor(embedConfig.COLOR)
+            .setTitle(settingsTitle)
+            .setDescription(settingsDesc)
+            .setFooter({ text: embedConfig.FOOTER })
+            .setTimestamp();
+
+        const languageButton = new ButtonBuilder()
+            .setCustomId('settings_language')
+            .setLabel(await translate('settings.language.select', interaction.guild.id, interaction.user.id))
+            .setStyle(ButtonStyle.Primary);
+
+        const dmNotificationLabel = dmEnabled 
+            ? await translate('settings.notifications.levelUpOn', interaction.guild.id, interaction.user.id)
+            : await translate('settings.notifications.levelUpOff', interaction.guild.id, interaction.user.id);
+        
+        const dmNotificationButton = new ButtonBuilder()
+            .setCustomId('settings_dm_toggle')
+            .setLabel(dmNotificationLabel)
+            .setStyle(dmEnabled ? ButtonStyle.Success : ButtonStyle.Secondary);
+
+        const backButton = new ButtonBuilder()
+            .setCustomId('bot_menu')
+            .setLabel('📋 Menu')
+            .setStyle(ButtonStyle.Secondary);
+
+        const buttonRow1 = new ActionRowBuilder()
+            .addComponents(languageButton, dmNotificationButton);
+        
+        const buttonRow2 = new ActionRowBuilder()
+            .addComponents(backButton);
+
+        await interaction.update({
+            embeds: [settingsEmbed],
+            components: [buttonRow1, buttonRow2]
+        });
+    } catch (error) {
+        await logger.log(`❌ DM toggle error: ${error.message}`);
+        const errorMsg = await translate('leveling.errors.dmToggleFailed', interaction.guild?.id, interaction.user?.id, { error: error.message });
+        await interaction.update({
+            content: errorMsg,
+            components: [],
+            embeds: []
+        }).catch(() => null);
     }
 }
 

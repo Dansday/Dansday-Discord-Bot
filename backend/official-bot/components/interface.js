@@ -5,9 +5,9 @@ import { hasPermission, getPermissionDeniedMessage } from './permissions.js';
 import { handleCustomSupporterRoleButton, handleCustomSupporterRoleModal, handleEditCustomSupporterRole, handleDeleteCustomSupporterRole } from './interface/customsupporterrole.js';
 import { handleFeedbackButton, handleFeedbackModal } from './interface/feedback.js';
 import { handleAFKButton, handleAFKModal, handleRemoveAFKButton } from './interface/afk.js';
-import { handleLevelingButton, handleLeaderboardButton, handleDmToggleButton } from './interface/leveling.js';
+import { handleLevelingButton, handleLeaderboardButton } from './interface/leveling.js';
 import { handleGiveawayButton, handleGiveawayModal, handleGiveawayEnterButton, handleGiveawayRoleSelect, handleGiveawaySkipRolesContinue, handleGiveawayCancel, handleGiveawayFinish } from './interface/giveaway.js';
-import { handleSettingsButton, handleLanguageButton, handleLanguageSelect } from './interface/settings.js';
+import { handleSettingsButton, handleLanguageButton, handleLanguageSelect, handleDMToggleButton } from './interface/settings.js';
 import { translate } from '../../i18n.js';
 
 async function handleMenuButton(interaction) {
@@ -187,8 +187,8 @@ export async function handleButtonInteraction(interaction, client) {
         case 'leaderboard_chat':
             await handleLeaderboardButton(interaction);
             break;
-        case 'leveling_dm_toggle':
-            await handleDmToggleButton(interaction);
+        case 'settings_dm_toggle':
+            await handleDMToggleButton(interaction);
             break;
         case 'bot_settings':
             await handleSettingsButton(interaction);

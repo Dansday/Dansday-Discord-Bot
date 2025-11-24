@@ -293,20 +293,13 @@ async function createLeaderboardButtons(selectedType = 'xp', guildId = null, use
     return new ActionRowBuilder().addComponents(...buttons);
 }
 
-async function createDmToggleRow(dmEnabled = true, guildId = null, userId = null) {
-    const dmOnLabel = await translate('leveling.buttons.dmOn', guildId, userId);
-    const dmOffLabel = await translate('leveling.buttons.dmOff', guildId, userId);
-    const toggleButton = new ButtonBuilder()
-        .setCustomId('leveling_dm_toggle')
-        .setLabel(dmEnabled ? dmOnLabel : dmOffLabel)
-        .setStyle(dmEnabled ? ButtonStyle.Success : ButtonStyle.Secondary);
-
+async function createMenuRow() {
     const menuButton = new ButtonBuilder()
         .setCustomId('bot_menu')
         .setLabel('📋 Menu')
         .setStyle(ButtonStyle.Secondary);
 
-    return new ActionRowBuilder().addComponents(toggleButton, menuButton);
+    return new ActionRowBuilder().addComponents(menuButton);
 }
 
 export async function handleLevelingButton(interaction) {
@@ -359,11 +352,11 @@ export async function handleLevelingButton(interaction) {
         const sortType = 'xp';
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id, interaction.user.id);
         const buttons = await createLeaderboardButtons(sortType, interaction.guild.id, interaction.user.id);
-        const dmRow = await createDmToggleRow(!(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0), interaction.guild.id, interaction.user.id);
+        const menuRow = await createMenuRow();
 
         await interaction.update({
             embeds: [profileEmbed, leaderboardEmbed],
-            components: [buttons, dmRow]
+            components: [buttons, menuRow]
         });
     } catch (error) {
         await logger.log(`❌ Leveling interface error: ${error.message}`);
@@ -413,11 +406,11 @@ export async function handleLeaderboardButton(interaction) {
         const memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
         const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id, interaction.user.id);
         const buttons = await createLeaderboardButtons(sortType, interaction.guild.id, interaction.user.id);
-        const dmRow = await createDmToggleRow(!(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0), interaction.guild.id, interaction.user.id);
+        const menuRow = await createMenuRow();
 
         await interaction.update({
             embeds: [profileEmbed, leaderboardEmbed],
-            components: [buttons, dmRow]
+            components: [buttons, menuRow]
         });
     } catch (error) {
         await logger.log(`❌ Leaderboard button error: ${error.message}`);
@@ -429,100 +422,3 @@ export async function handleLeaderboardButton(interaction) {
     }
 }
 
-export async function handleDmToggleButton(interaction) {
-    try {
-        if (!(await hasPermission(interaction.member, "leveling"))) {
-            const errorMessage = await getPermissionDeniedMessage(interaction.guild, 'leveling', interaction.user.id);
-            await interaction.update({
-                content: errorMessage,
-                components: [],
-                embeds: [],
-                flags: 64
-            }).catch(() => interaction.reply({
-                content: errorMessage,
-                flags: 64
-            }).catch(() => null));
-            return;
-        }
-
-        const server = await getServerForInteraction(interaction);
-        if (!server) {
-            const errorMsg = await translate('leveling.errors.notRegistered', interaction.guild.id, interaction.user.id);
-            await interaction.reply({
-                content: errorMsg,
-                flags: 64
-            }).catch(() => null);
-            return;
-        }
-
-        const guildMember = interaction.member || await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
-        if (!guildMember) {
-            const errorMsg = await translate('leveling.errors.memberNotFound', interaction.guild.id, interaction.user.id);
-            await interaction.reply({
-                content: errorMsg,
-                flags: 64
-            }).catch(() => null);
-            return;
-        }
-
-        const dbMember = await db.upsertMember(server.id, guildMember);
-        if (!dbMember) {
-            const errorMsg = await translate('leveling.errors.createRecordFailed', interaction.guild.id, interaction.user.id);
-            await interaction.reply({
-                content: errorMsg,
-                flags: 64
-            }).catch(() => null);
-            return;
-        }
-
-        await db.ensureMemberLevel(dbMember.id);
-
-        let memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
-        if (!memberLevelData) {
-            const errorMsg = await translate('leveling.errors.noData', interaction.guild.id, interaction.user.id);
-            await interaction.reply({
-                content: errorMsg,
-                flags: 64
-            }).catch(() => null);
-            return;
-        }
-
-        const currentlyEnabled = !(memberLevelData.dm_notifications_enabled === false || memberLevelData.dm_notifications_enabled === 0);
-        await db.setMemberLevelDMPreference(memberLevelData.member_id, !currentlyEnabled);
-
-        memberLevelData = await db.getMemberLevelByDiscordId(server.id, interaction.user.id);
-
-        let sortType = 'xp';
-        const leaderboardRow = interaction.message?.components?.[0];
-        if (leaderboardRow && Array.isArray(leaderboardRow.components)) {
-            for (const component of leaderboardRow.components) {
-                if (component.style === ButtonStyle.Primary && typeof component.customId === 'string' && component.customId.startsWith('leaderboard_')) {
-                    sortType = component.customId.replace('leaderboard_', '');
-                    break;
-                }
-            }
-        }
-
-        const { profileEmbed, leaderboardEmbed } = await buildLevelingEmbeds(server, memberLevelData, sortType, interaction.guild.id, interaction.user.id);
-        const buttons = await createLeaderboardButtons(sortType, interaction.guild.id, interaction.user.id);
-        const dmRow = await createDmToggleRow(!(memberLevelData?.dm_notifications_enabled === false || memberLevelData?.dm_notifications_enabled === 0), interaction.guild.id, interaction.user.id);
-
-        await interaction.update({
-            embeds: [profileEmbed, leaderboardEmbed],
-            components: [buttons, dmRow]
-        });
-    } catch (error) {
-        await logger.log(`❌ Leveling DM toggle error: ${error.message}`);
-        const errorMsg = await translate('leveling.errors.dmToggleFailed', interaction.guild?.id, interaction.user?.id, { error: error.message });
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({
-                content: errorMsg
-            }).catch(() => null);
-        } else {
-            await interaction.reply({
-                content: errorMsg,
-                flags: 64
-            }).catch(() => null);
-        }
-    }
-}

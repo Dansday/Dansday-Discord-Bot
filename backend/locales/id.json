@@ -23,6 +23,10 @@
   "settings": {
     "title": "⚙️ Pengaturan",
     "description": "Konfigurasi preferensi bot kamu",
+    "notifications": {
+      "levelUpOn": "🔔 DM Naik Level: Aktif",
+      "levelUpOff": "🔕 DM Naik Level: Nonaktif"
+    },
     "language": {
       "title": "🌐 Pengaturan Bahasa",
       "description": "Pilih bahasa pilihan kamu:",
@@ -68,9 +72,7 @@
       "voiceTotal": "🎤 Total Suara",
       "voiceActive": "🎤 Suara Aktif",
       "voiceAfk": "🎤 Suara AFK",
-      "topChat": "💬 Chat Teratas",
-      "dmOn": "🔔 DM Aktif",
-      "dmOff": "🔕 DM Nonaktif"
+      "topChat": "💬 Chat Teratas"
     },
     "errors": {
       "notRegistered": "⚠️ Server ini tidak terdaftar dengan bot. Silakan jalankan sync terlebih dahulu.",

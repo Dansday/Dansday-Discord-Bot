@@ -23,6 +23,10 @@
   "settings": {
     "title": "⚙️ Settings",
     "description": "Configure your bot preferences",
+    "notifications": {
+      "levelUpOn": "🔔 Level Up DM: On",
+      "levelUpOff": "🔕 Level Up DM: Off"
+    },
     "language": {
       "title": "🌐 Language Settings",
       "description": "Select your preferred language:",
@@ -68,9 +72,7 @@
       "voiceTotal": "🎤 Voice Total",
       "voiceActive": "🎤 Voice Active",
       "voiceAfk": "🎤 Voice AFK",
-      "topChat": "💬 Top Chat",
-      "dmOn": "🔔 DM On",
-      "dmOff": "🔕 DM Off"
+      "topChat": "💬 Top Chat"
     },
     "errors": {
       "notRegistered": "⚠️ This server is not registered with the bot. Please run a sync first.",
