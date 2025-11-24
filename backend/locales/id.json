@@ -156,13 +156,7 @@
     },
     "created": {
       "title": "✅ Giveaway Dibuat!",
-      "description": "Giveaway Anda telah dibuat dan diposting di {channel}!",
-      "embedTitle": "🎉 {title}",
-      "embedDescription": "**Hadiah:** {prize}\\n\\n**Durasi:** <t:{endsAt}:R> (<t:{endsAt}:F>)\\n**Pemenang:** {winnerCount}\\n**Masuk Beberapa Kali:** {multipleEntries}\\n**Pembatasan Role:** {roleRestrictions}",
-      "hostedBy": "👤 Dibuat oleh",
-      "ends": "⏰ Berakhir",
-      "enterButton": "🎉 Ikuti Giveaway",
-      "roleRestrictionsNone": "Tidak ada (Semua role)"
+      "description": "Giveaway Anda telah dibuat dan diposting di {channel}!"
     },
     "entered": {
       "title": "✅ Berhasil Ikuti Giveaway!",

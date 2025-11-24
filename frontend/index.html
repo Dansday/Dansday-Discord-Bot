@@ -1244,6 +1244,18 @@
         const SERVERS_PER_PAGE = 9;
         let allServers = [];
         let currentServerPage = 1;
+        let appTimezone = null;
+        async function loadTimezone() {
+            try {
+                const res = await fetch('/api/config/timezone', { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    appTimezone = data.timezone;
+                }
+            } catch (err) {
+                console.error('Failed to load timezone:', err);
+            }
+        }
         function formatNumber(num) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
@@ -1253,7 +1265,15 @@
             if (Number.isNaN(date.getTime())) {
                 return 'N/A';
             }
+            if (!appTimezone) return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
             return date.toLocaleString('en-US', {
+                timeZone: appTimezone,
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
@@ -1283,12 +1303,22 @@
             if (Number.isNaN(date.getTime())) {
                 return '--:--:--';
             }
-            return date.toLocaleTimeString('en-US', {
+            if (!appTimezone) {
+                return date.toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: appTimezone,
                 hour12: false,
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
             });
+            return formatter.format(date);
         }
         function ensureBotLogElements() {
             const terminal = document.getElementById('botLogTerminal');
@@ -1346,9 +1376,22 @@
                 statusEl.classList.toggle('text-gray-500', !isError);
             }
             if (updatedEl) {
-                updatedEl.textContent = botLogsLastUpdated
-                    ? `Updated ${botLogsLastUpdated.toLocaleTimeString('en-US', { hour12: false })}`
-                    : '';
+                if (botLogsLastUpdated) {
+                    if (appTimezone) {
+                        const formatter = new Intl.DateTimeFormat('en-US', {
+                            timeZone: appTimezone,
+                            hour12: false,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        updatedEl.textContent = `Updated ${formatter.format(botLogsLastUpdated)}`;
+                    } else {
+                        updatedEl.textContent = `Updated ${botLogsLastUpdated.toLocaleTimeString('en-US', { hour12: false })}`;
+                    }
+                } else {
+                    updatedEl.textContent = '';
+                }
             }
         }
         function renderBotLogs() {
@@ -7027,6 +7070,7 @@
             }
         }
         window.addEventListener('DOMContentLoaded', async () => {
+            await loadTimezone();
             await checkPanelStatus();
             await checkAuthStatus();
         });

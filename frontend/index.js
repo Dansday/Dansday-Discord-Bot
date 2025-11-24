@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { CONTROL_PANEL } from './config.js';
 import logger from '../backend/logger.js';
 import db, { initializeDatabase } from '../database/database.js';
+import { parseMySQLDateTime } from '../backend/utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -584,6 +585,14 @@ export async function init() {
         });
     });
 
+    app.get('/api/config/timezone', (req, res) => {
+        const timezone = process.env.TIMEZONE;
+        if (!timezone) {
+            return res.status(500).json({ error: 'TIMEZONE environment variable not set' });
+        }
+        res.json({ timezone });
+    });
+
     app.get('/api/bots', requireAuth, async (req, res) => {
         try {
             const bots = await db.getAllBots();
@@ -647,8 +656,7 @@ export async function init() {
                     if (botData.uptime_started_at instanceof Date) {
                         startTime = botData.uptime_started_at;
                     } else {
-                        const dateStr = String(botData.uptime_started_at).replace(' ', 'T') + 'Z';
-                        startTime = new Date(dateStr);
+                        startTime = parseMySQLDateTime(botData.uptime_started_at);
                     }
                     const now = new Date();
                     const uptimeMs = now - startTime;
@@ -719,8 +727,18 @@ export async function init() {
                 if (botData.uptime_started_at instanceof Date) {
                     startTime = botData.uptime_started_at;
                 } else {
-                    const dateStr = String(botData.uptime_started_at).replace(' ', 'T') + 'Z';
-                    startTime = new Date(dateStr);
+                    const dateStr = String(botData.uptime_started_at);
+                    const [datePart, timePart] = dateStr.split(' ');
+                    const [year, month, day] = datePart.split('-');
+                    const [hours, minutes, seconds] = timePart.split(':');
+                    const date = new Date();
+                    date.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+                    date.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds || 0), 0);
+                    const TIMEZONE = process.env.TIMEZONE;
+                    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+                    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
+                    const offset = (tzDate.getTime() - utcDate.getTime()) / 60000;
+                    startTime = new Date(date.getTime() - offset * 60000);
                 }
                 const now = new Date();
                 const uptimeMs = now - startTime;

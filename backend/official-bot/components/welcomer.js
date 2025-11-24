@@ -2,6 +2,7 @@ import { WELCOMER, getEmbedConfig, getBotConfig } from "../../config.js";
 import { EmbedBuilder } from "discord.js";
 import logger from "../../logger.js";
 import db from "../../../database/database.js";
+import { parseMySQLDateTime } from "../../utils.js";
 function replacePlaceholders(message, memberId, serverData, memberData, memberCount) {
     const now = new Date();
     let profileCreatedAt = null;
@@ -9,8 +10,7 @@ function replacePlaceholders(message, memberId, serverData, memberData, memberCo
         if (memberData.profile_created_at instanceof Date) {
             profileCreatedAt = memberData.profile_created_at;
         } else {
-            const dateStr = String(memberData.profile_created_at).replace(' ', 'T') + 'Z';
-            profileCreatedAt = new Date(dateStr);
+            profileCreatedAt = parseMySQLDateTime(memberData.profile_created_at);
         }
     }
     const accountAge = profileCreatedAt ? Math.floor((now.getTime() - profileCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -76,8 +76,7 @@ async function welcomeUser(member, client) {
             if (memberData.profile_created_at instanceof Date) {
                 profileCreatedAt = memberData.profile_created_at;
             } else {
-                const dateStr = String(memberData.profile_created_at).replace(' ', 'T') + 'Z';
-                profileCreatedAt = new Date(dateStr);
+                profileCreatedAt = parseMySQLDateTime(memberData.profile_created_at);
             }
         }
         const accountCreatedTimestamp = profileCreatedAt ? Math.floor(profileCreatedAt.getTime() / 1000) : Math.floor(Date.now() / 1000);

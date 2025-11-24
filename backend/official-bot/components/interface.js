@@ -10,8 +10,6 @@ import { handleGiveawayButton, handleGiveawayModal, handleGiveawayEnterButton, h
 import { handleSettingsButton, handleLanguageButton, handleLanguageSelect } from './interface/settings.js';
 import { translate } from '../../i18n.js';
 
-const ephemeralTimeouts = new Map();
-
 async function handleMenuButton(interaction) {
     const member = interaction.member || await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
     if (!member) {
@@ -139,14 +137,12 @@ async function handleMenuButton(interaction) {
                 components: rows
             });
         }
-        scheduleEphemeralDismiss(interaction);
     } else {
         await interaction.reply({
             embeds: [menuEmbed],
             components: rows,
             flags: 64
         });
-        scheduleEphemeralDismiss(interaction);
     }
 }
 
@@ -472,31 +468,6 @@ function init(client) {
         }
     });
     logger.log("🎮 Interface component initialized");
-}
-
-function scheduleEphemeralDismiss(interaction) {
-    const userId = interaction.user.id;
-    const existingTimeout = ephemeralTimeouts.get(userId);
-    if (existingTimeout) {
-        clearTimeout(existingTimeout);
-    }
-
-    const timeout = setTimeout(async () => {
-        try {
-            if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({
-                    content: '',
-                    embeds: [],
-                    components: []
-                }).catch(() => null);
-            }
-        } catch (error) {
-            await logger.log(`❌ Failed to dismiss ephemeral message: ${error.message}`);
-        }
-        ephemeralTimeouts.delete(userId);
-    }, 60000);
-
-    ephemeralTimeouts.set(userId, timeout);
 }
 
 export default {

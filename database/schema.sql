@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS panel (
     id INT PRIMARY KEY AUTO_INCREMENT,
     password_hash TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS panel_logs (
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS panel_logs (
     ip_address TEXT NOT NULL,
     user_agent TEXT,
     success BOOLEAN DEFAULT FALSE,
-    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    attempted_at DATETIME NOT NULL,
     FOREIGN KEY (panel_id) REFERENCES panel(id) ON DELETE SET NULL
 );
 
@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS bots (
     is_testing BOOLEAN DEFAULT FALSE,
     status ENUM('running', 'stopped', 'starting', 'stopping') DEFAULT 'stopped',
     process_id INT,
-    uptime_started_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    uptime_started_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     FOREIGN KEY (connect_to) REFERENCES bots(id) ON DELETE SET NULL,
     FOREIGN KEY (panel_id) REFERENCES panel(id) ON DELETE SET NULL
 );
@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS servers (
     total_boosters INT DEFAULT 0,
     boost_level INT DEFAULT 0,
     server_icon TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_bot_server (bot_id, discord_server_id),
     FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE CASCADE
 );
@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS server_categories (
     discord_category_id VARCHAR(150) NOT NULL,
     name TEXT,
     position INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_server_category (server_id, discord_category_id),
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS server_channels (
     type TEXT,
     category_id INT NULL,
     position INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_server_channel (server_id, discord_channel_id),
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES server_categories(id) ON DELETE SET NULL
@@ -87,8 +87,8 @@ CREATE TABLE IF NOT EXISTS server_roles (
     position INT,
     color TEXT,
     permissions TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_server_role (server_id, discord_role_id),
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
@@ -101,13 +101,13 @@ CREATE TABLE IF NOT EXISTS server_members (
     display_name TEXT,
     server_display_name TEXT,
     avatar TEXT,
-    profile_created_at TIMESTAMP NULL,
-    member_since TIMESTAMP NULL,
+    profile_created_at DATETIME NULL,
+    member_since DATETIME NULL,
     is_booster BOOLEAN DEFAULT FALSE,
-    booster_since TIMESTAMP NULL,
+    booster_since DATETIME NULL,
     language VARCHAR(10) DEFAULT 'en',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_server_member (server_id, discord_member_id),
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
@@ -124,10 +124,10 @@ CREATE TABLE IF NOT EXISTS server_member_levels (
     dm_notifications_enabled BOOLEAN DEFAULT TRUE,
     is_in_voice BOOLEAN DEFAULT FALSE,
     rank INT DEFAULT NULL,
-    chat_rewarded_at TIMESTAMP NULL,
-    voice_rewarded_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    chat_rewarded_at DATETIME NULL,
+    voice_rewarded_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_member_level (member_id),
     FOREIGN KEY (member_id) REFERENCES server_members(id) ON DELETE CASCADE
 );
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS server_member_roles (
     member_id INT NOT NULL,
     role_id INT NOT NULL,
     is_custom BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
     UNIQUE KEY unique_member_role (member_id, role_id),
     FOREIGN KEY (member_id) REFERENCES server_members(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES server_roles(id) ON DELETE CASCADE
@@ -147,8 +147,8 @@ CREATE TABLE IF NOT EXISTS server_members_afk (
     id INT PRIMARY KEY AUTO_INCREMENT,
     member_id INT NOT NULL,
     message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_member_afk (member_id),
     FOREIGN KEY (member_id) REFERENCES server_members(id) ON DELETE CASCADE
 );
@@ -158,8 +158,8 @@ CREATE TABLE IF NOT EXISTS server_settings (
     server_id INT NOT NULL,
     component_name VARCHAR(150) NOT NULL,
     settings JSON NOT NULL DEFAULT ('{}'),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_server_component (server_id, component_name),
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS bot_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     bot_id INT NOT NULL,
     message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
     FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE CASCADE
 );
 
@@ -186,8 +186,8 @@ CREATE TABLE IF NOT EXISTS server_giveaways (
     status ENUM('active', 'ended', 'ended_force', 'cancelled') DEFAULT 'active',
     ends_at DATETIME NOT NULL,
     winners_announced BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
     FOREIGN KEY (member_id) REFERENCES server_members(id) ON DELETE CASCADE
 );
@@ -198,8 +198,8 @@ CREATE TABLE IF NOT EXISTS server_giveaway_entries (
     member_id INT NOT NULL,
     entry_count INT DEFAULT 1,
     is_winner BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     UNIQUE KEY unique_giveaway_member (giveaway_id, member_id),
     FOREIGN KEY (giveaway_id) REFERENCES server_giveaways(id) ON DELETE CASCADE,
     FOREIGN KEY (member_id) REFERENCES server_members(id) ON DELETE CASCADE

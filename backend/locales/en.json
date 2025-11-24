@@ -156,13 +156,7 @@
     },
     "created": {
       "title": "✅ Giveaway Created!",
-      "description": "Your giveaway has been created and posted in {channel}!",
-      "embedTitle": "🎉 {title}",
-      "embedDescription": "**Prize:** {prize}\\n\\n**Duration:** <t:{endsAt}:R> (<t:{endsAt}:F>)\\n**Winners:** {winnerCount}\\n**Multiple Entries:** {multipleEntries}\\n**Role Restrictions:** {roleRestrictions}",
-      "hostedBy": "👤 Hosted by",
-      "ends": "⏰ Ends",
-      "enterButton": "🎉 Enter Giveaway",
-      "roleRestrictionsNone": "None (All roles)"
+      "description": "Your giveaway has been created and posted in {channel}!"
     },
     "entered": {
       "title": "✅ Entered Giveaway!",

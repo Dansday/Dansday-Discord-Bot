@@ -4,30 +4,10 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 import logger from '../backend/logger.js';
+import { toMySQLDateTime, parseMySQLDateTime } from '../backend/utils.js';
 
 dotenv.config();
 
-function toMySQLDateTimeUTC(date) {
-    if (!date) date = new Date();
-    if (typeof date === 'string') date = new Date(date);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-
-function parseMySQLDateTimeUTC(mysqlDateTimeString) {
-    if (!mysqlDateTimeString) return null;
-    if (mysqlDateTimeString instanceof Date) {
-        const dateStr = mysqlDateTimeString.toISOString().slice(0, 19).replace('T', ' ') + 'Z';
-        return new Date(dateStr);
-    }
-    const dateStr = String(mysqlDateTimeString).replace(' ', 'T') + 'Z';
-    return new Date(dateStr);
-}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -263,7 +243,7 @@ export async function getBot(botId) {
 
         const bot = result[0];
         if (bot.uptime_started_at) {
-            bot.uptime_started_at = parseMySQLDateTimeUTC(bot.uptime_started_at);
+            bot.uptime_started_at = parseMySQLDateTime(bot.uptime_started_at);
         }
 
         return bot;
@@ -279,10 +259,11 @@ export async function createBot(botData) {
 
         const connection = await getPool().getConnection();
         try {
+            const now = toMySQLDateTime();
             const [result] = await connection.execute(
                 `INSERT INTO bots (
-                    name, token, application_id, bot_type, bot_icon, port, secret_key, connect_to, panel_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    name, token, application_id, bot_type, bot_icon, port, secret_key, connect_to, panel_id, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     botData.name || `Bot#${botNumber}`,
                     botData.token,
@@ -292,7 +273,9 @@ export async function createBot(botData) {
                     botData.port !== undefined ? botData.port : (botData.bot_type === 'official' ? 7777 : null),
                     botData.secret_key || null,
                     botData.connect_to || null,
-                    botData.panel_id || null
+                    botData.panel_id || null,
+                    now,
+                    now
                 ]
             );
 
@@ -311,13 +294,13 @@ export async function updateBot(botId, botData) {
     try {
         const updateData = {
             ...botData,
-            updated_at: toMySQLDateTimeUTC()
+            updated_at: toMySQLDateTime()
         };
 
         if (botData.status === 'running' && !botData.uptime_started_at) {
-            updateData.uptime_started_at = toMySQLDateTimeUTC();
+            updateData.uptime_started_at = toMySQLDateTime();
         } else if (botData.uptime_started_at) {
-            updateData.uptime_started_at = toMySQLDateTimeUTC(botData.uptime_started_at);
+            updateData.uptime_started_at = toMySQLDateTime(botData.uptime_started_at);
         }
 
         if (botData.status === 'stopped') {
@@ -395,11 +378,12 @@ export async function upsertServer(botId, guild) {
             }
         }
 
+        const now = toMySQLDateTime();
         await query(
             `INSERT INTO servers (
                 bot_id, discord_server_id, name, total_members, total_channels,
-                total_boosters, boost_level, server_icon, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                total_boosters, boost_level, server_icon, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 total_members = VALUES(total_members),
@@ -411,7 +395,7 @@ export async function upsertServer(botId, guild) {
             [
                 botId, guild.id, guild.name, guild.memberCount || 0,
                 guild.channels?.cache?.size || 0, guild.premiumSubscriptionCount || 0,
-                boostLevel, iconUrl, toMySQLDateTimeUTC()
+                boostLevel, iconUrl, now, now
             ]
         );
 
@@ -428,10 +412,11 @@ export async function upsertServer(botId, guild) {
 
 export async function upsertCategory(serverId, categoryData) {
     try {
+        const now = toMySQLDateTime();
         await query(
             `INSERT INTO server_categories (
-                server_id, discord_category_id, name, position, updated_at
-            ) VALUES (?, ?, ?, ?, ?)
+                server_id, discord_category_id, name, position, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 position = VALUES(position),
@@ -439,7 +424,7 @@ export async function upsertCategory(serverId, categoryData) {
             [
                 serverId, categoryData.id, categoryData.name,
                 categoryData.position !== undefined ? categoryData.position : null,
-                toMySQLDateTimeUTC()
+                now, now
             ]
         );
 
@@ -517,10 +502,11 @@ export async function upsertChannel(serverId, channelData, categoryMap = null) {
             categoryId = categoryMap.get(channelData.parent_id) || null;
         }
 
+        const now = toMySQLDateTime();
         await query(
             `INSERT INTO server_channels (
-                server_id, discord_channel_id, name, type, category_id, position, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                server_id, discord_channel_id, name, type, category_id, position, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 type = VALUES(type),
@@ -530,7 +516,7 @@ export async function upsertChannel(serverId, channelData, categoryMap = null) {
             [
                 serverId, channelData.id, channelData.name, channelData.type,
                 categoryId, channelData.position !== undefined ? channelData.position : null,
-                toMySQLDateTimeUTC()
+                now, now
             ]
         );
 
@@ -623,10 +609,11 @@ export async function getRoles(serverId) {
 
 export async function upsertRole(serverId, roleData) {
     try {
+        const now = toMySQLDateTime();
         await query(
             `INSERT INTO server_roles (
-                server_id, discord_role_id, name, position, color, permissions, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                server_id, discord_role_id, name, position, color, permissions, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 position = VALUES(position),
@@ -636,7 +623,7 @@ export async function upsertRole(serverId, roleData) {
             [
                 serverId, roleData.id, roleData.name, roleData.position,
                 roleData.hexColor, roleData.permissions?.bitfield?.toString() || null,
-                toMySQLDateTimeUTC()
+                now, now
             ]
         );
 
@@ -709,15 +696,16 @@ export async function upsertMember(serverId, memberData) {
         const username = user?.username || null;
         const displayName = user?.globalName || user?.displayName || null;
         const serverDisplayName = memberData.nickname || null;
-        const profileCreatedAt = user?.createdAt ? toMySQLDateTimeUTC(user.createdAt) : null;
-        const memberSince = memberData.joinedAt ? toMySQLDateTimeUTC(memberData.joinedAt) : null;
+        const profileCreatedAt = user?.createdAt ? toMySQLDateTime(user.createdAt) : null;
+        const memberSince = memberData.joinedAt ? toMySQLDateTime(memberData.joinedAt) : null;
         const isBooster = memberData.premiumSince !== null && memberData.premiumSince !== undefined;
-        const boosterSince = memberData.premiumSince ? toMySQLDateTimeUTC(memberData.premiumSince) : null;
+        const boosterSince = memberData.premiumSince ? toMySQLDateTime(memberData.premiumSince) : null;
 
+        const now = toMySQLDateTime();
         await query(
             `INSERT INTO server_members (
-                server_id, discord_member_id, username, display_name, server_display_name, avatar, profile_created_at, member_since, is_booster, booster_since, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                server_id, discord_member_id, username, display_name, server_display_name, avatar, profile_created_at, member_since, is_booster, booster_since, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 username = VALUES(username),
                 display_name = VALUES(display_name),
@@ -730,7 +718,7 @@ export async function upsertMember(serverId, memberData) {
                 updated_at = VALUES(updated_at)`,
             [
                 serverId, user?.id || memberData.id, username, displayName, serverDisplayName,
-                avatarUrl, profileCreatedAt, memberSince, isBooster, boosterSince, toMySQLDateTimeUTC()
+                avatarUrl, profileCreatedAt, memberSince, isBooster, boosterSince, now, now
             ]
         );
 
@@ -755,13 +743,13 @@ export async function getMemberByDiscordId(serverId, discordMemberId) {
 
     const member = result[0];
     if (member.profile_created_at) {
-        member.profile_created_at = parseMySQLDateTimeUTC(member.profile_created_at);
+        member.profile_created_at = parseMySQLDateTime(member.profile_created_at);
     }
     if (member.member_since) {
-        member.member_since = parseMySQLDateTimeUTC(member.member_since);
+        member.member_since = parseMySQLDateTime(member.member_since);
     }
     if (member.booster_since) {
-        member.booster_since = parseMySQLDateTimeUTC(member.booster_since);
+        member.booster_since = parseMySQLDateTime(member.booster_since);
     }
 
     return member;
@@ -811,10 +799,11 @@ export async function syncMemberRoles(memberId, discordRoleIds, serverId) {
         const rolesToRemove = Array.from(existingRoleIds).filter(roleId => !roleIdsToAdd.includes(roleId));
 
         if (rolesToAdd.length > 0) {
-            const placeholders = rolesToAdd.map(() => '(?, ?, ?)').join(', ');
-            const values = rolesToAdd.flatMap(roleId => [memberId, roleId, false]);
+            const now = toMySQLDateTime();
+            const placeholders = rolesToAdd.map(() => '(?, ?, ?, ?)').join(', ');
+            const values = rolesToAdd.flatMap(roleId => [memberId, roleId, false, now]);
             await query(
-                `INSERT INTO server_member_roles (member_id, role_id, is_custom) VALUES ${placeholders}`,
+                `INSERT INTO server_member_roles (member_id, role_id, is_custom, created_at) VALUES ${placeholders}`,
                 values
             );
         }
@@ -879,10 +868,10 @@ export async function getMemberLevel(memberId) {
 
     const levelData = result[0];
     if (levelData.voice_rewarded_at) {
-        levelData.voice_rewarded_at = parseMySQLDateTimeUTC(levelData.voice_rewarded_at);
+        levelData.voice_rewarded_at = parseMySQLDateTime(levelData.voice_rewarded_at);
     }
     if (levelData.chat_rewarded_at) {
-        levelData.chat_rewarded_at = parseMySQLDateTimeUTC(levelData.chat_rewarded_at);
+        levelData.chat_rewarded_at = parseMySQLDateTime(levelData.chat_rewarded_at);
     }
 
     return levelData;
@@ -890,11 +879,12 @@ export async function getMemberLevel(memberId) {
 
 export async function ensureMemberLevel(memberId) {
     await initializeDatabase();
+    const now = toMySQLDateTime();
     await query(
-        `INSERT INTO server_member_levels (member_id)
-         VALUES (?)
+        `INSERT INTO server_member_levels (member_id, created_at, updated_at)
+         VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE member_id = VALUES(member_id)`,
-        [memberId]
+        [memberId, now, now]
     );
     return await getMemberLevel(memberId);
 }
@@ -949,7 +939,7 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
 
     if (updates.chatRewardedAt) {
         clauses.push('chat_rewarded_at = ?');
-        values.push(toMySQLDateTimeUTC(updates.chatRewardedAt));
+        values.push(toMySQLDateTime(updates.chatRewardedAt));
     }
 
     if (updates.voiceRewardedAt !== undefined) {
@@ -957,7 +947,7 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
             clauses.push('voice_rewarded_at = NULL');
         } else {
             clauses.push('voice_rewarded_at = ?');
-            values.push(toMySQLDateTimeUTC(updates.voiceRewardedAt));
+            values.push(toMySQLDateTime(updates.voiceRewardedAt));
         }
     }
 
@@ -966,7 +956,7 @@ export async function updateMemberLevelStats(memberId, updates = {}) {
     }
 
     clauses.push('updated_at = ?');
-    values.push(toMySQLDateTimeUTC());
+    values.push(toMySQLDateTime());
     values.push(memberId);
 
     await query(
@@ -1017,7 +1007,7 @@ export async function setMemberLevelDMPreference(memberId, enabled = true) {
         `UPDATE server_member_levels
          SET dm_notifications_enabled = ?, updated_at = ?
          WHERE member_id = ?`,
-        [enabled ? 1 : 0, toMySQLDateTimeUTC(), memberId]
+        [enabled ? 1 : 0, toMySQLDateTime(), memberId]
     );
 
     return await getMemberLevel(memberId);
@@ -1349,8 +1339,8 @@ export async function getServerOverview(serverId) {
         if (!latest) {
             return row.updated_at;
         }
-        const rowDate = parseMySQLDateTimeUTC(row.updated_at);
-        const latestDate = parseMySQLDateTimeUTC(latest);
+        const rowDate = parseMySQLDateTime(row.updated_at);
+        const latestDate = parseMySQLDateTime(latest);
         return rowDate && latestDate && rowDate > latestDate ? row.updated_at : latest;
     }, null);
 
@@ -1565,7 +1555,8 @@ async function createPanel(passwordHash) {
 
     const connection = await getPool().getConnection();
     try {
-        const [result] = await connection.execute('INSERT INTO panel (password_hash) VALUES (?)', [passwordHash]);
+        const now = toMySQLDateTime();
+        const [result] = await connection.execute('INSERT INTO panel (password_hash, created_at, updated_at) VALUES (?, ?, ?)', [passwordHash, now, now]);
         const panels = await query('SELECT * FROM panel WHERE id = ?', [result.insertId]);
         return panels[0];
     } finally {
@@ -1576,7 +1567,7 @@ async function createPanel(passwordHash) {
 async function updatePanelPassword(panelId, passwordHash) {
     await query(
         'UPDATE panel SET password_hash = ?, updated_at = ? WHERE id = ?',
-        [passwordHash, toMySQLDateTimeUTC(), panelId]
+        [passwordHash, toMySQLDateTime(), panelId]
     );
     const panels = await query('SELECT * FROM panel WHERE id = ?', [panelId]);
     return panels[0];
@@ -1594,7 +1585,7 @@ async function createPanelLog(logData) {
                 logData.ip_address,
                 logData.user_agent || null,
                 logData.success || false,
-                logData.attempted_at ? toMySQLDateTimeUTC(logData.attempted_at) : toMySQLDateTimeUTC()
+                logData.attempted_at ? toMySQLDateTime(logData.attempted_at) : toMySQLDateTime()
             ]
         );
         const logs = await query('SELECT * FROM panel_logs WHERE id = ?', [result.insertId]);
@@ -1657,15 +1648,15 @@ async function getServerSettings(serverId, componentName = null) {
 async function upsertServerSettings(serverId, componentName, settings) {
     try {
         await initializeDatabase();
-        const now = toMySQLDateTimeUTC();
+        const now = toMySQLDateTime();
 
         await query(
-            `INSERT INTO server_settings (server_id, component_name, settings, updated_at)
-             VALUES (?, ?, ?, ?)
+            `INSERT INTO server_settings (server_id, component_name, settings, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                  settings = VALUES(settings),
                  updated_at = VALUES(updated_at)`,
-            [serverId, componentName, JSON.stringify(settings), now]
+            [serverId, componentName, JSON.stringify(settings), now, now]
         );
 
         const resultSettings = await query(
@@ -1705,8 +1696,8 @@ export async function insertBotLog(botId, message) {
 
     try {
         await query(
-            'INSERT INTO bot_logs (bot_id, message) VALUES (?, ?)',
-            [botId, message]
+            'INSERT INTO bot_logs (bot_id, message, created_at) VALUES (?, ?, ?)',
+            [botId, message, toMySQLDateTime()]
         );
 
         const now = Date.now();
@@ -1748,7 +1739,7 @@ export async function purgeOldBotLogs(retentionDays = BOT_LOG_RETENTION_DAYS) {
     await initializeDatabase();
     const days = Number.isFinite(retentionDays) && retentionDays > 0 ? retentionDays : BOT_LOG_RETENTION_DAYS;
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const cutoffStr = cutoff.toISOString().slice(0, 19).replace('T', ' ');
+    const cutoffStr = toMySQLDateTime(cutoff);
 
     const result = await query(
         'DELETE FROM bot_logs WHERE created_at < ?',
@@ -1776,7 +1767,7 @@ export async function getAFKStatus(serverId, discordMemberId) {
         if (afkData.created_at instanceof Date) {
             timestamp = afkData.created_at.getTime();
         } else {
-            const parsedDate = parseMySQLDateTimeUTC(afkData.created_at);
+            const parsedDate = parseMySQLDateTime(afkData.created_at);
             timestamp = parsedDate ? parsedDate.getTime() : Date.now();
         }
     } else {
@@ -1803,16 +1794,19 @@ export async function setAFKStatus(serverId, discordMemberId, afkData) {
 
         const memberId = memberResult[0].id;
 
+        const now = toMySQLDateTime();
         await query(
             `INSERT INTO server_members_afk (
-                member_id, message
-            ) VALUES (?, ?)
+                member_id, message, created_at, updated_at
+            ) VALUES (?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 message = VALUES(message),
                 updated_at = VALUES(updated_at)`,
             [
                 memberId,
-                afkData.message || 'Away'
+                afkData.message || 'Away',
+                now,
+                now
             ]
         );
 
@@ -1882,14 +1876,15 @@ export async function createGiveaway(giveawayData) {
     await initializeDatabase();
 
     const now = new Date();
-    const endsAt = toMySQLDateTimeUTC(new Date(now.getTime() + giveawayData.duration_minutes * 60 * 1000));
+    const endsAt = toMySQLDateTime(new Date(now.getTime() + giveawayData.duration_minutes * 60 * 1000));
+    const createdAt = toMySQLDateTime();
 
     const result = await query(
         `INSERT INTO server_giveaways (
                     server_id, member_id, title, prize,
                     duration_minutes, allowed_roles, multiple_entries_allowed, winner_count,
-                    status, ends_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    status, ends_at, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             giveawayData.server_id,
             giveawayData.member_id,
@@ -1900,7 +1895,9 @@ export async function createGiveaway(giveawayData) {
             giveawayData.multiple_entries_allowed || false,
             giveawayData.winner_count || 1,
             'active',
-            endsAt
+            endsAt,
+            createdAt,
+            createdAt
         ]
     );
 
@@ -1923,7 +1920,7 @@ export async function createGiveaway(giveawayData) {
     }
 
     if (giveaway[0].ends_at) {
-        giveaway[0].ends_at = parseMySQLDateTimeUTC(giveaway[0].ends_at);
+        giveaway[0].ends_at = parseMySQLDateTime(giveaway[0].ends_at);
     }
 
     return giveaway[0];
@@ -1948,7 +1945,7 @@ export async function getEndedGiveaways() {
     const now = new Date();
 
     const endedGiveaways = result.filter(row => {
-        const endsAt = parseMySQLDateTimeUTC(row.ends_at);
+        const endsAt = parseMySQLDateTime(row.ends_at);
         return endsAt && endsAt <= now;
     });
 
@@ -1986,7 +1983,7 @@ export async function getGiveawayById(giveawayId) {
     }
 
     if (result[0].ends_at) {
-        result[0].ends_at = parseMySQLDateTimeUTC(result[0].ends_at);
+        result[0].ends_at = parseMySQLDateTime(result[0].ends_at);
     }
 
     return result[0];
@@ -2012,7 +2009,7 @@ export async function getActiveGiveawayByMember(serverId, memberId) {
     }
 
     if (result[0].ends_at) {
-        result[0].ends_at = parseMySQLDateTimeUTC(result[0].ends_at);
+        result[0].ends_at = parseMySQLDateTime(result[0].ends_at);
     }
 
     return result[0];
@@ -2020,7 +2017,7 @@ export async function getActiveGiveawayByMember(serverId, memberId) {
 
 export async function addGiveawayEntry(giveawayId, memberId, increment = true) {
     await initializeDatabase();
-    const now = toMySQLDateTimeUTC();
+    const now = toMySQLDateTime();
 
     if (increment) {
         await query(

@@ -2,6 +2,7 @@ import { BOOSTER, getEmbedConfig, getBotConfig } from "../../config.js";
 import { EmbedBuilder } from "discord.js";
 import logger from "../../logger.js";
 import db from "../../../database/database.js";
+import { parseMySQLDateTime } from "../../utils.js";
 
 async function thankBooster(member, client) {
     try {
@@ -103,10 +104,9 @@ async function thankBooster(member, client) {
                                 if (memberData.booster_since instanceof Date) {
                                     boosterSinceDate = memberData.booster_since;
                                 } else {
-                                    const dateStr = String(memberData.booster_since).replace(' ', 'T') + 'Z';
-                                    boosterSinceDate = new Date(dateStr);
+                                    boosterSinceDate = parseMySQLDateTime(memberData.booster_since);
                                 }
-                                return `<t:${Math.floor(boosterSinceDate.getTime() / 1000)}:R>`;
+                                return boosterSinceDate ? `<t:${Math.floor(boosterSinceDate.getTime() / 1000)}:R>` : "Just now";
                             })(),
                             inline: false
                         }

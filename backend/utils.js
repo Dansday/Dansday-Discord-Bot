@@ -1,12 +1,18 @@
-export function separateChannelsAndCategories(guildChannels) {
+import { DateTime } from 'luxon';
 
+const TIMEZONE = process.env.TIMEZONE;
+
+if (!TIMEZONE) {
+    throw new Error('TIMEZONE environment variable is required');
+}
+
+export function separateChannelsAndCategories(guildChannels) {
     const channelsArray = Array.from(guildChannels.values());
 
     const isThreadType = (type) => {
         if (typeof type === 'number') {
             return type === 10 || type === 11 || type === 12;
         }
-
         if (typeof type === 'string') {
             return type === 'GUILD_NEWS_THREAD' ||
                 type === 'GUILD_PUBLIC_THREAD' ||
@@ -16,61 +22,37 @@ export function separateChannelsAndCategories(guildChannels) {
     };
 
     const isCategoryType = (type) => {
-        if (typeof type === 'number') {
-            return type === 4;
-        }
-        if (typeof type === 'string') {
-            return type === 'GUILD_CATEGORY';
-        }
+        if (typeof type === 'number') return type === 4;
+        if (typeof type === 'string') return type === 'GUILD_CATEGORY';
         return false;
     };
 
     const isTextOrNewsType = (type) => {
-        if (typeof type === 'number') {
-            return type === 0 || type === 5;
-        }
-        if (typeof type === 'string') {
-            return type === 'GUILD_TEXT' || type === 'GUILD_NEWS';
-        }
+        if (typeof type === 'number') return type === 0 || type === 5;
+        if (typeof type === 'string') return type === 'GUILD_TEXT' || type === 'GUILD_NEWS';
         return false;
     };
 
     const isVoiceType = (type) => {
-        if (typeof type === 'number') {
-            return type === 2;
-        }
-        if (typeof type === 'string') {
-            return type === 'GUILD_VOICE';
-        }
+        if (typeof type === 'number') return type === 2;
+        if (typeof type === 'string') return type === 'GUILD_VOICE';
         return false;
     };
 
     const isStageType = (type) => {
-        if (typeof type === 'number') {
-            return type === 13;
-        }
-        if (typeof type === 'string') {
-            return type === 'GUILD_STAGE_VOICE';
-        }
+        if (typeof type === 'number') return type === 13;
+        if (typeof type === 'string') return type === 'GUILD_STAGE_VOICE';
         return false;
     };
 
     const allChannels = channelsArray.filter(ch => {
-
         const isThreadMethod = ch.isThread ? ch.isThread() : false;
-
         const isThreadByType = isThreadType(ch.type);
-
         return !isThreadMethod && !isThreadByType;
     });
 
-    const categories = allChannels.filter(ch => {
-        return isCategoryType(ch.type);
-    });
-
-    const channels = allChannels.filter(ch => {
-        return isTextOrNewsType(ch.type) || isVoiceType(ch.type) || isStageType(ch.type);
-    });
+    const categories = allChannels.filter(ch => isCategoryType(ch.type));
+    const channels = allChannels.filter(ch => isTextOrNewsType(ch.type) || isVoiceType(ch.type) || isStageType(ch.type));
 
     return { categories, channels };
 }
@@ -84,23 +66,18 @@ export function mapCategoriesForSync(categories) {
 }
 
 export function mapChannelsForSync(channels) {
-    return channels.map(ch => {
+    const typeMap = {
+        0: 'GUILD_TEXT',
+        2: 'GUILD_VOICE',
+        5: 'GUILD_NEWS',
+        13: 'GUILD_STAGE_VOICE'
+    };
 
+    return channels.map(ch => {
         let typeValue = ch.type;
         if (typeof ch.type === 'number') {
-
-            const typeMap = {
-                0: 'GUILD_TEXT',
-                2: 'GUILD_VOICE',
-                5: 'GUILD_NEWS',
-                13: 'GUILD_STAGE_VOICE'
-            };
             typeValue = typeMap[ch.type] || String(ch.type);
-        } else if (typeof ch.type === 'string') {
-
-            typeValue = ch.type;
-        } else {
-
+        } else if (typeof ch.type !== 'string') {
             typeValue = String(ch.type);
         }
 
@@ -114,19 +91,32 @@ export function mapChannelsForSync(channels) {
     });
 }
 
-const TIMEZONE = process.env.TIMEZONE || "Asia/Jakarta";
-
 export function formatTimestamp(timestamp = Date.now(), includeSeconds = false) {
-    const formatter = new Intl.DateTimeFormat("id-ID", {
-        timeZone: TIMEZONE,
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: includeSeconds ? "2-digit" : undefined,
-        hour12: false,
-    });
+    return DateTime.fromMillis(timestamp, { zone: TIMEZONE })
+        .toFormat(includeSeconds ? 'dd/MM/yyyy HH:mm:ss' : 'dd/MM/yyyy HH:mm');
+}
 
-    return formatter.format(new Date(timestamp)).replace(",", "");
+export function toMySQLDateTime(date) {
+    if (!date) {
+        return DateTime.now().setZone(TIMEZONE).toFormat('yyyy-MM-dd HH:mm:ss');
+    }
+    if (typeof date === 'string') {
+        const dt = DateTime.fromISO(date);
+        if (!dt.isValid) return null;
+        return dt.setZone(TIMEZONE).toFormat('yyyy-MM-dd HH:mm:ss');
+    }
+    return DateTime.fromJSDate(date).setZone(TIMEZONE).toFormat('yyyy-MM-dd HH:mm:ss');
+}
+
+export function parseMySQLDateTime(mysqlDateTimeString) {
+    if (!mysqlDateTimeString) return null;
+    if (mysqlDateTimeString instanceof Date) {
+        return mysqlDateTimeString;
+    }
+    const dateStr = String(mysqlDateTimeString);
+    const dt = DateTime.fromSQL(dateStr, { zone: TIMEZONE });
+    if (!dt.isValid) {
+        return null;
+    }
+    return dt.toJSDate();
 }

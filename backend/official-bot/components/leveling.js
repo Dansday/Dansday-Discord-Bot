@@ -2,6 +2,7 @@ import { getLevelingSettings, PERMISSIONS, getBotConfig, getEmbedConfig } from "
 import db from "../../../database/database.js";
 import logger from "../../logger.js";
 import { EmbedBuilder } from "discord.js";
+import { parseMySQLDateTime } from "../../utils.js";
 
 const recentMessages = new Map();
 const voiceSessions = new Map();
@@ -475,8 +476,8 @@ async function startVoiceSession(state, resumed = false) {
             if (levelData.voice_rewarded_at instanceof Date) {
                 lastRewardedAtMs = levelData.voice_rewarded_at.getTime();
             } else {
-                const dateStr = String(levelData.voice_rewarded_at).replace(' ', 'T') + 'Z';
-                lastRewardedAtMs = new Date(dateStr).getTime();
+                const parsedDate = parseMySQLDateTime(levelData.voice_rewarded_at);
+                lastRewardedAtMs = parsedDate ? parsedDate.getTime() : null;
             }
         }
 
@@ -514,7 +515,7 @@ async function startVoiceSession(state, resumed = false) {
             finalLastRewardedAt = now;
         }
 
-        const tickInterval = Math.max(voiceCooldownMs, 10000);
+        const tickInterval = Math.min(Math.max(voiceCooldownMs || 1000, 1000), 5000);
         const interval = setInterval(async () => {
             await handleVoiceTick(sessionKey);
         }, tickInterval);
