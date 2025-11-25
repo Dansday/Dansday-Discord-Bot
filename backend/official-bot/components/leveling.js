@@ -171,6 +171,47 @@ async function isMemberEligible(guildId, guildMember) {
     }
 }
 
+function normalizeRankValue(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    if (typeof value === "number") {
+        return Number.isFinite(value) && value > 0 ? value : null;
+    }
+    const parsed = parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+        return null;
+    }
+    return parsed;
+}
+
+function normalizeLevelValue(value, fallback = 1) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+    }
+    if (value === null || value === undefined) {
+        return fallback;
+    }
+    const parsed = parseInt(value, 10);
+    if (Number.isNaN(parsed)) {
+        return fallback;
+    }
+    return parsed;
+}
+
+function getRankMedal(rank) {
+    if (rank === 1) {
+        return "🥇";
+    }
+    if (rank === 2) {
+        return "🥈";
+    }
+    if (rank === 3) {
+        return "🥉";
+    }
+    return null;
+}
+
 export async function sendLevelChangeDM(guildId, discordMemberId, serverName, newLevel, contextLabel = "level-change") {
     if (!clientInstance || !guildId || !discordMemberId || !newLevel) {
         return false;
@@ -199,8 +240,17 @@ export async function sendLevelChangeDM(guildId, discordMemberId, serverName, ne
     }
 }
 
-export async function sendLevelUpNotification(guildId, discordMemberId, serverName, newLevel, contextLabel = "level-change") {
-    if (!clientInstance || !guildId || !discordMemberId || !newLevel) {
+export async function sendLevelProgressNotification({
+    guildId,
+    discordMemberId,
+    serverName,
+    newLevel = null,
+    previousRank = null,
+    eventType = "level",
+    memberLevelSnapshot = null,
+    contextLabel = "level-change"
+} = {}) {
+    if (!clientInstance || !guildId || !discordMemberId) {
         return false;
     }
 
@@ -216,13 +266,13 @@ export async function sendLevelUpNotification(guildId, discordMemberId, serverNa
         }
 
         const settings = await getLevelingSettings(guildId);
-        const levelUpChannelId = settings.LEVEL_UP_CHANNEL_ID;
+        const progressChannelId = settings.PROGRESS_CHANNEL_ID;
 
-        if (!levelUpChannelId) {
+        if (!progressChannelId) {
             return false;
         }
 
-        const channel = await guild.channels.fetch(levelUpChannelId);
+        const channel = await guild.channels.fetch(progressChannelId);
         if (!channel) {
             return false;
         }
@@ -244,29 +294,61 @@ export async function sendLevelUpNotification(guildId, discordMemberId, serverNa
             return false;
         }
 
-        await db.recalculateServerMemberRanks(server.id);
-        const memberWithRank = await db.getMemberLevelByDiscordId(server.id, discordMemberId);
-        const rank = memberWithRank?.rank ?? null;
+        let memberWithRank = memberLevelSnapshot;
+        if (!memberWithRank) {
+            await db.recalculateServerMemberRanks(server.id);
+            memberWithRank = await db.getMemberLevelByDiscordId(server.id, discordMemberId);
+        }
+        if (!memberWithRank) {
+            return false;
+        }
+
+        const currentRank = normalizeRankValue(memberWithRank.rank);
+        const previousRankValue = normalizeRankValue(previousRank);
+
+        if (eventType === "rank" && (!previousRankValue || !currentRank || currentRank >= previousRankValue)) {
+            return false;
+        }
 
         const embedConfig = await getEmbedConfig(guildId);
-
         const embed = new EmbedBuilder()
             .setColor(embedConfig.COLOR)
-            .setTitle(`🎉 Level Up!`)
-            .setDescription(`${member} has reached **Level ${newLevel}**!`)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-            .addFields(
-                { name: '📊 Total XP', value: `${(levelStats.experience ?? 0).toLocaleString()}`, inline: true },
-                { name: '🏆 Rank', value: rank ? `#${rank}` : 'Unranked', inline: true }
-            )
             .setFooter({ text: embedConfig.FOOTER || serverName })
             .setTimestamp();
 
+        if (eventType === "rank") {
+            const snapshotLevel = normalizeLevelValue(memberWithRank.level ?? levelStats.level ?? newLevel ?? 1);
+            const medal = getRankMedal(currentRank);
+            const titlePrefix = medal ? `${medal} ` : "";
+            embed
+                .setTitle(`${titlePrefix}Rank Update!`)
+                .setDescription(
+                    medal
+                        ? `${member} just secured a top spot!`
+                        : `${member} climbed the leaderboard!`
+                )
+                .addFields(
+                    { name: 'Previous Rank', value: previousRankValue ? `#${previousRankValue}` : 'Unranked', inline: true },
+                    { name: 'New Rank', value: currentRank ? `#${currentRank}` : 'Unranked', inline: true }
+                );
+        } else {
+            const snapshotLevel = normalizeLevelValue(newLevel ?? memberWithRank.level ?? levelStats.level ?? 1);
+            embed
+                .setTitle('🎉 Level Up!')
+                .setDescription(`${member} has reached **Level ${snapshotLevel}**!`)
+                .addFields(
+                    { name: '📊 Total XP', value: `${(levelStats.experience ?? 0).toLocaleString()}`, inline: true },
+                    { name: '🏆 Rank', value: currentRank ? `#${currentRank}` : 'Unranked', inline: true }
+                );
+        }
+
         await channel.send({ embeds: [embed] });
-        await logger.log(`⭐ Sent level up notification (${contextLabel}) to channel ${levelUpChannelId} for ${discordMemberId} level ${newLevel} in ${serverName}`);
+        const typeLabel = eventType === "rank" ? "rank" : "level";
+        await logger.log(`⭐ Sent ${typeLabel} notification (${contextLabel}) to channel ${progressChannelId} for ${discordMemberId} in ${serverName}`);
         return true;
     } catch (error) {
-        await logger.log(`⚠️ Failed to send level up notification (${contextLabel}) to ${discordMemberId}: ${error.message}`);
+        await logger.log(`⚠️ Failed to send progress notification (${contextLabel}) to ${discordMemberId}: ${error.message}`);
         return false;
     }
 }
@@ -295,7 +377,12 @@ async function handleLevelEvaluation(server, dbMember, currentStats, guildId, co
         return currentStats;
     }
 
-    const { previousLevel = null, previousExperience = null, reason = "unknown" } = context;
+    const {
+        previousLevel = null,
+        previousExperience = null,
+        previousRank: contextPreviousRank = null,
+        reason = "unknown"
+    } = context;
     const expectedLevel = await determineLevel(currentStats.experience || 0, guildId);
 
     let storedLevel = currentStats.level;
@@ -307,6 +394,15 @@ async function handleLevelEvaluation(server, dbMember, currentStats, guildId, co
     }
 
     const baselineLevel = await deriveBaselineLevel({ previousLevel, previousExperience, storedLevel }, guildId);
+    const normalizedPreviousRank = normalizeRankValue(contextPreviousRank);
+    let memberLevelSnapshot = null;
+    let currentRank = null;
+    if (dbMember.discord_member_id) {
+        await db.recalculateServerMemberRanks(server.id);
+        memberLevelSnapshot = await db.getMemberLevelByDiscordId(server.id, dbMember.discord_member_id);
+        currentRank = normalizeRankValue(memberLevelSnapshot?.rank);
+    }
+    const rankImproved = normalizedPreviousRank !== null && currentRank !== null && currentRank < normalizedPreviousRank;
 
     let finalStats = currentStats;
     if (storedLevel !== expectedLevel) {
@@ -326,7 +422,15 @@ async function handleLevelEvaluation(server, dbMember, currentStats, guildId, co
         const memberName = dbMember.server_display_name || dbMember.display_name || dbMember.username || dbMember.discord_member_id || "Unknown member";
 
         if (dbMember.discord_member_id) {
-            await sendLevelUpNotification(guildId, dbMember.discord_member_id, server.name, expectedLevel, `level-eval:${reason}`);
+            await sendLevelProgressNotification({
+                guildId,
+                discordMemberId: dbMember.discord_member_id,
+                serverName: server.name,
+                newLevel: expectedLevel,
+                previousRank: normalizedPreviousRank,
+                memberLevelSnapshot,
+                contextLabel: `level-eval:${reason}`
+            });
         }
 
         if (!notificationsEnabled) {
@@ -334,6 +438,16 @@ async function handleLevelEvaluation(server, dbMember, currentStats, guildId, co
         } else if (dbMember.discord_member_id) {
             await sendLevelChangeDM(guildId, dbMember.discord_member_id, server.name, expectedLevel, `level-eval:${reason}`);
         }
+    } else if (dbMember.discord_member_id && rankImproved) {
+        await sendLevelProgressNotification({
+            guildId,
+            discordMemberId: dbMember.discord_member_id,
+            serverName: server.name,
+            previousRank: normalizedPreviousRank,
+            memberLevelSnapshot,
+            eventType: "rank",
+            contextLabel: `rank-eval:${reason}`
+        });
     }
 
     return finalStats;
@@ -381,6 +495,7 @@ async function handleMessageCreate(message) {
         await handleLevelEvaluation(server, dbMember, stats, message.guild.id, {
             previousLevel: previousStats?.level ?? null,
             previousExperience: previousStats?.experience ?? null,
+            previousRank: previousStats?.rank ?? null,
             reason: "message"
         });
         recentMessages.set(cooldownKey, now);
@@ -412,6 +527,7 @@ async function awardVoiceXP(server, dbMember, guildMember, minutes, isAFK, guild
     return await handleLevelEvaluation(server, dbMember, stats, guildId, {
         previousLevel: oldStats?.level ?? null,
         previousExperience: oldStats?.experience ?? null,
+        previousRank: oldStats?.rank ?? null,
         reason
     });
 }

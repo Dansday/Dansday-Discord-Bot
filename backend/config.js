@@ -202,12 +202,12 @@ export async function getLevelingSettings(guildId) {
 
     const config = settings.settings;
 
-    let levelUpChannelId = config.LEVEL_UP_CHANNEL_ID;
-    if (!levelUpChannelId) {
+    let progressChannelId = config.PROGRESS_CHANNEL_ID;
+    if (!progressChannelId) {
         try {
-            levelUpChannelId = await getMainChannel(guildId);
+            progressChannelId = await getMainChannel(guildId);
         } catch (error) {
-            levelUpChannelId = null;
+            progressChannelId = null;
         }
     }
 
@@ -225,7 +225,7 @@ export async function getLevelingSettings(guildId) {
             BASE_XP: config.REQUIREMENTS.BASE_XP,
             MULTIPLIER: config.REQUIREMENTS.MULTIPLIER
         },
-        LEVEL_UP_CHANNEL_ID: levelUpChannelId
+        PROGRESS_CHANNEL_ID: progressChannelId
     };
 }
 

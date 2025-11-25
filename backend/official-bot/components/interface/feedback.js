@@ -125,7 +125,7 @@ export async function handleFeedbackModal(interaction) {
         const server = await db.getServerByDiscordId(botConfig.id, guild.id);
         const dbMember = await db.upsertMember(server.id, member);
 
-        await db.createFeedback(
+        const feedbackId = await db.createFeedback(
             server.id,
             dbMember.id,
             feedbackMessage,
@@ -137,6 +137,7 @@ export async function handleFeedbackModal(interaction) {
         const feedbackEmbedTitle = '💬 Feedback Submission';
         const fromLabel = '👤 From';
         const submittedLabel = '🕐 Submitted';
+        const footerText = `${embedConfig.FOOTER} • Feedback ID: #${feedbackId}`;
         const feedbackEmbed = new EmbedBuilder()
             .setColor(embedConfig.COLOR)
             .setTitle(feedbackEmbedTitle)
@@ -155,7 +156,7 @@ export async function handleFeedbackModal(interaction) {
                 }
             ])
             .setTimestamp()
-            .setFooter({ text: embedConfig.FOOTER });
+            .setFooter({ text: footerText });
 
         let staffMentions = '';
         try {
@@ -185,7 +186,7 @@ export async function handleFeedbackModal(interaction) {
             .setTitle(successTitle)
             .setDescription(successDescription)
             .setTimestamp()
-            .setFooter({ text: embedConfig.FOOTER });
+            .setFooter({ text: footerText });
 
         await interaction.editReply({
             embeds: [successEmbed]

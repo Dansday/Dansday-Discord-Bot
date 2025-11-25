@@ -3,7 +3,7 @@ import { getEmbedConfig, getBotConfig } from "../../../config.js";
 import { hasPermission, getPermissionDeniedMessage } from "../permissions.js";
 import db from "../../../../database/database.js";
 import logger from "../../../logger.js";
-import { getLevelRequirement, determineLevel, sendLevelChangeDM, sendLevelUpNotification } from "../leveling.js";
+import { getLevelRequirement, determineLevel, sendLevelChangeDM, sendLevelProgressNotification } from "../leveling.js";
 import { translate } from "../../../i18n.js";
 
 const PROGRESS_BAR_SLOTS = 10;
@@ -63,7 +63,14 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
         const updatedStats = await db.updateMemberLevelStats(levelData.member_id, updates);
         if (updatedStats) {
             if (recalculatedLevel > previousLevel && levelData.discord_member_id) {
-                await sendLevelUpNotification(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+                await sendLevelProgressNotification({
+                    guildId,
+                    discordMemberId: levelData.discord_member_id,
+                    serverName,
+                    newLevel: recalculatedLevel,
+                    previousRank: levelData.rank ?? null,
+                    contextLabel: "interface-refresh"
+                });
                 if (notificationsEnabled) {
                     await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
                 }
@@ -78,7 +85,14 @@ async function refreshMemberLevelData(serverId, discordMemberId) {
 
     if ((levelData.level ?? 1) !== recalculatedLevel) {
         if (recalculatedLevel > previousLevel && levelData.discord_member_id) {
-            await sendLevelUpNotification(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
+            await sendLevelProgressNotification({
+                guildId,
+                discordMemberId: levelData.discord_member_id,
+                serverName,
+                newLevel: recalculatedLevel,
+                previousRank: levelData.rank ?? null,
+                contextLabel: "interface-refresh"
+            });
             if (notificationsEnabled) {
                 await sendLevelChangeDM(guildId, levelData.discord_member_id, serverName, recalculatedLevel);
             }
