@@ -688,9 +688,13 @@ export async function handleStaffReportModal(interaction) {
 
 async function notifyReporterOfDecision(guild, report, translationKey, categoryLabel) {
     if (!report?.reporter_discord_id) {
+        await logger.log(`⚠️ Cannot send DM notification: reporter_discord_id is missing`);
         return;
     }
-    const reporterUser = await guild.client.users.fetch(report.reporter_discord_id).catch(() => null);
+    const reporterUser = await guild.client.users.fetch(report.reporter_discord_id).catch((error) => {
+        logger.log(`⚠️ Failed to fetch reporter user ${report.reporter_discord_id}: ${error.message}`);
+        return null;
+    });
     if (!reporterUser) {
         return;
     }
@@ -701,9 +705,14 @@ async function notifyReporterOfDecision(guild, report, translationKey, categoryL
         description: truncateDescription(report.description),
         server: guild.name
     });
-    await reporterUser.send({
-        content
-    }).catch(() => null);
+    try {
+        await reporterUser.send({
+            content
+        });
+        await logger.log(`✅ Sent DM notification (${translationKey}) to reporter ${report.reporter_discord_id} for report #${report.id}`);
+    } catch (error) {
+        await logger.log(`⚠️ Failed to send DM notification (${translationKey}) to reporter ${report.reporter_discord_id}: ${error.message}`);
+    }
 }
 
 async function handleStaffReportDecision(interaction, decision) {

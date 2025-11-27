@@ -539,6 +539,13 @@ export async function init() {
                 });
             }
 
+            if (!/^[a-zA-Z]+$/.test(username)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Username can only contain uppercase and lowercase letters'
+                });
+            }
+
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 return res.status(400).json({
                     success: false,
@@ -973,6 +980,13 @@ export async function init() {
                 return res.status(400).json({
                     success: false,
                     error: 'Username must be at least 3 characters long'
+                });
+            }
+
+            if (!/^[a-zA-Z]+$/.test(username)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Username can only contain uppercase and lowercase letters'
                 });
             }
 
