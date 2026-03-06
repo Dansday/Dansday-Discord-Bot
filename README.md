@@ -1,4 +1,4 @@
-# GO BLOX Bot System
+# Dansday Discord Bot
 
 A comprehensive Discord bot management system with a web-based control panel. Features dual bot architecture (self-bot monitoring + official bot forwarding) with database-driven configuration, multiple server support, and extensive moderation/management features.
 
@@ -58,58 +58,57 @@ A comprehensive Discord bot management system with a web-based control panel. Fe
 ## Project Structure
 
 ```
-GOBLOX/
-├── main.js                    # Control panel server entry point
-├── package.json               # Dependencies and scripts
-├── .env.dev                  # Development environment variables
-├── .env.production           # Production environment variables
-├── Dockerfile                # Docker container configuration
-├── docker-compose.yml        # Docker Compose configuration
+Dansday/
+├── main.js                                               # Control panel server entry point
+├── package.json                                          # Dependencies and scripts
+├── .env.example                                          # Development environment variables
+├── Dockerfile                                            # Docker container configuration
+├── docker-compose.yml                                    # Docker Compose configuration
 ├── frontend/
-│   ├── index.js              # Control panel Express server
-│   ├── index.html            # Web interface
-│   └── config.js             # Frontend configuration
+│   ├── index.js                                          # Control panel Express server
+│   ├── index.html                                        # Web interface
+│   └── config.js                                         # Frontend configuration
 ├── backend/
-│   ├── config.js             # Backend configuration (database-driven)
-│   ├── i18n.js               # Localization runtime + helpers
-│   ├── locales/              # Translation resources (per language JSON)
+│   ├── config.js                                         # Backend configuration (database-driven)
+│   ├── i18n.js                                           # Localization runtime + helpers
+│   ├── locales/                                          # Translation resources (per language JSON)
 │   │   ├── en.json
 │   │   └── id.json
-│   ├── logger.js             # Centralized logging utility
-│   ├── utils.js              # Utility functions
+│   ├── logger.js                                         # Centralized logging utility
+│   ├── utils.js                                          # Utility functions
 │   ├── official-bot/
-│   │   ├── officialbot.js   # Official bot entry point
+│   │   ├── officialbot.js                                # Official bot entry point
 │   │   └── components/
-│   │       ├── forwarder.js      # Message forwarding component
-│   │       ├── welcomer.js       # User welcoming component
-│   │       ├── booster.js         # Server booster thank you messages
-│   │       ├── webhook.js        # Webhook server for self-bot communication
-│   │       ├── commands.js       # Slash command system
-│   │       ├── interface.js      # Button interface component
-│   │       ├── moderation.js     # Moderation tracking component
-│   │       ├── permissions.js    # Permission checking system
-│   │       ├── leveling.js       # Leveling system component
-│   │       ├── staffreportrating.js # Staff rating role manager
-│   │       ├── sync.js           # Server/channel/role sync to database
-│   │       ├── commands/         # Command definitions
+│   │       ├── forwarder.js                              # Message forwarding component
+│   │       ├── welcomer.js                               # User welcoming component
+│   │       ├── booster.js                                # Server booster thank you messages
+│   │       ├── webhook.js                                # Webhook server for self-bot communication
+│   │       ├── commands.js                               # Slash command system
+│   │       ├── interface.js                              # Button interface component
+│   │       ├── moderation.js                             # Moderation tracking component
+│   │       ├── permissions.js                            # Permission checking system
+│   │       ├── leveling.js                               # Leveling system component
+│   │       ├── staffreportrating.js                      # Staff rating role manager
+│   │       ├── sync.js                                   # Server/channel/role sync to database
+│   │       ├── commands/                                 # Command definitions
 │   │       │   └── admin/
-│   │       │       └── setup.js  # Setup command
-│   │       └── interface/        # Interface button handlers
-│   │           ├── afk.js                 # AFK button handler
-│   │           ├── customsupporterrole.js # Custom role handler
-│   │           ├── feedback.js           # Feedback button handler
-│   │           ├── giveaway.js           # Giveaway button handler
-│   │           ├── leveling.js           # Leveling button handler
-│   │           ├── settings.js           # Per-member settings + localization
-│   │           └── staffreportrating.js  # Staff report/rating workflow
+│   │       │       └── setup.js                          # Setup command
+│   │       └── interface/                                # Interface button handlers
+│   │           ├── afk.js                                # AFK button handler
+│   │           ├── customsupporterrole.js                # Custom role handler
+│   │           ├── feedback.js                           # Feedback button handler
+│   │           ├── giveaway.js                           # Giveaway button handler
+│   │           ├── leveling.js                           # Leveling button handler
+│   │           ├── settings.js                           # Per-member settings + localization
+│   │           └── staffreportrating.js                  # Staff report/rating workflow
 │   └── self-bot/
-│       ├── selfbot.js         # Self-bot entry point
+│       ├── selfbot.js                                    # Self-bot entry point
 │       └── components/
-│           ├── forwarder.js    # Message monitoring component
-│           └── sync.js         # Server/channel/role sync to database
+│           ├── forwarder.js                              # Message monitoring component
+│           └── sync.js                                   # Server/channel/role sync to database
 └── database/
-    ├── database.js            # MySQL database client and operations
-    └── schema.sql             # Database schema (tables, indexes)
+    ├── database.js                                       # MySQL database client and operations
+    └── schema.sql                                        # Database schema (tables, indexes)
 ```
 
 ## Features
@@ -239,7 +238,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=your_user
 DB_PASSWORD=your_password
-DB_NAME=goblox_bot
+DB_NAME=dansday_bot
 
 # Control Panel Configuration (Required)
 CONTROL_PANEL_PORT=8080
