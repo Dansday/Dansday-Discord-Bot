@@ -1466,21 +1466,27 @@ export async function init() {
                 };
 
                 if (bot.connect_to) {
-                    try {
-                        const connectedBot = await db.getBot(bot.connect_to);
-                        if (connectedBot) {
-                            botData.connected_bot_name = connectedBot.name;
+                    const connectToId = Number(bot.connect_to);
+                    if (connectToId && !Number.isNaN(connectToId)) {
+                        try {
+                            const connectedBot = await db.getBot(connectToId);
+                            if (connectedBot) {
+                                const rawName = connectedBot.name;
+                                botData.connected_bot_name = (rawName != null && String(rawName).trim() !== '')
+                                    ? rawName
+                                    : null;
 
-                            if (bot.bot_type === 'selfbot') {
-                                botData.is_testing = connectedBot.is_testing || false;
+                                if (bot.bot_type === 'selfbot') {
+                                    botData.is_testing = connectedBot.is_testing || false;
 
-                                if (bot.is_testing !== connectedBot.is_testing) {
-                                    await db.updateBot(bot.id, { is_testing: connectedBot.is_testing || false });
+                                    if (bot.is_testing !== connectedBot.is_testing) {
+                                        await db.updateBot(bot.id, { is_testing: connectedBot.is_testing || false });
+                                    }
                                 }
                             }
+                        } catch (err) {
+                            logger.log(`⚠️  Failed to get connected bot info: ${err.message}`);
                         }
-                    } catch (err) {
-                        logger.log(`⚠️  Failed to get connected bot info: ${err.message}`);
                     }
                 }
 
@@ -1541,21 +1547,27 @@ export async function init() {
             botData.is_testing = bot.is_testing || false;
 
             if (bot.connect_to) {
-                try {
-                    const connectedBot = await db.getBot(bot.connect_to);
-                    if (connectedBot) {
-                        botData.connected_bot_name = connectedBot.name;
+                const connectToId = Number(bot.connect_to);
+                if (connectToId && !Number.isNaN(connectToId)) {
+                    try {
+                        const connectedBot = await db.getBot(connectToId);
+                        if (connectedBot) {
+                            const rawName = connectedBot.name;
+                            botData.connected_bot_name = (rawName != null && String(rawName).trim() !== '')
+                                ? rawName
+                                : null;
 
-                        if (bot.bot_type === 'selfbot') {
-                            botData.is_testing = connectedBot.is_testing || false;
+                            if (bot.bot_type === 'selfbot') {
+                                botData.is_testing = connectedBot.is_testing || false;
 
-                            if (bot.is_testing !== connectedBot.is_testing) {
-                                await db.updateBot(bot.id, { is_testing: connectedBot.is_testing || false });
+                                if (bot.is_testing !== connectedBot.is_testing) {
+                                    await db.updateBot(bot.id, { is_testing: connectedBot.is_testing || false });
+                                }
                             }
                         }
+                    } catch (err) {
+                        logger.log(`⚠️  Failed to get connected bot info: ${err.message}`);
                     }
-                } catch (err) {
-                    logger.log(`⚠️  Failed to get connected bot info: ${err.message}`);
                 }
             }
 

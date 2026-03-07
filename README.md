@@ -59,7 +59,7 @@ A comprehensive Discord bot management system with a web-based control panel. Fe
 
 ```
 Dansday/
-├── main.js                                               # Control panel server entry point
+├── index.js                                               # Control panel server entry point
 ├── package.json                                          # Dependencies and scripts
 ├── .env.example                                          # Development environment variables
 ├── Dockerfile                                            # Docker container configuration
@@ -173,49 +173,79 @@ Dansday/
 ## Quick Start with Docker (Recommended)
 
 ### 1. Clone and Configure
+
+Copy the environment template and set your values:
+
 ```bash
-# Use .env.dev for development or .env.production for production
-# Edit the appropriate .env file and set your values:
-# - DB_ROOT_PASSWORD (for MariaDB)
-# - DB_NAME, DB_USER, DB_PASSWORD
-# - SESSION_SECRET (generate with: openssl rand -base64 32)
-# - CONTROL_PANEL_PORT (default: 8080)
-# - TIMEZONE (optional, defaults to Asia/Jakarta)
+cp .env.example .env
+# Edit .env with your preferred editor
 ```
+
+**Required for Docker:**
+
+| Variable | Description |
+|----------|-------------|
+| `DB_ROOT_PASSWORD` | MariaDB root password (used by database + phpMyAdmin). Use a strong value. |
+| `DB_NAME` | Database name (e.g. `dansday_bot`) |
+| `DB_USER` | Database user (e.g. `dansday_bot`) |
+| `DB_PASSWORD` | Database user password |
+| `SESSION_SECRET` | Secret for control panel sessions. Generate with: `openssl rand -base64 32` |
+
+**Optional:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_PORT` | Host port for MariaDB (container stays 3306) | `3306` |
+| `CONTROL_PANEL_PORT` | Port for the web control panel | `80` |
+| `TIMEZONE` | Timezone for giveaways/timestamps (e.g. `Asia/Jakarta`) | `Asia/Jakarta` |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP settings if you use mail features | — |
+
+**Note:** With Docker, the app connects to the database using the hostname `database`; you do not need to set `DB_HOST` in `.env` for Docker. The same `.env` file is used by `docker-compose` for all services (app, database, phpMyAdmin).
 
 ### 2. Start with Docker Compose
+
+Build and start in one step (build runs when you bring the stack up):
+
 ```bash
-docker-compose up -d
+make up
 ```
 
+Or without Make: `docker-compose up -d --build`
+
 This will:
+
 - Build the application image
-- Start MariaDB database container
-- Start the application container
-- Automatically create database tables
+- Start MariaDB (with health checks)
+- Start the application (after database is healthy)
+- Start phpMyAdmin on port **8081** (optional; use it to manage the DB)
+- Create database tables from `database/schema.sql` on first run
 
 ### 3. Access Control Panel
-Open your browser: `http://localhost:8080` (or your configured port)
+
+Open your browser: **http://localhost** (or **http://localhost:80**; use your configured `CONTROL_PANEL_PORT` if different).
+
+Optional: phpMyAdmin at **http://localhost:8081** (login with `DB_USER` / `DB_PASSWORD` or root / `DB_ROOT_PASSWORD`).
 
 ### 4. View Logs
+
 ```bash
 docker-compose logs -f
 ```
 
 ### Common Docker Commands
+
 ```bash
-# Stop containers
-docker-compose down
+# Start (builds then starts)
+make up
 
-# Restart containers
-docker-compose restart
+# Stop
+make down
 
-# Rebuild after code changes
-docker-compose up -d --build
+# Restart (down then up, rebuilds)
+make restart
 
 # View logs
-docker-compose logs -f app
-docker-compose logs -f database
+make logs
 ```
 
 ## Manual Setup (Without Docker)
@@ -226,14 +256,15 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Use `.env.dev` for development or `.env.production` for production. Configure the appropriate file:
+
+Copy `.env.example` to `.env` and set your values. For manual setup you do **not** need `DB_ROOT_PASSWORD` (that is only for Docker).
 
 ```env
 # MySQL/MariaDB Configuration (Required)
 # Option 1: Use DATABASE_URL
 DATABASE_URL=mysql://user:password@host:port/database
 
-# Option 2: Use individual variables
+# Option 2: Use individual variables (see .env.example for full list)
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=your_user
@@ -241,7 +272,7 @@ DB_PASSWORD=your_password
 DB_NAME=dansday_bot
 
 # Control Panel Configuration (Required)
-CONTROL_PANEL_PORT=8080
+CONTROL_PANEL_PORT=80
 SESSION_SECRET=your-random-secret-key
 
 # Timezone Configuration (Optional)
@@ -268,7 +299,7 @@ Alternatively, you can manually run the SQL schema:
 npm start
 ```
 
-This starts the control panel web server. Access it at `http://localhost:8080` (or your configured port).
+This starts the control panel web server. Access it at `http://localhost` (port 80) or your configured port.
 
 ### 5. First-Time Setup
 
@@ -315,7 +346,7 @@ This starts the control panel web server. Access it at `http://localhost:8080` (
 ## Usage
 
 ### Control Panel
-Access the control panel at `http://localhost:8080` (or your configured port).
+Access the control panel at `http://localhost` (default port 80) or your configured port.
 
 **Features:**
 - **Dashboard**: View all bots and their status

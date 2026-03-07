@@ -860,6 +860,17 @@
                     </div>
                     <input type="hidden" id="forwarder_role_pings" name="forwarder_role_pings" value="[]">
                 </div>
+                <!-- Only forward when message mentions a source server member -->
+                <div>
+                    <p class="text-xs text-gray-400 mb-2">Only forward when message mentions a member of the source server</p>
+                    <div class="flex items-center gap-3">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="forwarder_only_when_mentions_member" name="forwarder_only_when_mentions_member" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1.5px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                            <span class="ml-3 text-sm text-gray-300" id="forwarder_only_when_mentions_member_label">No</span>
+                        </label>
+                    </div>
+                </div>
                 <!-- Tag (Optional) -->
                 <div>
                     <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
@@ -1418,8 +1429,8 @@
                             <div class="bg-gray-700 rounded-lg p-3 sm:p-4">
                                 <div class="flex items-center justify-between mb-3">
                                     <div class="flex-1">
-                                        <p class="text-white font-medium">${account.username}</p>
-                                        <p class="text-gray-400 text-xs">${account.email}</p>
+                                        <p class="text-white font-medium">${escapeHtml(account.username || '')}</p>
+                                        <p class="text-gray-400 text-xs">${escapeHtml(account.email || '')}</p>
                                     </div>
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="px-2 py-1 rounded text-xs font-medium ${account.account_type === 'admin' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}">${account.account_type}</span>
@@ -1429,21 +1440,21 @@
                                 </div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     ${!account.email_verified 
-                                        ? `<button onclick="verifyAccount(${account.id}, '${account.username.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-all">
+                                        ? `<button onclick="verifyAccount(${account.id}, '${escapeHtml(account.username || '').replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-all">
                                             <i class="fas fa-check-circle mr-1"></i>Verify
                                         </button>`
                                         : ''
                                     }
                                     ${account.is_frozen 
-                                        ? `<button onclick="unfreezeAccount(${account.id}, '${account.username.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-all">
+                                        ? `<button onclick="unfreezeAccount(${account.id}, '${escapeHtml(account.username || '').replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-all">
                                             <i class="fas fa-unlock mr-1"></i>Unfreeze
                                         </button>`
-                                        : `<button onclick="freezeAccount(${account.id}, '${account.username.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs font-medium transition-all">
+                                        : `<button onclick="freezeAccount(${account.id}, '${escapeHtml(account.username || '').replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs font-medium transition-all">
                                             <i class="fas fa-lock mr-1"></i>Freeze
                                         </button>`
                                     }
                                     ${!isCurrentAccount ? `
-                                        <button onclick="deleteAccount(${account.id}, '${account.username.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-all">
+                                        <button onclick="deleteAccount(${account.id}, '${escapeHtml(account.username || '').replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-all">
                                             <i class="fas fa-trash mr-1"></i>Delete
                                         </button>
                                     ` : '<span class="text-gray-500 text-xs">Current Account</span>'}
@@ -1664,12 +1675,12 @@
                             <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                 <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-600 flex items-center justify-center overflow-hidden">
                                     ${bot.bot_icon
-                        ? `<img src="${bot.bot_icon}" alt="${bot.name}" class="w-full h-full object-cover">`
+                        ? `<img src="${escapeHtml(bot.bot_icon)}" alt="${escapeHtml(bot.name || '')}" class="w-full h-full object-cover">`
                         : `<i class="fas fa-robot text-white text-lg sm:text-xl"></i>`
                     }
                         </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="font-semibold text-white text-sm sm:text-base truncate" title="${bot.name}">${bot.name || 'Unnamed Bot'}</h3>
+                                    <h3 class="font-semibold text-white text-sm sm:text-base truncate" title="${escapeHtml(bot.name || '')}">${escapeHtml(bot.name || 'Unnamed Bot')}</h3>
                                     <div class="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
                                         <span class="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-xs font-medium ${isOfficial ? 'bg-red-900 text-red-200' : 'bg-gray-700 text-gray-300'}">
                                             <i class="fas fa-${isOfficial ? 'shield' : 'user'} text-[10px] sm:text-xs"></i>
@@ -1678,7 +1689,7 @@
                                 </div>
                                 </div>
                             </div>
-                            ${currentAccountType === 'admin' ? `<button onclick="event.stopPropagation(); showDeleteBotModal('${bot.id}', '${(bot.name || 'Unnamed Bot').replace(/'/g, "\\'")}')"
+                            ${currentAccountType === 'admin' ? `<button onclick="event.stopPropagation(); showDeleteBotModal('${bot.id}', '${escapeHtml(bot.name || 'Unnamed Bot').replace(/'/g, "\\'")}')"
                                 class="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-1 flex-shrink-0">
                                 <i class="fas fa-trash text-sm sm:text-base"></i>
                             </button>` : ''}
@@ -1702,10 +1713,10 @@
                                     <span class="truncate">Port: ${bot.port}</span>
                                 </div>
                             ` : ''}
-                            ${bot.connect_to && bot.connected_bot_name ? `
+                            ${bot.connect_to ? `
                                 <div class="flex items-center gap-1.5 sm:gap-2">
                                     <i class="fas fa-link w-3 sm:w-4 text-[10px] sm:text-xs"></i>
-                                    <span class="truncate">Connected to: ${bot.connected_bot_name}</span>
+                                    <span class="truncate">Connected to: ${escapeHtml(bot.connected_bot_name ?? '')}</span>
                             </div>
                             ` : ''}
                             </div>
@@ -1715,7 +1726,8 @@
         }
         function showDeleteModal(title, message, actionCallback) {
             document.getElementById('deleteModalTitle').textContent = title;
-            document.getElementById('deleteModalMessage').textContent = message;
+            const msgEl = document.getElementById('deleteModalMessage');
+            msgEl.innerHTML = message;
             currentDeleteAction = actionCallback;
             document.getElementById('deleteModal').classList.remove('hidden');
         }
@@ -2476,7 +2488,7 @@
             window.currentBotType = bot.bot_type;
             const botIcon = document.getElementById('botDetailIcon');
             if (bot.bot_icon) {
-                botIcon.innerHTML = `<img src="${bot.bot_icon}" alt="${bot.name}" class="w-full h-full object-cover">`;
+                botIcon.innerHTML = `<img src="${escapeHtml(bot.bot_icon)}" alt="${escapeHtml(bot.name || '')}" class="w-full h-full object-cover">`;
             } else {
                 botIcon.innerHTML = '<i class="fas fa-robot text-white text-2xl sm:text-3xl"></i>';
             }
@@ -2567,7 +2579,7 @@
                                 <i class="fas fa-link text-xs text-gray-400"></i>
                                 <span class="text-xs text-gray-400">Connected To</span>
                             </div>
-                            <p class="text-sm sm:text-base font-semibold text-white truncate" title="${bot.connected_bot_name}">${bot.connected_bot_name}</p>
+                            <p class="text-sm sm:text-base font-semibold text-white truncate" title="${escapeHtml(bot.connected_bot_name)}">${escapeHtml(bot.connected_bot_name)}</p>
                             </div>
                     `;
                 }
@@ -2661,17 +2673,17 @@
             serverListContent.innerHTML = paginatedServers.map(server => {
                 if (isOfficial) {
                     return `
-                        <div onclick="viewServerOverview('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
+                        <div onclick="viewServerOverview('${server.id}', '${escapeHtml(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
                                     ${server.server_icon
-                            ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
+                            ? `<img src="${escapeHtml(server.server_icon)}" alt="${escapeHtml(server.name || '')}" class="w-full h-full object-cover">`
                             : `<i class="fas fa-server text-white text-lg"></i>`
                         }
                             </div>
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
-                                        ${server.name || 'Unnamed Server'}
+                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${escapeHtml(server.name || 'Unnamed Server')}">
+                                        ${escapeHtml(server.name || 'Unnamed Server')}
                                     </h4>
                                 </div>
                                 <i class="fas fa-cog text-gray-400 hover:text-white transition-colors"></i>
@@ -2714,13 +2726,13 @@
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
                                     ${server.server_icon
-                            ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
+                            ? `<img src="${escapeHtml(server.server_icon)}" alt="${escapeHtml(server.name || '')}" class="w-full h-full object-cover">`
                             : `<i class="fas fa-server text-white text-lg"></i>`
                         }
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
-                                        ${server.name || 'Unnamed Server'}
+                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${escapeHtml(server.name || 'Unnamed Server')}">
+                                        ${escapeHtml(server.name || 'Unnamed Server')}
                                     </h4>
                                 </div>
                                 <i class="fas fa-info-circle text-gray-500" title="Configuration available only for official bots"></i>
@@ -2798,17 +2810,17 @@
             serverListContent.innerHTML = paginatedServers.map(server => {
                 if (isOfficial) {
                     return `
-                        <div onclick="viewServerOverview('${server.id}', '${(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
+                        <div onclick="viewServerOverview('${server.id}', '${escapeHtml(server.name || 'Unnamed Server').replace(/'/g, "\\'")}')" class="bg-gray-700 rounded-lg border border-gray-600 p-4 hover:border-gray-500 transition-all duration-200 cursor-pointer">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
                                     ${server.server_icon
-                            ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
+                            ? `<img src="${escapeHtml(server.server_icon)}" alt="${escapeHtml(server.name || '')}" class="w-full h-full object-cover">`
                             : `<i class="fas fa-server text-white text-lg"></i>`
                         }
                             </div>
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
-                                        ${server.name || 'Unnamed Server'}
+                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${escapeHtml(server.name || 'Unnamed Server')}">
+                                        ${escapeHtml(server.name || 'Unnamed Server')}
                                     </h4>
                                 </div>
                                 <i class="fas fa-cog text-gray-400 hover:text-white transition-colors"></i>
@@ -2851,13 +2863,13 @@
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
                                     ${server.server_icon
-                            ? `<img src="${server.server_icon}" alt="${server.name}" class="w-full h-full object-cover">`
+                            ? `<img src="${escapeHtml(server.server_icon)}" alt="${escapeHtml(server.name || '')}" class="w-full h-full object-cover">`
                             : `<i class="fas fa-server text-white text-lg"></i>`
                         }
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${server.name || 'Unnamed Server'}">
-                                        ${server.name || 'Unnamed Server'}
+                                    <h4 class="font-semibold text-white text-sm sm:text-base truncate" title="${escapeHtml(server.name || 'Unnamed Server')}">
+                                        ${escapeHtml(server.name || 'Unnamed Server')}
                                     </h4>
                                 </div>
                                 <i class="fas fa-info-circle text-gray-500" title="Configuration available only for official bots"></i>
@@ -3508,7 +3520,7 @@
                 console.error('Error loading members:', error);
                 contentContainer.innerHTML = `
                     <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                        <p class="text-red-400 text-sm sm:text-base">Failed to load members: ${error.message}</p>
+                        <p class="text-red-400 text-sm sm:text-base">Failed to load members: ${escapeHtml(error.message)}</p>
                     </div>
                 `;
             }
@@ -3532,7 +3544,7 @@
                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
                     }">
                         <i class="fas ${view.icon}"></i>
-                        <span class="sm:inline">${view.name}</span>
+                        <span class="sm:inline">${escapeHtml(view.name)}</span>
                     </button>
                 `;
             }).join('');
@@ -4058,7 +4070,7 @@
                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
                     }">
                         <i class="fas ${comp.icon}"></i>
-                        <span class="sm:inline">${comp.name}</span>
+                        <span class="sm:inline">${escapeHtml(comp.name)}</span>
                     </button>
                 `;
             }).join('');
@@ -4095,10 +4107,10 @@
                 <div class="mb-4 sm:mb-6">
                     <h2 class="text-xl sm:text-2xl font-bold text-white mb-2 flex items-center gap-2">
                         <i class="fas ${component.icon} text-red-500"></i>
-                        ${component.name}
+                        ${escapeHtml(component.name)}
                     </h2>
                     <p class="text-gray-400 text-sm sm:text-base">
-                        Configure ${component.name.toLowerCase()} settings for this server.
+                        Configure ${escapeHtml(component.name.toLowerCase())} settings for this server.
                     </p>
                 </div>
             `;
@@ -5415,7 +5427,8 @@
                     </div>
                                     ` : ''}
                                     ${forwarder.tag ? `<div>Tag: ${escapeHtml(forwarder.tag)}</div>` : ''}
-                </div>
+                                    ${forwarder.only_forward_when_mentions_member ? `<div class="text-amber-400 text-xs"><i class="fas fa-at mr-1"></i>Only when message mentions a source server member</div>` : ''}
+                                </div>
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 <button type="button" onclick="editForwarder(${index})"
@@ -5453,6 +5466,10 @@
             document.getElementById('forwarder_role_pings_button_text').textContent = 'Select roles...';
             document.getElementById('forwarder_role_pings_display').innerHTML = '';
             document.getElementById('forwarder_tag').value = '';
+            const onlyWhenEl = document.getElementById('forwarder_only_when_mentions_member');
+            const onlyWhenLabel = document.getElementById('forwarder_only_when_mentions_member_label');
+            if (onlyWhenEl) onlyWhenEl.checked = false;
+            if (onlyWhenLabel) onlyWhenLabel.textContent = 'No';
             forwarderSelfbots.forEach(selfbot => {
                 const option = document.createElement('option');
                 option.value = selfbot.id;
@@ -5515,6 +5532,14 @@
                     }
                     if (forwarder.tag) {
                         document.getElementById('forwarder_tag').value = forwarder.tag;
+                    }
+                    const onlyWhenCheckbox = document.getElementById('forwarder_only_when_mentions_member');
+                    const onlyWhenLabelEl = document.getElementById('forwarder_only_when_mentions_member_label');
+                    if (onlyWhenCheckbox) {
+                        onlyWhenCheckbox.checked = forwarder.only_forward_when_mentions_member === true;
+                    }
+                    if (onlyWhenLabelEl) {
+                        onlyWhenLabelEl.textContent = forwarder.only_forward_when_mentions_member ? 'Yes' : 'No';
                     }
                 }
             }
@@ -5781,13 +5806,15 @@
                 roleIds = [];
             }
             const roles = roleIds.map(roleId => ({ role_id: String(roleId) }));
+            const onlyWhenMentionsMember = document.getElementById('forwarder_only_when_mentions_member')?.checked === true;
             const forwarder = {
                 selfbot_id: selfbotId,
                 server_id: serverDbId,
                 source_channels: sourceChannels,
                 target_channel_id: targetChannel,
                 roles: roles,
-                tag: tag || null
+                tag: tag || null,
+                only_forward_when_mentions_member: onlyWhenMentionsMember
             };
             if (currentEditingForwarderIndex !== null) {
                 forwardersData[currentForwarderType][currentEditingForwarderIndex] = forwarder;
@@ -5986,7 +6013,7 @@
                     <div class="mb-3">
                         <div class="flex items-center gap-2 px-2 mb-2">
                             <i class="fas fa-folder text-gray-500 text-xs"></i>
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">${category.name || 'Unnamed Category'}</span>
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">${escapeHtml(category.name || 'Unnamed Category')}</span>
                         </div>
                         <div class="space-y-1">
                             ${categoryChannels.map(channel => {
@@ -7965,7 +7992,7 @@
                 console.error('Error rendering embed builder:', error);
                 contentContainer.innerHTML = `
                     <div class="bg-gray-700 rounded-lg p-4 sm:p-6">
-                        <p class="text-red-400 text-sm sm:text-base">Failed to load embed builder: ${error.message}</p>
+                        <p class="text-red-400 text-sm sm:text-base">Failed to load embed builder: ${escapeHtml(error.message)}</p>
                     </div>
                 `;
             }
@@ -8234,6 +8261,12 @@
         document.addEventListener('change', (e) => {
             if (e.target.id === 'giveaway_creator_can_participate') {
                 const label = document.getElementById('giveaway_creator_can_participate_label');
+                if (label) {
+                    label.textContent = e.target.checked ? 'Yes' : 'No';
+                }
+            }
+            if (e.target.id === 'forwarder_only_when_mentions_member') {
+                const label = document.getElementById('forwarder_only_when_mentions_member_label');
                 if (label) {
                     label.textContent = e.target.checked ? 'Yes' : 'No';
                 }

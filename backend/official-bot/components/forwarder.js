@@ -38,12 +38,34 @@ export async function processMessageFromSelfBot(messageData, client) {
     const targetChannelId = forwarderConfig.target_channel_id;
     const targetGuildId = forwarderConfig.target_guild_id;
     const roles = forwarderConfig.roles;
+    const onlyForwardWhenMentionsMember = forwarderConfig.only_forward_when_mentions_member === true;
 
     const targetChannel = client.channels.cache.get(targetChannelId);
 
     if (!targetChannel) {
         await logger.log(`❌ Target channel not found: ${targetChannelId}`);
         return;
+    }
+
+    let mentionedMainMembers = [];
+    if (onlyForwardWhenMentionsMember) {
+        const mentionedUserIds = messageData.mentioned_user_ids || [];
+        if (mentionedUserIds.length === 0) {
+            return;
+        }
+        const mainGuild = targetChannel.guild;
+        if (!mainGuild?.members) {
+            return;
+        }
+        const checkMember = (userId) =>
+            Promise.resolve(mainGuild.members.cache.get(userId)).then(cached =>
+                cached ?? mainGuild.members.fetch(userId).catch(() => null)
+            );
+        const resolved = await Promise.all(mentionedUserIds.map(checkMember));
+        mentionedMainMembers = resolved.filter(m => m !== null);
+        if (mentionedMainMembers.length === 0) {
+            return;
+        }
     }
 
     try {
@@ -80,11 +102,12 @@ export async function processMessageFromSelfBot(messageData, client) {
             };
 
             if (messageData.attachments.length > 1) {
-                messageEmbed.fields = [{
+                messageEmbed.fields = messageEmbed.fields || [];
+                messageEmbed.fields.push({
                     name: "Additional Attachments",
                     value: messageData.attachments.slice(1).map(att => `[${att.name}](${att.url})`).join('\n'),
                     inline: false
-                }];
+                });
             }
         }
 
@@ -116,13 +139,18 @@ export async function processMessageFromSelfBot(messageData, client) {
             });
         }
 
+        const contentParts = [];
+        if (roles && Array.isArray(roles) && roles.length > 0) {
+            contentParts.push(roles.map(role => `<@&${role.role_id}>`).join(' '));
+        }
+        if (mentionedMainMembers.length > 0) {
+            contentParts.push(mentionedMainMembers.map(m => `<@${m.id}>`).join(' '));
+        }
         const messageOptions = {
             embeds: embeds
         };
-
-        if (roles && Array.isArray(roles) && roles.length > 0) {
-            const roleMentions = roles.map(role => `<@&${role.role_id}>`).join(' ');
-            messageOptions.content = roleMentions;
+        if (contentParts.length > 0) {
+            messageOptions.content = contentParts.join(' ');
         }
 
         await targetChannel.send(messageOptions);

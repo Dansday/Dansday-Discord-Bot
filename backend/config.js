@@ -551,23 +551,23 @@ export const FORWARDER = {
     async shouldForwardChannel(channelId, guildId) {
         requireBotConfig();
         if (!channelId || !guildId) {
-            return false;
+            return { shouldForward: false, onlyForwardWhenMentionsMember: false };
         }
 
         if (botConfig.bot_type !== 'selfbot' || !botConfig.connect_to) {
-            return false;
+            return { shouldForward: false, onlyForwardWhenMentionsMember: false };
         }
 
         try {
 
             const selfbotServer = await db.getServerByDiscordId(botConfig.id, guildId);
             if (!selfbotServer) {
-                return false;
+                return { shouldForward: false, onlyForwardWhenMentionsMember: false };
             }
 
             const officialBot = await db.getBot(botConfig.connect_to);
             if (!officialBot) {
-                return false;
+                return { shouldForward: false, onlyForwardWhenMentionsMember: false };
             }
 
             const officialServers = await db.getServersForBot(officialBot.id);
@@ -592,7 +592,11 @@ export const FORWARDER = {
                                 ch => String(ch?.channel_id || '') === String(channelId)
                             );
                             if (foundChannel) {
-                                return true;
+                                return {
+                                    shouldForward: true,
+                                    onlyForwardWhenMentionsMember: forwarder.only_forward_when_mentions_member === true,
+                                    target_guild_id: officialServer.discord_server_id
+                                };
                             }
                         }
                     }
@@ -602,10 +606,10 @@ export const FORWARDER = {
                 }
             }
 
-            return false;
+            return { shouldForward: false, onlyForwardWhenMentionsMember: false };
         } catch (err) {
 
-            return false;
+            return { shouldForward: false, onlyForwardWhenMentionsMember: false };
         }
     },
 
@@ -671,7 +675,8 @@ export const FORWARDER = {
                     return {
                         target_channel_id: forwarder.target_channel_id,
                         roles: forwarder.roles,
-                        target_guild_id: officialServer.discord_server_id
+                        target_guild_id: officialServer.discord_server_id,
+                        only_forward_when_mentions_member: forwarder.only_forward_when_mentions_member === true
                     };
                 }
             } catch (err) {

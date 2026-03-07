@@ -251,7 +251,7 @@ export async function createInterfaceEmbed(client, guildId) {
     const embedConfig = await getEmbedConfig(guildId);
     const interfaceEmbed = {
         color: embedConfig.COLOR,
-        title: "GO BLOX Bot Panel",
+        title: "Dansday Bot Panel",
         description: "Click **Menu** to access bot features based on your role permissions.",
         thumbnail: {
             url: client.user.displayAvatarURL()

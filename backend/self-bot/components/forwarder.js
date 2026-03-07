@@ -29,6 +29,7 @@ async function sendToOfficialBot(messageData) {
 
 async function processMessage(message) {
 
+    const mentionedUserIds = message.mentions?.users ? [...message.mentions.users.keys()] : [];
     const messageData = {
         id: message.id,
         content: message.content,
@@ -58,7 +59,7 @@ async function processMessage(message) {
             contentType: att.contentType
         })),
         embeds: message.embeds,
-
+        mentioned_user_ids: mentionedUserIds,
         timestamp: Date.now()
     };
 
@@ -77,11 +78,29 @@ function init(client) {
         if (!message.guild) return;
 
         try {
-            const shouldForward = await FORWARDER.shouldForwardChannel(message.channel.id, message.guild.id);
-            
-            if (!shouldForward) {
+            const result = await FORWARDER.shouldForwardChannel(message.channel.id, message.guild.id);
 
+            if (!result || !result.shouldForward) {
                 return;
+            }
+
+            if (result.onlyForwardWhenMentionsMember && result.target_guild_id) {
+                const mainGuild = message.client.guilds.cache.get(result.target_guild_id);
+                if (mainGuild?.members) {
+                    const mentionedUsers = message.mentions?.users;
+                    if (!mentionedUsers || mentionedUsers.size === 0) {
+                        return;
+                    }
+                    const checkMember = (userId) =>
+                        Promise.resolve(mainGuild.members.cache.get(userId)).then(cached =>
+                            cached ?? mainGuild.members.fetch(userId).catch(() => null)
+                        );
+                    const members = await Promise.all([...mentionedUsers.keys()].map(checkMember));
+                    const hasMentionedMainMember = members.some(m => m !== null);
+                    if (!hasMentionedMainMember) {
+                        return;
+                    }
+                }
             }
 
             await processMessage(message);
