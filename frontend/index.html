@@ -6018,6 +6018,7 @@
                         <div class="space-y-1">
                             ${categoryChannels.map(channel => {
                     const channelName = channel.name || `Channel ${channel.discord_channel_id}`;
+                    const channelNameSafe = escapeHtml(channelName);
                     let channelType = 'Other';
                     const type = channel.type;
                     if (type === 'GUILD_TEXT' || type === '0' || type === 0) {
@@ -6037,7 +6038,7 @@
                                             <div class="flex items-center gap-3 flex-1 min-w-0">
                                                 <i class="fas fa-hashtag ${isSelected ? 'text-red-400' : 'text-gray-400 group-hover:text-white'} transition-colors flex-shrink-0 text-sm"></i>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-white font-medium truncate text-sm">${channelName}</p>
+                                                    <p class="text-white font-medium truncate text-sm">${channelNameSafe}</p>
                                                     <p class="text-xs text-gray-400">${channelType}</p>
                                                 </div>
                                             </div>
@@ -6046,12 +6047,12 @@
                                     `;
                     } else {
                         return `
-                                        <button onclick="selectChannel('${channel.discord_channel_id}', '${channelName.replace(/'/g, "\\'")}')"
+                                        <button onclick="selectChannel('${channel.discord_channel_id}')"
                                             class="w-full text-left px-4 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group">
                                             <div class="flex items-center gap-3 flex-1 min-w-0">
                                                 <i class="fas fa-hashtag text-gray-400 group-hover:text-white transition-colors flex-shrink-0 text-sm"></i>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-white font-medium truncate text-sm">${channelName}</p>
+                                                    <p class="text-white font-medium truncate text-sm">${channelNameSafe}</p>
                                                     <p class="text-xs text-gray-400">${channelType}</p>
                                                 </div>
                                             </div>
@@ -6077,6 +6078,7 @@
                         <div class="space-y-1">
                             ${uncategorizedChannels.map(channel => {
                     const channelName = channel.name || `Channel ${channel.discord_channel_id}`;
+                    const channelNameSafe = escapeHtml(channelName);
                     let channelType = 'Other';
                     const type = channel.type;
                     if (type === 'GUILD_TEXT' || type === '0' || type === 0) {
@@ -6096,7 +6098,7 @@
                                             <div class="flex items-center gap-3 flex-1 min-w-0">
                                                 <i class="fas fa-hashtag ${isSelected ? 'text-red-400' : 'text-gray-400 group-hover:text-white'} transition-colors flex-shrink-0 text-sm"></i>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-white font-medium truncate text-sm">${channelName}</p>
+                                                    <p class="text-white font-medium truncate text-sm">${channelNameSafe}</p>
                                                     <p class="text-xs text-gray-400">${channelType}</p>
                                                 </div>
                                             </div>
@@ -6105,12 +6107,12 @@
                                     `;
                     } else {
                         return `
-                                        <button onclick="selectChannel('${channel.discord_channel_id}', '${channelName.replace(/'/g, "\\'")}')"
+                                        <button onclick="selectChannel('${channel.discord_channel_id}')"
                                             class="w-full text-left px-4 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group">
                                             <div class="flex items-center gap-3 flex-1 min-w-0">
                                                 <i class="fas fa-hashtag text-gray-400 group-hover:text-white transition-colors flex-shrink-0 text-sm"></i>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-white font-medium truncate text-sm">${channelName}</p>
+                                                    <p class="text-white font-medium truncate text-sm">${channelNameSafe}</p>
                                                     <p class="text-xs text-gray-400">${channelType}</p>
                                                 </div>
                                             </div>
@@ -6258,8 +6260,9 @@
             }
             await updateSelectedBoosterChannelsDisplay();
         }
-        async function selectChannel(channelId, channelName) {
+        async function selectChannel(channelId, channelNameParam) {
             if (!currentChannelField || isMultiselectMode) return;
+            const channelName = channelNameParam != null ? channelNameParam : (allChannels.find(c => c.discord_channel_id === channelId)?.name || `Channel ${channelId}`);
             document.getElementById(currentChannelField).value = channelId;
             const displayEl = document.getElementById(`${currentChannelField}_display`);
             if (displayEl) {

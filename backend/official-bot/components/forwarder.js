@@ -1,14 +1,87 @@
 import { FORWARDER, getEmbedConfig } from "../../config.js";
 import logger from "../../logger.js";
 
+const CUSTOM_EMOJI_STATIC = /<:([^:]+):(\d+)>/g;
+const CUSTOM_EMOJI_ANIMATED = /<a:([^:]+):(\d+)>/g;
+
+/** Extract unique custom emoji refs from text: { name, id, animated } */
+function extractCustomEmojis(text) {
+    if (!text) return [];
+    const seen = new Set();
+    const out = [];
+    for (const g of [CUSTOM_EMOJI_STATIC, CUSTOM_EMOJI_ANIMATED]) {
+        g.lastIndex = 0;
+        let m;
+        while ((m = g.exec(text)) !== null) {
+            const id = m[2];
+            if (seen.has(id)) continue;
+            seen.add(id);
+            out.push({ name: m[1], id, animated: g === CUSTOM_EMOJI_ANIMATED });
+        }
+    }
+    return out;
+}
+
+/**
+ * Ensure each emoji exists on the target guild (by name). If not, download from CDN and create.
+ * Returns { sourceToTarget: Map, createdIds: string[] } so we can delete created emojis after send.
+ * Bot needs Manage Guild Expressions on the target server.
+ */
+async function ensureEmojisOnGuild(guild, emojiRefs, log) {
+    const sourceToTarget = new Map();
+    const createdIds = [];
+    if (!emojiRefs.length) return { sourceToTarget, createdIds };
+
+    const existing = guild.emojis.cache;
+    for (const ref of emojiRefs) {
+        const existingEmoji = existing.find(e => e.name === ref.name);
+        if (existingEmoji) {
+            sourceToTarget.set(ref.id, existingEmoji.id);
+            continue;
+        }
+        const ext = ref.animated ? 'gif' : 'png';
+        const cdnUrl = `https://cdn.discordapp.com/emojis/${ref.id}.${ext}`;
+        try {
+            const created = await guild.emojis.create({ attachment: cdnUrl, name: ref.name });
+            sourceToTarget.set(ref.id, created.id);
+            createdIds.push(created.id);
+            if (log) await log(`📥 Forwarder: added emoji :${ref.name}: to this server`);
+        } catch (err) {
+            if (log) await log(`⚠️ Forwarder: could not add emoji :${ref.name}: (${err.message})`);
+        }
+    }
+    return { sourceToTarget, createdIds };
+}
+
+/** Replace custom emoji IDs in text so they point to target server emojis. */
+function replaceEmojiIdsInText(text, sourceIdToTargetId) {
+    if (!text || sourceIdToTargetId.size === 0) return text;
+    return text
+        .replace(/<:([^:]+):(\d+)>/g, (_, name, id) => {
+            const target = sourceIdToTargetId.get(id);
+            return target ? `<:${name}:${target}>` : `<:${name}:${id}>`;
+        })
+        .replace(/<a:([^:]+):(\d+)>/g, (_, name, id) => {
+            const target = sourceIdToTargetId.get(id);
+            return target ? `<a:${name}:${target}>` : `<a:${name}:${id}>`;
+        });
+}
+
 function cleanMessageContent(text) {
     if (!text) return text;
 
-    let cleaned = text.replace(/<:([^:]+):(\d+)>/g, '');
-
-    cleaned = cleaned.replace(/@unknown-role/g, '');
-
+    let cleaned = text.replace(/@unknown-role/g, '');
     return cleaned;
+}
+
+/** Remove Discord user/role mention tags so embed text is clean. Keeps message.content mentions for notifications. */
+function stripMentionsFromText(text) {
+    if (!text) return text;
+    let stripped = text
+        .replace(/<@!?\d+>/g, '')   // user mentions <@123> or <@!123>
+        .replace(/<@&\d+>/g, '');   // role mentions <@&123>
+    stripped = stripped.replace(/\s+/g, ' ').trim();
+    return stripped;
 }
 
 export async function processMessageFromSelfBot(messageData, client) {
@@ -69,8 +142,25 @@ export async function processMessageFromSelfBot(messageData, client) {
     }
 
     try {
+        const targetGuild = targetChannel.guild;
 
         const embedConfig = await getEmbedConfig(targetGuildId);
+
+        const allTexts = [messageData.content || ''];
+        if (messageData.embeds?.length) {
+            for (const emb of messageData.embeds) {
+                if (emb.description) allTexts.push(emb.description);
+                if (emb.title) allTexts.push(emb.title);
+                if (emb.fields?.length) for (const f of emb.fields) {
+                    if (f.name) allTexts.push(f.name);
+                    if (f.value) allTexts.push(f.value);
+                }
+            }
+        }
+        const emojiRefs = [...new Map(allTexts.flatMap(t => extractCustomEmojis(t).map(e => [e.id, e])).values())];
+        const { sourceToTarget: sourceIdToTargetId, createdIds: createdEmojiIds } = await ensureEmojisOnGuild(targetGuild, emojiRefs, logger.log.bind(logger));
+
+        const applyEmojiReplace = (text) => replaceEmojiIdsInText(text, sourceIdToTargetId);
 
         let embeds = [];
 
@@ -89,7 +179,11 @@ export async function processMessageFromSelfBot(messageData, client) {
             }
         };
 
-        const cleanContent = cleanMessageContent(messageData.content);
+        let cleanContent = applyEmojiReplace(messageData.content || '');
+        cleanContent = cleanMessageContent(cleanContent);
+        if (onlyForwardWhenMentionsMember && cleanContent) {
+            cleanContent = stripMentionsFromText(cleanContent);
+        }
         if (cleanContent && cleanContent.trim()) {
             messageEmbed.description = cleanContent;
         }
@@ -114,24 +208,31 @@ export async function processMessageFromSelfBot(messageData, client) {
         embeds.push(messageEmbed);
 
         if (messageData.embeds && messageData.embeds.length > 0) {
+            const cleanForEmbed = (t) => {
+                if (!t) return t;
+                let out = applyEmojiReplace(t);
+                out = cleanMessageContent(out);
+                if (onlyForwardWhenMentionsMember && out) out = stripMentionsFromText(out);
+                return out;
+            };
 
             messageData.embeds.forEach(embed => {
 
                 const originalEmbed = { ...embed };
 
                 if (originalEmbed.description) {
-                    originalEmbed.description = cleanMessageContent(originalEmbed.description);
+                    originalEmbed.description = cleanForEmbed(originalEmbed.description);
                 }
 
                 if (originalEmbed.title) {
-                    originalEmbed.title = cleanMessageContent(originalEmbed.title);
+                    originalEmbed.title = cleanForEmbed(originalEmbed.title);
                 }
 
                 if (originalEmbed.fields && originalEmbed.fields.length > 0) {
                     originalEmbed.fields = originalEmbed.fields.map(field => ({
                         ...field,
-                        name: cleanMessageContent(field.name),
-                        value: cleanMessageContent(field.value)
+                        name: cleanForEmbed(field.name),
+                        value: cleanForEmbed(field.value)
                     }));
                 }
 
@@ -154,6 +255,14 @@ export async function processMessageFromSelfBot(messageData, client) {
         }
 
         await targetChannel.send(messageOptions);
+
+        for (const emojiId of createdEmojiIds) {
+            try {
+                await targetGuild.emojis.delete(emojiId);
+            } catch (err) {
+                await logger.log(`⚠️ Forwarder: could not remove temporary emoji ${emojiId}: ${err.message}`);
+            }
+        }
 
         await logger.log(`✅ Forwarded ${messageData.id} from source channel ${sourceChannelId}`);
     } catch (err) {
