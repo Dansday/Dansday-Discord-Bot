@@ -2418,12 +2418,20 @@ export async function init() {
     });
 }
 
+const BOT_KILL_TIMEOUT_MS = 2000;
+
 export function stop(callback) {
     for (const [botId, info] of botProcesses.entries()) {
         try {
             if (info.process && !info.process.killed && info.process.exitCode === null) {
-                info.process.kill('SIGTERM');
+                info.process.kill('SIGINT');
                 logger.log(`🛑 Stopping bot ${botId} (PID ${info.pid}) for app shutdown`);
+                const proc = info.process;
+                setTimeout(() => {
+                    if (proc && !proc.killed && proc.exitCode === null) {
+                        try { proc.kill('SIGKILL'); } catch (_) { }
+                    }
+                }, BOT_KILL_TIMEOUT_MS);
             }
         } catch (e) {
             try { process.kill(info.pid, 'SIGKILL'); } catch (_) { }
