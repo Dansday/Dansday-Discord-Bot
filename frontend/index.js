@@ -495,6 +495,8 @@ export async function init() {
         }
     }));
 
+    app.locals.sessionStore = sessionStore;
+
     const rateLimitStore = new Map();
     const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
     const MAX_LOGIN_ATTEMPTS = 5;
@@ -632,6 +634,14 @@ export async function init() {
 
     async function requireAuth(req, res, next) {
         if (req.session && req.session.authenticated && req.session.panel_account_id) {
+            try {
+                const account = await db.getPanelAccountById(req.session.panel_account_id);
+                if (account && account.is_frozen) {
+                    return res.status(403).json({ error: 'Your account has been frozen. Access denied.' });
+                }
+            } catch (err) {
+                logger.log(`❌ Error checking account in requireAuth: ${err.message}`);
+            }
             return next();
         }
         return res.status(401).json({ error: 'Authentication required' });
@@ -1082,6 +1092,23 @@ export async function init() {
 
             await db.updatePanelAccount(accountId, { is_frozen: true });
 
+            const store = req.app.locals.sessionStore;
+            if (store && typeof store.all === 'function') {
+                try {
+                    const sessions = await store.all();
+                    for (const [sid, data] of Object.entries(sessions || {})) {
+                        if (data && data.panel_account_id === accountId) {
+                            await new Promise((resolve, reject) => {
+                                store.destroy(sid, (err) => (err ? reject(err) : resolve()));
+                            });
+                            logger.log(`🛑 Destroyed session for frozen account ${account.username} (ID: ${accountId})`);
+                        }
+                    }
+                } catch (sessionErr) {
+                    logger.log(`⚠️  Failed to destroy sessions for frozen account: ${sessionErr.message}`);
+                }
+            }
+
             const adminAccount = await getAccountForLogging(req);
             if (adminAccount) {
                 await logPanelActivity(req, `${adminAccount.username} froze account: ${account.username} (ID: ${accountId})`);
@@ -1198,7 +1225,7 @@ export async function init() {
                 logger.log(`⚠️  Failed to send account deleted email: ${emailError.message}`);
             }
 
-            await query('DELETE FROM panel_accounts WHERE id = ?', [accountId]);
+            await db.deletePanelAccount(accountId);
 
             const adminAccount = await getAccountForLogging(req);
             if (adminAccount) {
