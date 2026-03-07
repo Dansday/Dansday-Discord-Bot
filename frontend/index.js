@@ -7,7 +7,8 @@ import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync } from '
 import bcrypt from 'bcrypt';
 import { CONTROL_PANEL } from './config.js';
 import logger from '../backend/logger.js';
-import db, { initializeDatabase } from '../database/database.js';
+import db, { initializeDatabase, connectionConfig } from '../database/database.js';
+import MySQLStoreFactory from 'express-mysql-session';
 import { parseMySQLDateTime, getNowInTimezone, getDateTimeFromSQL, getDateTimeFromJSDate, addMinutesToNow, addDaysToNow, getCurrentDateTime } from '../backend/utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -475,7 +476,14 @@ export async function init() {
         throw new Error('Missing SESSION_SECRET environment variable');
     }
 
+    const MySQLStore = MySQLStoreFactory(session);
+    const sessionStore = new MySQLStore({
+        ...connectionConfig,
+        schema: { tableName: 'panel_sessions' }
+    });
+
     app.use(session({
+        store: sessionStore,
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
@@ -2410,7 +2418,7 @@ export async function init() {
     });
 }
 
-export function stop() {
+export function stop(callback) {
     for (const [botId, info] of botProcesses.entries()) {
         try {
             if (info.process && !info.process.killed && info.process.exitCode === null) {
@@ -2423,9 +2431,20 @@ export function stop() {
         botProcesses.delete(botId);
     }
     if (server) {
-        server.close();
+        const s = server;
         server = null;
-        logger.log('🛑 Control panel stopped');
+        logger.log('🛑 Control panel stopping (closing server)...');
+        let done = false;
+        const onDone = () => {
+            if (done) return;
+            done = true;
+            logger.log('🛑 Control panel stopped');
+            if (typeof callback === 'function') callback();
+        };
+        s.close(onDone);
+        setTimeout(onDone, 5000).unref?.();
+    } else if (typeof callback === 'function') {
+        callback();
     }
 }
 

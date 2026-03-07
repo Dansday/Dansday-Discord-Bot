@@ -52,7 +52,7 @@ function getConnectionConfig() {
     };
 }
 
-const connectionConfig = getConnectionConfig();
+export const connectionConfig = getConnectionConfig();
 
 console.log(`🔌 Database connection: mysql://${connectionConfig.user}@${connectionConfig.host}:${connectionConfig.port}/${connectionConfig.database}`);
 

@@ -8,8 +8,9 @@ controlPanel.init().catch(err => {
 
 function shutdown(signal) {
     console.log(`\n🛑 Shutting down control panel (${signal})...`);
-    controlPanel.stop();
-    process.exit(0);
+    controlPanel.stop(() => {
+        process.exit(0);
+    });
 }
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
