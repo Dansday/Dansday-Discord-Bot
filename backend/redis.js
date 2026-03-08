@@ -24,21 +24,13 @@ function normalizeRedisUrl(url) {
 }
 
 function buildRedisUrl() {
-    const url = process.env.REDIS_URL;
-    if (url && url.trim() !== '') return normalizeRedisUrl(url);
-    const host = process.env.REDIS_HOST;
-    if (!host || host.trim() === '') return null;
-    const port = process.env.REDIS_PORT || '6379';
-    const db = process.env.REDIS_DB || '0';
-    const username = process.env.REDIS_USERNAME;
-    const password = process.env.REDIS_PASSWORD;
-    if (username && username.trim() !== '' && password && password.trim() !== '') {
-        return `redis://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${db}`;
+    const raw = process.env.REDIS_URL;
+    if (!raw || raw.trim() === '') return null;
+    const s = raw.trim();
+    if (s.includes('://') || s.includes('@')) {
+        return normalizeRedisUrl(s);
     }
-    if (password && password.trim() !== '') {
-        return `redis://:${encodeURIComponent(password)}@${host}:${port}/${db}`;
-    }
-    return `redis://${host}:${port}/${db}`;
+    return `redis://${s}:6379/0`;
 }
 
 export async function getRedisClient() {
