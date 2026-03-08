@@ -68,12 +68,15 @@ let lastPanelLogPurgeCheck = 0;
 
 function getPool() {
     if (!pool) {
+        const tz = process.env.TIMEZONE || 'Asia/Jakarta';
+        const tzOffset = tz === 'Asia/Jakarta' ? '+07:00' : (tz === 'UTC' ? 'Z' : 'Z');
         pool = mysql.createPool({
             ...connectionConfig,
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0,
-            dateStrings: true
+            dateStrings: true,
+            timezone: tzOffset
         });
     }
     return pool;
@@ -366,6 +369,103 @@ export async function getServerByDiscordId(botId, discordServerId) {
         [botId, discordServerId]
     );
     return result[0] || null;
+}
+
+export async function getOfficialBotServerIdForServer(serverId) {
+    const server = await getServer(serverId);
+    if (!server) return null;
+    const bots = await getAllBots();
+    const officialBots = bots.filter(b => b.bot_type === 'official');
+    for (const official of officialBots) {
+        const officialServer = await getServerByDiscordId(official.id, server.discord_server_id);
+        if (officialServer) return officialServer.id;
+    }
+    return null;
+}
+
+async function getServerIdsInSameGuild(serverId) {
+    const rows = await query(
+        'SELECT id FROM servers WHERE discord_server_id = (SELECT discord_server_id FROM servers WHERE id = ? LIMIT 1)',
+        [serverId]
+    );
+    return (rows || []).map(r => r.id);
+}
+
+export async function getNotificationRolesForServer(serverId) {
+    await initializeDatabase();
+    const result = await query(
+        `SELECT c.discord_channel_id, r.discord_role_id
+         FROM server_channels c
+         INNER JOIN server_roles r ON r.id = c.notification_role_id
+         WHERE c.server_id = ? AND c.notification_role_id IS NOT NULL`,
+        [serverId]
+    );
+    return result || [];
+}
+
+export async function getNotificationRolesWithCategory(serverId) {
+    await initializeDatabase();
+    const result = await query(
+        `SELECT r.discord_role_id, COALESCE(cat.name, c.name) AS category_name,
+                COALESCE(cat.position, 9999) AS category_position,
+                COALESCE(c.position, 0) AS channel_position,
+                c.name AS channel_name
+         FROM server_channels c
+         INNER JOIN server_roles r ON r.id = c.notification_role_id
+         LEFT JOIN server_categories cat ON cat.id = c.category_id
+         WHERE c.server_id = ? AND c.notification_role_id IS NOT NULL
+         ORDER BY category_position ASC, channel_position ASC, channel_name ASC`,
+        [serverId]
+    );
+    return result || [];
+}
+
+export async function getNotificationRoleByChannel(serverId, discordChannelId) {
+    await initializeDatabase();
+    const result = await query(
+        `SELECT r.discord_role_id FROM server_channels c
+         INNER JOIN server_roles r ON r.id = c.notification_role_id
+         WHERE c.server_id = ? AND c.discord_channel_id = ? LIMIT 1`,
+        [serverId, discordChannelId]
+    );
+    return result[0]?.discord_role_id || null;
+}
+
+export async function upsertNotificationRole(serverId, discordChannelId, discordRoleId) {
+    await initializeDatabase();
+    const serverIds = await getServerIdsInSameGuild(serverId);
+    for (const sid of serverIds) {
+        const roleRow = await query(
+            'SELECT id FROM server_roles WHERE server_id = ? AND discord_role_id = ? LIMIT 1',
+            [sid, discordRoleId]
+        );
+        const roleId = roleRow[0]?.id;
+        if (!roleId) continue;
+        await query(
+            'UPDATE server_channels SET notification_role_id = ? WHERE server_id = ? AND discord_channel_id = ?',
+            [roleId, sid, discordChannelId]
+        );
+    }
+}
+
+export async function deleteNotificationRole(serverId, discordChannelId) {
+    await initializeDatabase();
+    const serverIds = await getServerIdsInSameGuild(serverId);
+    if (serverIds.length === 0) return;
+    const placeholders = serverIds.map(() => '?').join(', ');
+    await query(
+        `UPDATE server_channels SET notification_role_id = NULL WHERE server_id IN (${placeholders}) AND discord_channel_id = ?`,
+        [...serverIds, discordChannelId]
+    );
+}
+
+export async function getNotificationRoleDbIds(serverId) {
+    await initializeDatabase();
+    const result = await query(
+        'SELECT DISTINCT notification_role_id FROM server_channels WHERE server_id = ? AND notification_role_id IS NOT NULL',
+        [serverId]
+    );
+    return new Set((result || []).map(r => r.notification_role_id));
 }
 
 export async function upsertServer(botId, guild) {
@@ -809,10 +909,11 @@ export async function syncMemberRoles(memberId, discordRoleIds, serverId) {
 
         if (rolesToAdd.length > 0) {
             const now = toMySQLDateTime();
-            const placeholders = rolesToAdd.map(() => '(?, ?, ?, ?)').join(', ');
-            const values = rolesToAdd.flatMap(roleId => [memberId, roleId, false, now]);
+            const notificationRoleIds = await getNotificationRoleDbIds(serverId);
+            const placeholders = rolesToAdd.map(() => '(?, ?, ?, ?, ?)').join(', ');
+            const values = rolesToAdd.flatMap(roleId => [memberId, roleId, false, notificationRoleIds.has(roleId), now]);
             await query(
-                `INSERT INTO server_member_roles (member_id, role_id, is_custom, created_at) VALUES ${placeholders}`,
+                `INSERT INTO server_member_roles (member_id, role_id, is_custom, is_notification, created_at) VALUES ${placeholders}`,
                 values
             );
         }
@@ -2537,6 +2638,13 @@ export default {
     getServer,
     getServersForBot,
     getServerByDiscordId,
+    getOfficialBotServerIdForServer,
+    getNotificationRolesForServer,
+    getNotificationRolesWithCategory,
+    getNotificationRoleByChannel,
+    getNotificationRoleDbIds,
+    upsertNotificationRole,
+    deleteNotificationRole,
     upsertServer,
     upsertCategory,
     syncCategories,

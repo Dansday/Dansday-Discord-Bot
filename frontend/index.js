@@ -9,6 +9,7 @@ import { CONTROL_PANEL } from './config.js';
 import logger from '../backend/logger.js';
 import db, { initializeDatabase, connectionConfig } from '../database/database.js';
 import MySQLStoreFactory from 'express-mysql-session';
+import { getRedisClient } from '../backend/redis.js';
 import { parseMySQLDateTime, getNowInTimezone, getDateTimeFromSQL, getDateTimeFromJSDate, addMinutesToNow, addDaysToNow, getCurrentDateTime } from '../backend/utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -461,6 +462,9 @@ export async function init() {
 
     await verifyBotStatuses();
 
+    const redisClient = await getRedisClient();
+    if (redisClient) logger.log('✅ Redis connected (sessions + rate limit)');
+
     app = express();
     app.use(express.json({ limit: '10mb' }));
 
@@ -477,10 +481,13 @@ export async function init() {
     }
 
     const MySQLStore = MySQLStoreFactory(session);
-    const sessionStore = new MySQLStore({
-        ...connectionConfig,
-        schema: { tableName: 'panel_sessions' }
-    });
+    const { default: RedisStore } = await import('connect-redis');
+    const sessionStore = redisClient
+        ? new RedisStore({ client: redisClient, prefix: 'dansday:sess:' })
+        : new MySQLStore({
+            ...connectionConfig,
+            schema: { tableName: 'panel_sessions' }
+        });
 
     app.use(session({
         store: sessionStore,
@@ -502,31 +509,33 @@ export async function init() {
     const MAX_LOGIN_ATTEMPTS = 5;
     const MAX_REGISTER_ATTEMPTS = 3;
 
-    function checkRateLimit(ip, endpoint, maxAttempts) {
+    async function checkRateLimit(ip, endpoint, maxAttempts) {
+        if (redisClient) {
+            const key = `dansday:ratelimit:${ip}:${endpoint}`;
+            const count = await redisClient.incr(key);
+            if (count === 1) await redisClient.pExpire(key, RATE_LIMIT_WINDOW);
+            const ttl = await redisClient.pTTL(key);
+            const resetTime = Date.now() + (ttl > 0 ? ttl : RATE_LIMIT_WINDOW);
+            if (count > maxAttempts) return { allowed: false, remaining: 0, resetTime };
+            return { allowed: true, remaining: maxAttempts - count, resetTime };
+        }
         const key = `${ip}:${endpoint}`;
         const now = Date.now();
         const attempts = rateLimitStore.get(key) || { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
-
         if (now > attempts.resetTime) {
             attempts.count = 0;
             attempts.resetTime = now + RATE_LIMIT_WINDOW;
         }
-
         if (attempts.count >= maxAttempts) {
             return { allowed: false, remaining: 0, resetTime: attempts.resetTime };
         }
-
         attempts.count++;
         rateLimitStore.set(key, attempts);
-
         if (Math.random() < 0.01) {
             for (const [k, v] of rateLimitStore.entries()) {
-                if (now > v.resetTime) {
-                    rateLimitStore.delete(k);
-                }
+                if (now > v.resetTime) rateLimitStore.delete(k);
             }
         }
-
         return { allowed: true, remaining: maxAttempts - attempts.count, resetTime: attempts.resetTime };
     }
 
@@ -669,7 +678,7 @@ export async function init() {
     app.post('/api/panel/register', async (req, res) => {
         try {
             const clientIp = getClientIp(req);
-            const rateLimit = checkRateLimit(clientIp, 'register', MAX_REGISTER_ATTEMPTS);
+            const rateLimit = await checkRateLimit(clientIp, 'register', MAX_REGISTER_ATTEMPTS);
 
             if (!rateLimit.allowed) {
                 const resetTime = new Date(rateLimit.resetTime).toISOString();
@@ -901,7 +910,7 @@ export async function init() {
     app.post('/api/panel/login', async (req, res) => {
         try {
             const clientIp = getClientIp(req);
-            const rateLimit = checkRateLimit(clientIp, 'login', MAX_LOGIN_ATTEMPTS);
+            const rateLimit = await checkRateLimit(clientIp, 'login', MAX_LOGIN_ATTEMPTS);
 
             if (!rateLimit.allowed) {
                 const resetTime = new Date(rateLimit.resetTime).toISOString();
@@ -1713,7 +1722,12 @@ export async function init() {
     app.get('/api/servers/:id/settings', requireAuth, async (req, res) => {
         try {
             const { component } = req.query;
-            const settings = await db.getServerSettings(req.params.id, component);
+            let serverId = req.params.id;
+            if (component === 'notifications') {
+                const officialServerId = await db.getOfficialBotServerIdForServer(req.params.id);
+                if (officialServerId) serverId = officialServerId;
+            }
+            const settings = await db.getServerSettings(serverId, component);
             res.json(settings);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -1726,7 +1740,49 @@ export async function init() {
             if (!component_name) {
                 return res.status(400).json({ error: 'component_name is required' });
             }
-            const result = await db.upsertServerSettings(req.params.id, component_name, settings);
+            let targetServerId = req.params.id;
+            if (component_name === 'notifications') {
+                const officialServerId = await db.getOfficialBotServerIdForServer(req.params.id);
+                if (officialServerId) targetServerId = officialServerId;
+            }
+            const result = await db.upsertServerSettings(targetServerId, component_name, settings);
+
+            if (component_name === 'notifications') {
+                try {
+                    const server = await db.getServer(targetServerId);
+                    const bot = server ? await db.getBot(server.bot_id) : null;
+                    if (server && bot && server.discord_server_id) {
+                        const http = await import('http');
+                        const payload = JSON.stringify({ type: 'sync_notification_roles', guild_id: server.discord_server_id });
+                        const options = {
+                            hostname: 'localhost',
+                            port: bot.port,
+                            path: '/',
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Content-Length': Buffer.byteLength(payload),
+                                'X-Secret-Key': bot.secret_key
+                            }
+                        };
+                        await new Promise((resolve) => {
+                            const webhookReq = http.request(options, (webhookRes) => {
+                                let data = '';
+                                webhookRes.on('data', (chunk) => { data += chunk; });
+                                webhookRes.on('end', () => resolve());
+                            });
+                            webhookReq.on('error', (err) => {
+                                logger.log(`⚠️  Notification sync webhook failed: ${err.message}`);
+                                resolve();
+                            });
+                            webhookReq.write(payload);
+                            webhookReq.end();
+                        });
+                    }
+                } catch (err) {
+                    logger.log(`⚠️  Notification sync trigger failed: ${err.message}`);
+                }
+            }
 
             const account = await getAccountForLogging(req);
             if (account) {
