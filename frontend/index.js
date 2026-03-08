@@ -9,6 +9,7 @@ import { CONTROL_PANEL } from './config.js';
 import logger from '../backend/logger.js';
 import db, { initializeDatabase, connectionConfig } from '../database/database.js';
 import MySQLStoreFactory from 'express-mysql-session';
+import { getRedisClient } from '../backend/redis.js';
 import { parseMySQLDateTime, getNowInTimezone, getDateTimeFromSQL, getDateTimeFromJSDate, addMinutesToNow, addDaysToNow, getCurrentDateTime } from '../backend/utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -461,6 +462,9 @@ export async function init() {
 
     await verifyBotStatuses();
 
+    const redisClient = await getRedisClient();
+    if (redisClient) logger.log('✅ Redis connected (sessions + rate limit)');
+
     app = express();
     app.use(express.json({ limit: '10mb' }));
 
@@ -477,10 +481,13 @@ export async function init() {
     }
 
     const MySQLStore = MySQLStoreFactory(session);
-    const sessionStore = new MySQLStore({
-        ...connectionConfig,
-        schema: { tableName: 'panel_sessions' }
-    });
+    const { default: RedisStore } = await import('connect-redis');
+    const sessionStore = redisClient
+        ? new RedisStore({ client: redisClient, prefix: 'dansday:sess:' })
+        : new MySQLStore({
+            ...connectionConfig,
+            schema: { tableName: 'panel_sessions' }
+        });
 
     app.use(session({
         store: sessionStore,
@@ -502,31 +509,33 @@ export async function init() {
     const MAX_LOGIN_ATTEMPTS = 5;
     const MAX_REGISTER_ATTEMPTS = 3;
 
-    function checkRateLimit(ip, endpoint, maxAttempts) {
+    async function checkRateLimit(ip, endpoint, maxAttempts) {
+        if (redisClient) {
+            const key = `dansday:ratelimit:${ip}:${endpoint}`;
+            const count = await redisClient.incr(key);
+            if (count === 1) await redisClient.pExpire(key, RATE_LIMIT_WINDOW);
+            const ttl = await redisClient.pTTL(key);
+            const resetTime = Date.now() + (ttl > 0 ? ttl : RATE_LIMIT_WINDOW);
+            if (count > maxAttempts) return { allowed: false, remaining: 0, resetTime };
+            return { allowed: true, remaining: maxAttempts - count, resetTime };
+        }
         const key = `${ip}:${endpoint}`;
         const now = Date.now();
         const attempts = rateLimitStore.get(key) || { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
-
         if (now > attempts.resetTime) {
             attempts.count = 0;
             attempts.resetTime = now + RATE_LIMIT_WINDOW;
         }
-
         if (attempts.count >= maxAttempts) {
             return { allowed: false, remaining: 0, resetTime: attempts.resetTime };
         }
-
         attempts.count++;
         rateLimitStore.set(key, attempts);
-
         if (Math.random() < 0.01) {
             for (const [k, v] of rateLimitStore.entries()) {
-                if (now > v.resetTime) {
-                    rateLimitStore.delete(k);
-                }
+                if (now > v.resetTime) rateLimitStore.delete(k);
             }
         }
-
         return { allowed: true, remaining: maxAttempts - attempts.count, resetTime: attempts.resetTime };
     }
 
@@ -669,7 +678,7 @@ export async function init() {
     app.post('/api/panel/register', async (req, res) => {
         try {
             const clientIp = getClientIp(req);
-            const rateLimit = checkRateLimit(clientIp, 'register', MAX_REGISTER_ATTEMPTS);
+            const rateLimit = await checkRateLimit(clientIp, 'register', MAX_REGISTER_ATTEMPTS);
 
             if (!rateLimit.allowed) {
                 const resetTime = new Date(rateLimit.resetTime).toISOString();
@@ -901,7 +910,7 @@ export async function init() {
     app.post('/api/panel/login', async (req, res) => {
         try {
             const clientIp = getClientIp(req);
-            const rateLimit = checkRateLimit(clientIp, 'login', MAX_LOGIN_ATTEMPTS);
+            const rateLimit = await checkRateLimit(clientIp, 'login', MAX_LOGIN_ATTEMPTS);
 
             if (!rateLimit.allowed) {
                 const resetTime = new Date(rateLimit.resetTime).toISOString();

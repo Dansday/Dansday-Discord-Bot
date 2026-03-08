@@ -28,6 +28,8 @@
     "express-session": "^1.19.0",
     "luxon": "^3.7.2",
     "mysql2": "^3.19.0",
-    "nodemailer": "^8.0.1"
+    "nodemailer": "^8.0.1",
+    "redis": "^4.7.0",
+    "connect-redis": "^7.1.0"
   }
 }
