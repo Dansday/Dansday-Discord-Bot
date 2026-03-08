@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 RUN apk add --no-cache tzdata
-ENV TZ=Asia/Singapore
+ENV TZ=Asia/Jakarta
 
 COPY package.json ./
 

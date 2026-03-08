@@ -68,12 +68,15 @@ let lastPanelLogPurgeCheck = 0;
 
 function getPool() {
     if (!pool) {
+        const tz = process.env.TIMEZONE || 'Asia/Jakarta';
+        const tzOffset = tz === 'Asia/Jakarta' ? '+07:00' : (tz === 'UTC' ? 'Z' : 'Z');
         pool = mysql.createPool({
             ...connectionConfig,
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0,
-            dateStrings: true
+            dateStrings: true,
+            timezone: tzOffset
         });
     }
     return pool;
