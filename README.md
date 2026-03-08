@@ -56,7 +56,7 @@ MySQL and Redis are external; point the app at them with `DB_*` and `REDIS_URL`.
 
 ## Tech stack
 
-- **Runtime:** Node.js 20
+- **Runtime:** Node.js 22
 - **Control panel:** Express.js, session auth (MySQL or Redis)
 - **Bots:** discord.js (official), discord.js-selfbot-v13 (self-bot)
 - **Database:** MySQL (mysql2)
