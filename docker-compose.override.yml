@@ -1,4 +1,4 @@
 services:
   app:
     ports:
-      - "3333:80"
+      - "80:80"

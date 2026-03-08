@@ -17,7 +17,7 @@ You only need this on your machine:
 
 You do **not** need Node.js or npm installed — everything runs inside Docker.
 
-When running locally with `make up`, the control panel is at **http://localhost:3333** (via `docker-compose.override.yml`). Ensure port **3333** is free.
+When running locally with `make up`, the control panel is at **http://localhost** (port 80, via `docker-compose.override.yml`). Ensure port **80** is free.
 
 ---
 
@@ -26,7 +26,7 @@ When running locally with `make up`, the control panel is at **http://localhost:
 The main **docker-compose.yaml** publishes the app as **`0:80`** (random host port), so multiple stacks (e.g. production and preview) never conflict on a fixed port. Your host or proxy can route by domain to the app on the internal network.
 
 - **Hosted / PaaS**: Use **docker-compose.yaml** only (no override). Set required env vars in your platform (DB_*, SESSION_SECRET, etc.). The app listens on container port 80; set `PORT` if your platform expects it.
-- **Local / clone repo**: `make up` merges **docker-compose.override.yml**, which binds **3333:80**, so the panel is at http://localhost:3333.
+- **Local / clone repo**: `make up` merges **docker-compose.override.yml**, which binds **80:80**, so the panel is at http://localhost.
 
 ---
 
@@ -53,7 +53,7 @@ Ensure MySQL is running and run the schema once: execute `database/schema.sql` i
 make up
 ```
 
-Then open the control panel at **http://localhost:3333**.
+Then open the control panel at **http://localhost**.
 
 **Stop:** `make down`
 
@@ -65,7 +65,7 @@ Only if you run the app directly on your machine (no Docker): copy `.env.example
 
 - **app**
   - Node.js control panel + official bot + self-bot logic
-  - Runs in Docker; local access at **http://localhost:3333** (app listens on port 80 inside container)
+  - Runs in Docker; local access at **http://localhost** (port 80)
   - Connects to MySQL (and optionally Redis) via env vars
 
 - **MySQL**
