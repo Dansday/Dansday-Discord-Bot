@@ -1,6 +1,3 @@
-import { getOtelLogger } from './otel-logger.js';
-import { SeverityNumber } from '@opentelemetry/api-logs';
-
 function buildPayload(level, message, meta) {
     const payload = {
         level,
@@ -15,42 +12,21 @@ function buildPayload(level, message, meta) {
     return JSON.stringify(payload);
 }
 
-function emitOtel(level, severityNumber, message, meta) {
-    try {
-        const otel = getOtelLogger();
-        if (!otel) return;
-        const attributes = meta && typeof meta === 'object' ? meta : {};
-        otel.emit({
-            severityNumber,
-            severityText: level.toUpperCase(),
-            body: message,
-            attributes
-        });
-    } catch (_) {}
-}
-
+// All app logs go through console; console-instrumentation sends them to OTLP (SigNoz)
 function info(message, meta) {
-    const line = buildPayload('info', message, meta);
-    console.log(line);
-    emitOtel('info', SeverityNumber.INFO, message, meta);
+    console.log(buildPayload('info', message, meta));
 }
 
 function debug(message, meta) {
-    const line = buildPayload('debug', message, meta);
-    console.log(line);
-    emitOtel('debug', SeverityNumber.DEBUG, message, meta);
+    console.log(buildPayload('debug', message, meta));
 }
 
 function warn(message, meta) {
-    const line = buildPayload('warn', message, meta);
-    console.warn(line);
-    emitOtel('warn', SeverityNumber.WARN, message, meta);
+    console.warn(buildPayload('warn', message, meta));
 }
 
 function error(message, meta) {
-    const line = buildPayload('error', message, meta);
-    console.error(line);
-    emitOtel('error', SeverityNumber.ERROR, message, meta);
+    console.error(buildPayload('error', message, meta));
 }
 
 // Backwards-compatible generic log method

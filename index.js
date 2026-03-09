@@ -1,3 +1,6 @@
+// Step 5: This must be the first import so all console.* are sent to SigNoz
+import './console-instrumentation.js';
+
 import controlPanel from './frontend/index.js';
 import logger from './backend/logger.js';
 
