@@ -490,9 +490,7 @@ export async function init() {
     }
 
     const MySQLStore = MySQLStoreFactory(session);
-    const connectRedisMod = await import('connect-redis');
-    const connectRedis = connectRedisMod.default || connectRedisMod;
-    const RedisStore = connectRedis(session);
+    const { RedisStore } = await import('connect-redis');
     const sessionStore = redisClient
         ? new RedisStore({ client: redisClient, prefix: 'dansday:sess:' })
         : new MySQLStore({
