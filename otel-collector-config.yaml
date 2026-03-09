@@ -1,0 +1,92 @@
+receivers:
+  # OTLP: accept traces, metrics, and logs from instrumented apps (SDKs, agents)
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Host metrics: CPU, disk, memory, network, etc. (root_path for container)
+  hostmetrics:
+    collection_interval: 60s
+    root_path: /hostfs
+    scrapers:
+      cpu: {}
+      disk: {}
+      load: {}
+      filesystem: {}
+      memory: {}
+      network: {}
+      paging: {}
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        mute_process_user_error: true
+      processes: {}
+
+  # Container metrics from Docker daemon
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 10s
+    timeout: 20s
+
+  # Container logs: Docker JSON log files
+  filelog:
+    include: [/var/lib/docker/containers/*/*-json.log]
+    start_at: end
+    include_file_name: false
+    include_file_path: true
+    operators:
+      - id: container-parser
+        type: container
+        format: docker
+        add_metadata_from_filepath: false
+
+processors:
+  batch:
+    send_batch_size: 1000
+    timeout: 10s
+
+  resourcedetection:
+    detectors: [env, system, docker]
+    timeout: 2s
+    system:
+      hostname_sources: [os]
+
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 4000
+    spike_limit_mib: 800
+
+exporters:
+  otlp:
+    endpoint: otelcollector.dansday.com:443
+    tls:
+      insecure: false
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp, hostmetrics, docker_stats]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlp]
+

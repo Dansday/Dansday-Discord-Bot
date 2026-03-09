@@ -58,14 +58,6 @@ console.log(`🔌 Database connection: mysql://${connectionConfig.user}@${connec
 
 let pool = null;
 
-const BOT_LOG_RETENTION_DAYS = 7;
-const BOT_LOG_PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-let lastBotLogPurgeCheck = 0;
-
-const PANEL_LOG_RETENTION_DAYS = 7;
-const PANEL_LOG_PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-let lastPanelLogPurgeCheck = 0;
-
 function getPool() {
     if (!pool) {
         const tz = process.env.TIMEZONE || 'Asia/Jakarta';
@@ -117,7 +109,7 @@ async function runMigration() {
         }
 
         logger.log('✅ Database schema created successfully!');
-        logger.log('📊 Tables created: panel, panel_accounts, panel_invite_links, panel_logs, bots, servers, server_categories, server_channels, server_roles, server_members, server_member_levels, server_member_roles, server_members_afk, server_settings, server_giveaways, server_giveaway_entries, server_staff_ratings, server_staff_reports, server_feedback, bot_logs');
+        logger.log('📊 Tables created: panel, panel_accounts, panel_invite_links, bots, servers, server_categories, server_channels, server_roles, server_members, server_member_levels, server_member_roles, server_members_afk, server_settings, server_giveaways, server_giveaway_entries, server_staff_ratings, server_staff_reports, server_feedback');
         logger.log('📈 Indexes created: all indexes');
 
     } catch (error) {
@@ -141,7 +133,6 @@ async function setupDatabase() {
         { name: 'panel', required: true },
         { name: 'panel_accounts', required: true },
         { name: 'panel_invite_links', required: true },
-        { name: 'panel_logs', required: true },
         { name: 'bots', required: true },
         { name: 'servers', required: true },
         { name: 'server_categories', required: true },
@@ -156,8 +147,7 @@ async function setupDatabase() {
         { name: 'server_giveaway_entries', required: true },
         { name: 'server_staff_ratings', required: true },
         { name: 'server_staff_reports', required: true },
-        { name: 'server_feedback', required: true },
-        { name: 'bot_logs', required: true }
+        { name: 'server_feedback', required: true }
     ];
 
     const missingTables = [];
@@ -1828,65 +1818,6 @@ async function getAllPanelInviteLinks() {
     );
 }
 
-export async function insertPanelLog(panelAccountId, message) {
-    await initializeDatabase();
-    if (!message) {
-        throw new Error('message is required to insert panel log');
-    }
-
-    try {
-        await query(
-            'INSERT INTO panel_logs (panel_account_id, message, created_at) VALUES (?, ?, ?)',
-            [panelAccountId || null, message, toMySQLDateTime()]
-        );
-
-        const now = Date.now();
-        if (now - lastPanelLogPurgeCheck >= PANEL_LOG_PURGE_INTERVAL_MS) {
-            lastPanelLogPurgeCheck = now;
-            try {
-                await purgeOldPanelLogs(PANEL_LOG_RETENTION_DAYS);
-            } catch (purgeError) {
-                console.error('Error purging old panel logs:', purgeError);
-            }
-        }
-
-        return true;
-    } catch (error) {
-        console.error('Error inserting panel log:', error);
-        throw error;
-    }
-}
-
-export async function getPanelLogs(limit = 100, offset = 0) {
-    await initializeDatabase();
-    const lim = Math.min(500, Math.max(1, parseInt(limit, 10) || 100));
-    const off = Math.max(0, parseInt(offset, 10) || 0);
-    // MySQL 8.0.22+ rejects LIMIT/OFFSET when passed as numbers in prepared stmt; pass as strings.
-    const result = await query(
-        `SELECT pl.*, pa.username as account_username, pa.email as account_email
-         FROM panel_logs pl
-         LEFT JOIN panel_accounts pa ON pl.panel_account_id = pa.id
-         ORDER BY pl.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [String(lim), String(off)]
-    );
-    return result;
-}
-
-export async function purgeOldPanelLogs(retentionDays = PANEL_LOG_RETENTION_DAYS) {
-    await initializeDatabase();
-    const days = Number.isFinite(retentionDays) && retentionDays > 0 ? retentionDays : PANEL_LOG_RETENTION_DAYS;
-    const cutoff = getNowInTimezone().minus({ days }).toJSDate();
-    const cutoffStr = toMySQLDateTime(cutoff);
-
-    const result = await query(
-        'DELETE FROM panel_logs WHERE created_at < ?',
-        [cutoffStr]
-    );
-
-    return result?.affectedRows || 0;
-}
-
 async function getServerSettings(serverId, componentName = null) {
     await initializeDatabase();
 
@@ -1970,69 +1901,6 @@ async function getCategoriesForServer(serverId) {
         [serverId]
     );
     return result;
-}
-
-export async function insertBotLog(botId, message) {
-    await initializeDatabase();
-    if (!botId || !message) {
-        throw new Error('botId and message are required to insert bot log');
-    }
-
-    try {
-        await query(
-            'INSERT INTO bot_logs (bot_id, message, created_at) VALUES (?, ?, ?)',
-            [botId, message, toMySQLDateTime()]
-        );
-
-        const now = Date.now();
-        if (now - lastBotLogPurgeCheck >= BOT_LOG_PURGE_INTERVAL_MS) {
-            lastBotLogPurgeCheck = now;
-            try {
-                await purgeOldBotLogs(BOT_LOG_RETENTION_DAYS);
-            } catch (purgeError) {
-                console.error('Error purging old bot logs:', purgeError);
-            }
-        }
-
-        return true;
-    } catch (error) {
-        console.error('Error inserting bot log:', error);
-        throw error;
-    }
-}
-
-export async function getBotLogs(botId, limit = 100, offset = 0) {
-    await initializeDatabase();
-    if (!botId) {
-        throw new Error('botId is required to fetch bot logs');
-    }
-    const lim = Math.min(500, Math.max(1, parseInt(limit, 10) || 100));
-    const off = Math.max(0, parseInt(offset, 10) || 0);
-
-    const result = await query(
-        `SELECT bl.*, b.name as bot_name
-         FROM bot_logs bl
-         INNER JOIN bots b ON bl.bot_id = b.id
-         WHERE bl.bot_id = ?
-         ORDER BY bl.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [botId, String(lim), String(off)]
-    );
-    return result;
-}
-
-export async function purgeOldBotLogs(retentionDays = BOT_LOG_RETENTION_DAYS) {
-    await initializeDatabase();
-    const days = Number.isFinite(retentionDays) && retentionDays > 0 ? retentionDays : BOT_LOG_RETENTION_DAYS;
-    const cutoff = getNowInTimezone().minus({ days }).toJSDate();
-    const cutoffStr = toMySQLDateTime(cutoff);
-
-    const result = await query(
-        'DELETE FROM bot_logs WHERE created_at < ?',
-        [cutoffStr]
-    );
-
-    return result?.affectedRows || 0;
 }
 
 export async function getAFKStatus(serverId, discordMemberId) {
@@ -2691,16 +2559,10 @@ export default {
     getPanelInviteLinkByToken,
     updatePanelInviteLink,
     getAllPanelInviteLinks,
-    insertPanelLog,
-    getPanelLogs,
-    purgeOldPanelLogs,
     getServerSettings,
     upsertServerSettings,
     getChannelsForServer,
     getCategoriesForServer,
-    insertBotLog,
-    getBotLogs,
-    purgeOldBotLogs,
     serversNeedSync,
     getAFKStatus,
     setAFKStatus,

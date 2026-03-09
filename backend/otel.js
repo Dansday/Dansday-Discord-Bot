@@ -1,31 +1,14 @@
-import * as api from '@opentelemetry/api';
-import * as apiLogs from '@opentelemetry/api-logs';
-import * as autoInst from '@opentelemetry/auto-instrumentations-node';
-import * as expLogs from '@opentelemetry/exporter-logs-otlp-http';
-import * as expMetrics from '@opentelemetry/exporter-metrics-otlp-http';
-import * as expTrace from '@opentelemetry/exporter-trace-otlp-http';
-import * as resourcesMod from '@opentelemetry/resources';
-import * as sdkLogsMod from '@opentelemetry/sdk-logs';
-import * as sdkMetricsMod from '@opentelemetry/sdk-metrics';
-import * as sdkNodeMod from '@opentelemetry/sdk-node';
-import * as semconvMod from '@opentelemetry/semantic-conventions';
-
-const { diag, DiagConsoleLogger, DiagLogLevel } = api;
-const { logs } = apiLogs;
-const { getNodeAutoInstrumentations } = autoInst;
-const { OTLPLogExporter } = expLogs;
-const { OTLPMetricExporter } = expMetrics;
-const { OTLPTraceExporter } = expTrace;
-
-const Resource = resourcesMod.Resource ?? resourcesMod.default?.Resource;
-const LoggerProvider = sdkLogsMod.LoggerProvider ?? sdkLogsMod.default?.LoggerProvider;
-const BatchLogRecordProcessor =
-  sdkLogsMod.BatchLogRecordProcessor ?? sdkLogsMod.default?.BatchLogRecordProcessor;
-const PeriodicExportingMetricReader =
-  sdkMetricsMod.PeriodicExportingMetricReader ?? sdkMetricsMod.default?.PeriodicExportingMetricReader;
-const NodeSDK = sdkNodeMod.NodeSDK ?? sdkNodeMod.default?.NodeSDK;
-const SemanticResourceAttributes =
-  semconvMod.SemanticResourceAttributes ?? semconvMod.default?.SemanticResourceAttributes;
+import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import { logs } from '@opentelemetry/api-logs';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { Resource } from '@opentelemetry/resources';
+import { LoggerProvider, BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
 function hasOtelExporterConfigured() {
   return Boolean(
@@ -65,10 +48,6 @@ async function startOtel() {
   if (!isOtelEnabled()) return;
 
   maybeEnableDiag();
-
-  if (!Resource || !NodeSDK || !SemanticResourceAttributes) {
-    return;
-  }
 
   const serviceName =
     process.env.OTEL_SERVICE_NAME ||

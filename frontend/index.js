@@ -74,16 +74,8 @@ async function startBotById(botId, bot) {
         }
 
         const scriptPath = join(botPath, botScript);
-        const otelEnabled =
-            process.env.OTEL_ENABLED === 'true' ||
-            Boolean(process.env.OTEL_EXPORTER_OTLP_ENDPOINT) ||
-            Boolean(process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) ||
-            Boolean(process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT) ||
-            Boolean(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT);
 
-        const otelArgs = otelEnabled ? ['--import', join(projectRoot, 'backend', 'otel.js')] : [];
-
-        const botProcess = spawn(process.execPath, [...otelArgs, scriptPath], {
+        const botProcess = spawn(process.execPath, [scriptPath], {
             cwd: botPath,
             stdio: ['ignore', 'pipe', 'pipe'],
             shell: false,
@@ -587,8 +579,8 @@ export async function init() {
     async function logPanelActivity(req, message) {
         try {
             const account = await getAccountForLogging(req);
-            const accountId = account ? account.id : null;
-            await db.insertPanelLog(accountId, message);
+            const accountInfo = account ? ` [account: ${account.username} (${account.email})]` : '';
+            logger.log(`${message}${accountInfo}`);
         } catch (err) {
             console.error('Failed to log panel activity:', err);
         }
@@ -805,7 +797,7 @@ export async function init() {
             }
 
             if (!account.otp_code || account.otp_code !== sanitizedOtpCode) {
-                await db.insertPanelLog(account.id, `Failed OTP verification for ${account.username} (IP: ${getClientIp(req)})`);
+                await logger.log(`Failed OTP verification for ${account.username} (IP: ${getClientIp(req)})`);
                 return res.status(401).json({
                     success: false,
                     error: 'Invalid OTP code'
@@ -846,7 +838,7 @@ export async function init() {
                 });
             });
 
-            await db.insertPanelLog(account.id, `Email verified and logged in: ${account.username} (IP: ${clientIp})`);
+            await logger.log(`Email verified and logged in: ${account.username} (IP: ${clientIp})`);
 
             const { sendVerificationSuccessEmail } = await import('../backend/email.js');
             try {
@@ -958,7 +950,7 @@ export async function init() {
             }
 
             if (typeof password !== 'string') {
-                await db.insertPanelLog(null, `Failed login attempt: Invalid password format (IP: ${clientIp})`);
+                await logger.log(`Failed login attempt: Invalid password format (IP: ${clientIp})`);
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid password format'
@@ -967,7 +959,7 @@ export async function init() {
 
             const passwordValidation = utils.validateInputLength(password, 'Password', 1, 128);
             if (!passwordValidation.valid) {
-                await db.insertPanelLog(null, `Failed login attempt: Invalid password length (IP: ${clientIp})`);
+                await logger.log(`Failed login attempt: Invalid password length (IP: ${clientIp})`);
                 return res.status(400).json({
                     success: false,
                     error: passwordValidation.error
@@ -975,7 +967,7 @@ export async function init() {
             }
 
             if (!account) {
-                await db.insertPanelLog(null, `Failed login attempt: Account not found (IP: ${clientIp})`);
+                await logger.log(`Failed login attempt: Account not found (IP: ${clientIp})`);
                 return res.status(401).json({
                     success: false,
                     error: 'Invalid credentials'
@@ -992,7 +984,7 @@ export async function init() {
             }
 
             if (account.is_frozen) {
-                await db.insertPanelLog(account.id, `Blocked login attempt: Account frozen for ${account.username} (IP: ${clientIp})`);
+                await logger.log(`Blocked login attempt: Account frozen for ${account.username} (IP: ${clientIp})`);
                 return res.status(403).json({
                     success: false,
                     error: 'This account has been frozen. Please contact an administrator.'
@@ -1002,7 +994,7 @@ export async function init() {
             const isValid = await bcrypt.compare(password, account.password_hash);
 
             if (!isValid) {
-                await db.insertPanelLog(account.id, `Failed login attempt for ${account.username} (IP: ${clientIp})`);
+                await logger.log(`Failed login attempt for ${account.username} (IP: ${clientIp})`);
                 return res.status(401).json({
                     success: false,
                     error: 'Invalid credentials'
@@ -1026,7 +1018,7 @@ export async function init() {
                 });
             });
 
-            await db.insertPanelLog(account.id, `Successful login: ${account.username} (IP: ${clientIp})`);
+            await logger.log(`Successful login: ${account.username} (IP: ${clientIp})`);
 
             res.json({ success: true, message: 'Login successful', account_type: account.account_type });
         } catch (error) {
@@ -1045,7 +1037,7 @@ export async function init() {
                 try {
                     const account = await db.getPanelAccountById(accountId);
                     if (account) {
-                        await db.insertPanelLog(accountId, `Logged out: ${account.username} (IP: ${getClientIp(req)})`);
+                        await logger.log(`Logged out: ${account.username} (IP: ${getClientIp(req)})`);
                     }
                 } catch (logError) {
                 }
@@ -1648,76 +1640,7 @@ export async function init() {
         }
     });
 
-    app.get('/api/bots/:id/logs', requireAdmin, async (req, res) => {
-        const utils = await getSecurityUtils();
-        const botId = utils.sanitizeInteger(req.params.id, 1, null);
-        if (!botId) {
-            return res.status(400).json({ error: 'Invalid bot ID' });
-        }
-
-        const limitParam = utils.sanitizeInteger(req.query.limit, 1, 500);
-        const offsetParam = utils.sanitizeInteger(req.query.offset, 0, null);
-
-        const limit = limitParam || 200;
-        const offset = offsetParam || 0;
-
-        try {
-            const bot = await db.getBot(botId);
-            if (!bot) {
-                return res.status(404).json({ error: 'Bot not found' });
-            }
-
-            const logs = await db.getBotLogs(botId, limit, offset);
-
-            res.json({
-                logs: logs.map(log => ({
-                    id: log.id,
-                    message: log.message,
-                    created_at: log.created_at,
-                    bot_name: log.bot_name
-                })),
-                pagination: {
-                    limit,
-                    offset,
-                    count: logs.length
-                }
-            });
-        } catch (error) {
-            logger.log(`❌ Error fetching bot logs: ${error.message}`);
-            res.status(500).json({ error: 'Failed to load bot logs' });
-        }
-    });
-
-    app.get('/api/panel/logs', requireAdmin, async (req, res) => {
-        const utils = await getSecurityUtils();
-        const limitParam = utils.sanitizeInteger(req.query.limit, 1, 500);
-        const offsetParam = utils.sanitizeInteger(req.query.offset, 0, null);
-
-        const limit = limitParam || 200;
-        const offset = offsetParam || 0;
-
-        try {
-            const logs = await db.getPanelLogs(limit, offset);
-
-            res.json({
-                logs: logs.map(log => ({
-                    id: log.id,
-                    message: log.message,
-                    created_at: log.created_at,
-                    account_username: log.account_username || 'System',
-                    account_email: log.account_email || null
-                })),
-                pagination: {
-                    limit,
-                    offset,
-                    count: logs.length
-                }
-            });
-        } catch (error) {
-            logger.log(`❌ Error fetching panel logs: ${error.message}`);
-            res.status(500).json({ error: 'Failed to load panel logs' });
-        }
-    });
+    // Log viewing endpoints have been removed; logs are now written to console
 
     app.get('/api/bots/:id/servers', requireAuth, async (req, res) => {
         try {
