@@ -1983,7 +1983,6 @@
         // Log viewing helpers removed; logs are sent to console only
 
         async function viewBotDetail(botId) {
-            stopBotLogPolling();
             currentBotId = botId;
             document.getElementById('dashboardContainer').classList.add('hidden');
             document.getElementById('botDetailContainer').classList.remove('hidden');
@@ -1996,7 +1995,6 @@
             document.getElementById('serverConfigContainer').classList.add('hidden');
             document.getElementById('accountManagementContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.remove('hidden');
-            stopBotLogPolling();
             currentBotId = null;
             // panel logs view removed
         }
@@ -2561,7 +2559,6 @@
         async function viewServerOverview(serverId, serverName) {
             currentServerId = serverId;
             currentBotIdForServer = currentBotId;
-            stopBotLogPolling();
             document.getElementById('botDetailContainer').classList.add('hidden');
             document.getElementById('accountManagementContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
@@ -2996,7 +2993,6 @@
         async function viewServerMembers(serverId, serverName) {
             currentServerId = serverId;
             currentBotIdForServer = currentBotId;
-            stopBotLogPolling();
             document.getElementById('botDetailContainer').classList.add('hidden');
             document.getElementById('accountManagementContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
@@ -3097,7 +3093,6 @@
         async function viewServerEmbedBuilder(serverId, serverName) {
             currentServerId = serverId;
             currentBotIdForServer = currentBotId;
-            stopBotLogPolling();
             document.getElementById('botDetailContainer').classList.add('hidden');
             document.getElementById('accountManagementContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
@@ -3523,7 +3518,6 @@
             }
             currentServerId = serverId;
             currentBotIdForServer = currentBotId;
-            stopBotLogPolling();
             document.getElementById('botDetailContainer').classList.add('hidden');
             document.getElementById('accountManagementContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
@@ -3582,7 +3576,6 @@
         }
         function showBotDetail() {
             stopBotDetailAutoRefresh();
-            stopBotLogPolling();
             document.getElementById('serverConfigContainer').classList.add('hidden');
             document.getElementById('accountManagementContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
