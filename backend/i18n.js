@@ -32,7 +32,7 @@ function loadTranslations() {
                 const content = readFileSync(enPath, 'utf-8');
                 translations.set(defaultLang, JSON.parse(content));
             } catch (error) {
-                console.error(`Failed to load default language (${defaultLang}):`, error);
+                // Fallback: leave default language missing, use keys as-is.
             }
         }
     }

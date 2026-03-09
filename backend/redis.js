@@ -40,12 +40,14 @@ export async function getRedisClient() {
     try {
         const { createClient } = await import('redis');
         const c = createClient({ url });
-        c.on('error', (err) => console.error('Redis client error:', err.message));
+        const { default: logger } = await import('./logger.js');
+        c.on('error', (err) => logger.error('Redis client error', { error: String(err?.message || err) }));
         await c.connect();
         client = c;
         return client;
     } catch (err) {
-        console.error('Redis connection failed:', err.message);
+        const { default: logger } = await import('./logger.js');
+        logger.error('Redis connection failed', { error: String(err?.message || err) });
         return null;
     }
 }
