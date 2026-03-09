@@ -1,16 +1,15 @@
 /**
- * SigNoz doc Step 4: Instrument the default console logger.
- * Must be loaded first (before any other app code) so all console.* go to OTLP.
- * Self-hosted: no OTEL_EXPORTER_OTLP_HEADERS.
+ * Step 4 from SigNoz: Instrument the default console logger
+ * https://signoz.io/docs/logs-management/send-logs/nodejs-logs/
+ * Must be loaded first (before any other app code).
  */
 import '@opentelemetry/api-logs';
-import { getLoggerProvider } from './backend/otel-logger.js';
+import loggerProvider from './backend/otel-logger.js';
 
 const SeverityNumber = { DEBUG: 5, INFO: 9, WARN: 13, ERROR: 17 };
 
-const provider = getLoggerProvider();
-if (provider) {
-    const logger = provider.getLogger('default', '1.0.0');
+if (loggerProvider) {
+    const logger = loggerProvider.getLogger('default', '1.0.0');
     const originalConsole = {
         log: console.log,
         info: console.info,
