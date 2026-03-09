@@ -1,14 +1,35 @@
-import { formatTimestamp } from "./utils.js";
+function buildPayload(level, message, meta) {
+    const payload = {
+        level,
+        message,
+        time: new Date().toISOString()
+    };
 
-async function log(text) {
-    const timestamp = formatTimestamp(Date.now(), true);
-    const formattedText = `[${timestamp}] ${text}`;
-
-    try {
-        console.log(formattedText);
-    } catch (error) {
-        console.error('Logger error:', error?.message || error);
+    if (meta && typeof meta === 'object') {
+        payload.meta = meta;
     }
+
+    return JSON.stringify(payload);
+}
+
+function info(message, meta) {
+    const line = buildPayload('info', message, meta);
+    console.log(line);
+}
+
+function debug(message, meta) {
+    const line = buildPayload('debug', message, meta);
+    console.log(line);
+}
+
+function warn(message, meta) {
+    const line = buildPayload('warn', message, meta);
+    console.warn(line);
+}
+
+function error(message, meta) {
+    const line = buildPayload('error', message, meta);
+    console.error(line);
 }
 
 function init(client) {
@@ -17,5 +38,8 @@ function init(client) {
 
 export default {
     init,
-    log
+    info,
+    debug,
+    warn,
+    error
 };

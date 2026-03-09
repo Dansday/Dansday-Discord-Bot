@@ -7,7 +7,7 @@ let BOT_TOKEN;
     await initializeConfig();
     BOT_TOKEN = getBotToken('official');
 })().catch(err => {
-    console.error('Failed to initialize config:', err);
+    logger.error('Failed to initialize config', { error: String(err?.message || err) });
     process.exit(1);
 });
 import forwarder from "./components/forwarder.js";
@@ -36,7 +36,7 @@ const client = new Client({
 });
 
 client.on("clientReady", async () => {
-    console.log(`Official bot logged in as ${client.user.tag}`);
+    logger.info('Official bot logged in', { userTag: client.user?.tag });
 
     if (!BOT_TOKEN) {
         await initializeConfig();
@@ -67,7 +67,7 @@ client.on("clientReady", async () => {
 });
 
 function shutdown() {
-    console.log("\n🛑 Shutting down official bot...");
+    logger.warn('Shutting down official bot');
     webhook.stopWebhookServer();
     client.destroy();
     process.exit(0);
@@ -88,6 +88,6 @@ process.on("SIGTERM", shutdown);
     
     await client.login(BOT_TOKEN);
 })().catch(err => {
-    console.error('Failed to login:', err);
+    logger.error('Failed to login official bot', { error: String(err?.message || err) });
     process.exit(1);
 });

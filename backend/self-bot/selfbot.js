@@ -9,7 +9,7 @@ let BOT_TOKEN;
     await initializeConfig();
     BOT_TOKEN = getBotToken('selfbot');
 })().catch(err => {
-    console.error('Failed to initialize config:', err);
+    logger.error('Failed to initialize config', { error: String(err?.message || err) });
     process.exit(1);
 });
 const BOT_ID = process.env.BOT_ID;
@@ -17,7 +17,7 @@ const BOT_ID = process.env.BOT_ID;
 const client = new Client();
 
 client.on("ready", async () => {
-    console.log(`Self-bot logged in as ${client.user.tag}`);
+    logger.info('Self-bot logged in', { userTag: client.user?.tag });
 
     if (!BOT_TOKEN) {
         await initializeConfig();
@@ -35,7 +35,7 @@ client.on("ready", async () => {
 });
 
 function shutdown() {
-    console.log("\n🛑 Shutting down self-bot...");
+    logger.warn('Shutting down self-bot');
     client.destroy();
     process.exit(0);
 }
@@ -55,6 +55,6 @@ process.on("SIGTERM", shutdown);
     
     await client.login(BOT_TOKEN);
 })().catch(err => {
-    console.error('Failed to login:', err);
+    logger.error('Failed to login self-bot', { error: String(err?.message || err) });
     process.exit(1);
 });
