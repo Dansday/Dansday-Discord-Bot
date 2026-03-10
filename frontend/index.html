@@ -147,9 +147,9 @@
         </div>
     </div>
     <!-- Main Dashboard (hidden initially) -->
-    <div id="dashboardContainer" class="hidden w-full h-full min-h-screen overflow-x-hidden">
+    <div id="dashboardContainer" class="hidden w-full h-screen flex flex-col overflow-x-hidden">
         <!-- Header -->
-        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40">
+        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
                 <div class="flex items-center justify-between h-14 sm:h-16 py-2">
                     <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -180,7 +180,8 @@
             </div>
         </header>
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
             <!-- Dashboard Header -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
                 <div class="min-w-0">
@@ -222,9 +223,10 @@
             </div>
 
             <!-- Panel Logs Terminal removed; logs now go to console -->
+            </div>
         </main>
         <!-- Footer -->
-        <footer class="bg-ash-800 border-t border-ash-700 mt-auto">
+        <footer class="bg-ash-800 border-t border-ash-700 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
                 <p class="text-center text-ash-500 text-xs sm:text-sm">
                     Copyright © <span id="dashboardYear"></span> <a href="https://dansday.com" target="_blank"
@@ -234,9 +236,9 @@
         </footer>
     </div>
     <!-- Bot Detail View (hidden initially) -->
-    <div id="botDetailContainer" class="hidden w-full h-full min-h-screen overflow-x-hidden">
+    <div id="botDetailContainer" class="hidden w-full h-screen flex flex-col overflow-x-hidden">
         <!-- Header -->
-        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40">
+        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
                 <div class="flex items-center justify-between h-14 sm:h-16 py-2">
                     <button onclick="showDashboard()"
@@ -248,7 +250,8 @@
             </div>
         </header>
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
             <!-- Bot Header -->
             <div id="botHeader" class="bg-ash-800 rounded-xl border border-ash-700 p-4 sm:p-6 mb-4 sm:mb-6">
                 <div class="flex items-center gap-4 sm:gap-6">
@@ -323,9 +326,10 @@
                 </div>
             </div>
             <!-- Bot Logs Terminal removed; logs now go to console -->
+            </div>
         </main>
         <!-- Footer -->
-        <footer class="bg-ash-800 border-t border-ash-700 mt-auto">
+        <footer class="bg-ash-800 border-t border-ash-700 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
                 <p class="text-center text-ash-500 text-xs sm:text-sm">
                     Copyright © <span id="botDetailYear"></span> <a href="https://dansday.com" target="_blank"
@@ -337,7 +341,7 @@
     <!-- Account Management View (hidden initially) -->
     <div id="accountManagementContainer" class="hidden w-full h-full min-h-screen overflow-x-hidden">
         <!-- Header -->
-        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40">
+        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
                 <div class="flex items-center justify-between h-14 sm:h-16 py-2">
                     <button onclick="showDashboard()"
@@ -349,7 +353,8 @@
             </div>
         </header>
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
             <div class="bg-ash-800 rounded-xl border border-ash-700 p-4 sm:p-6 mb-4 sm:mb-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl sm:text-2xl font-bold text-ash-100 flex items-center gap-2">
@@ -388,9 +393,10 @@
                     </div>
                 </div>
             </div>
+            </div>
         </main>
         <!-- Footer -->
-        <footer class="bg-ash-800 border-t border-ash-700 mt-auto">
+        <footer class="bg-ash-800 border-t border-ash-700 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
                 <p class="text-center text-ash-500 text-xs sm:text-sm">
                     Copyright © <span id="accountManagementYear"></span> <a href="https://dansday.com" target="_blank"
@@ -400,9 +406,9 @@
         </footer>
     </div>
     <!-- Server Configuration View (hidden initially) -->
-    <div id="serverConfigContainer" class="hidden w-full h-full min-h-screen overflow-x-hidden">
+    <div id="serverConfigContainer" class="hidden w-full h-screen flex flex-col overflow-x-hidden">
         <!-- Header -->
-        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40">
+        <header class="bg-ash-800 border-b border-ash-700 sticky top-0 z-40 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
                 <div class="flex items-center justify-between h-14 sm:h-16 py-2">
                     <button onclick="showBotDetail()"
@@ -420,7 +426,8 @@
             </div>
         </header>
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
             <!-- Server View Navigation (Members/Configuration switcher) -->
             <div class="bg-ash-800 rounded-xl border border-ash-700 p-4 sm:p-6 mb-4 sm:mb-6">
                 <div class="flex flex-wrap gap-2 sm:gap-3" id="serverViewNav">
@@ -445,9 +452,10 @@
             <div id="componentContent" class="bg-ash-800 rounded-xl border border-ash-700 p-4 sm:p-6">
                 <!-- Component content will be rendered here -->
             </div>
+            </div>
         </main>
         <!-- Footer -->
-        <footer class="bg-ash-800 border-t border-ash-700 mt-auto">
+        <footer class="bg-ash-800 border-t border-ash-700 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
                 <p class="text-center text-ash-500 text-xs sm:text-sm">
                     Copyright © <span id="serverConfigYear"></span> <a href="https://dansday.com" target="_blank"
